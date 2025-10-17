@@ -467,3 +467,271 @@ export const validateRoomStatusUpdate = [
     .isLength({ max: 1000 })
     .withMessage('Notes must not exceed 1000 characters'),
 ];
+
+// ==================== PAYMENT VALIDATIONS ====================
+
+// Validation for payment creation
+export const validatePaymentCreate = [
+  body('tenant')
+    .isMongoId()
+    .withMessage('Valid tenant ID is required'),
+
+  body('room')
+    .isMongoId()
+    .withMessage('Valid room ID is required'),
+
+  body('amount')
+    .isFloat({ min: 0 })
+    .withMessage('Amount must be a positive number'),
+
+  body('paymentType')
+    .isIn(['rent', 'deposit', 'utility', 'maintenance', 'penalty', 'other'])
+    .withMessage('Payment type must be one of: rent, deposit, utility, maintenance, penalty, other'),
+
+  body('paymentMethod')
+    .isIn(['cash', 'bank_transfer', 'check', 'credit_card', 'debit_card', 'digital_wallet', 'money_order'])
+    .withMessage('Payment method must be one of: cash, bank_transfer, check, credit_card, debit_card, digital_wallet, money_order'),
+
+  body('paymentDate')
+    .optional()
+    .isISO8601()
+    .withMessage('Payment date must be a valid date'),
+
+  body('dueDate')
+    .isISO8601()
+    .withMessage('Due date is required and must be a valid date'),
+
+  body('status')
+    .optional()
+    .isIn(['paid', 'pending', 'overdue'])
+    .withMessage('Status must be one of: paid, pending, overdue'),
+
+  body('periodCovered.startDate')
+    .optional()
+    .isISO8601()
+    .withMessage('Period start date must be a valid date'),
+
+  body('periodCovered.endDate')
+    .optional()
+    .isISO8601()
+    .withMessage('Period end date must be a valid date')
+    .custom((value, { req }) => {
+      if (value && req.body.periodCovered?.startDate && new Date(value) <= new Date(req.body.periodCovered.startDate)) {
+        throw new Error('Period end date must be after start date');
+      }
+      return true;
+    }),
+
+  body('receiptNumber')
+    .optional()
+    .trim()
+    .isLength({ min: 1, max: 50 })
+    .withMessage('Receipt number must be between 1 and 50 characters'),
+
+  body('transactionReference')
+    .optional()
+    .trim()
+    .isLength({ min: 1, max: 100 })
+    .withMessage('Transaction reference must be between 1 and 100 characters'),
+
+  body('description')
+    .optional()
+    .trim()
+    .isLength({ max: 500 })
+    .withMessage('Description must not exceed 500 characters'),
+
+  body('notes')
+    .optional()
+    .trim()
+    .isLength({ max: 1000 })
+    .withMessage('Notes must not exceed 1000 characters'),
+
+  body('lateFee.amount')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('Late fee amount must be a positive number'),
+
+  body('lateFee.reason')
+    .optional()
+    .trim()
+    .isLength({ max: 200 })
+    .withMessage('Late fee reason must not exceed 200 characters'),
+
+  body('lateFee.isLatePayment')
+    .optional()
+    .isBoolean()
+    .withMessage('Late payment flag must be a boolean'),
+];
+
+// Validation for payment update
+export const validatePaymentUpdate = [
+  body('amount')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('Amount must be a positive number'),
+
+  body('paymentType')
+    .optional()
+    .isIn(['rent', 'deposit', 'utility', 'maintenance', 'penalty', 'other'])
+    .withMessage('Payment type must be one of: rent, deposit, utility, maintenance, penalty, other'),
+
+  body('paymentMethod')
+    .optional()
+    .isIn(['cash', 'bank_transfer', 'check', 'credit_card', 'debit_card', 'digital_wallet', 'money_order'])
+    .withMessage('Payment method must be one of: cash, bank_transfer, check, credit_card, debit_card, digital_wallet, money_order'),
+
+  body('paymentDate')
+    .optional()
+    .isISO8601()
+    .withMessage('Payment date must be a valid date'),
+
+  body('dueDate')
+    .optional()
+    .isISO8601()
+    .withMessage('Due date must be a valid date'),
+
+  body('status')
+    .optional()
+    .isIn(['paid', 'pending', 'overdue'])
+    .withMessage('Status must be one of: paid, pending, overdue'),
+
+  body('periodCovered.startDate')
+    .optional()
+    .isISO8601()
+    .withMessage('Period start date must be a valid date'),
+
+  body('periodCovered.endDate')
+    .optional()
+    .isISO8601()
+    .withMessage('Period end date must be a valid date')
+    .custom((value, { req }) => {
+      if (value && req.body.periodCovered?.startDate && new Date(value) <= new Date(req.body.periodCovered.startDate)) {
+        throw new Error('Period end date must be after start date');
+      }
+      return true;
+    }),
+
+  body('receiptNumber')
+    .optional()
+    .trim()
+    .isLength({ min: 1, max: 50 })
+    .withMessage('Receipt number must be between 1 and 50 characters'),
+
+  body('transactionReference')
+    .optional()
+    .trim()
+    .isLength({ min: 1, max: 100 })
+    .withMessage('Transaction reference must be between 1 and 100 characters'),
+
+  body('description')
+    .optional()
+    .trim()
+    .isLength({ max: 500 })
+    .withMessage('Description must not exceed 500 characters'),
+
+  body('notes')
+    .optional()
+    .trim()
+    .isLength({ max: 1000 })
+    .withMessage('Notes must not exceed 1000 characters'),
+
+  body('lateFee.amount')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('Late fee amount must be a positive number'),
+
+  body('lateFee.reason')
+    .optional()
+    .trim()
+    .isLength({ max: 200 })
+    .withMessage('Late fee reason must not exceed 200 characters'),
+
+  body('lateFee.isLatePayment')
+    .optional()
+    .isBoolean()
+    .withMessage('Late payment flag must be a boolean'),
+];
+
+// Validation for mark payment as paid
+export const validateMarkPaymentPaid = [
+  body('transactionReference')
+    .optional()
+    .trim()
+    .isLength({ min: 1, max: 100 })
+    .withMessage('Transaction reference must be between 1 and 100 characters'),
+
+  body('notes')
+    .optional()
+    .trim()
+    .isLength({ max: 1000 })
+    .withMessage('Notes must not exceed 1000 characters'),
+];
+
+// ==================== REPORT VALIDATIONS ====================
+
+// Validation for report creation
+export const validateReportCreate = [
+  body('tenant')
+    .optional()
+    .isMongoId()
+    .withMessage('Valid tenant ID is required'),
+
+  body('room')
+    .isMongoId()
+    .withMessage('Valid room ID is required'),
+
+  body('type')
+    .isIn(['maintenance', 'complaint'])
+    .withMessage('Type must be either maintenance or complaint'),
+
+  body('title')
+    .trim()
+    .isLength({ min: 3, max: 100 })
+    .withMessage('Title must be between 3 and 100 characters'),
+
+  body('description')
+    .trim()
+    .isLength({ min: 10, max: 1000 })
+    .withMessage('Description must be between 10 and 1000 characters'),
+];
+
+// Validation for report update (status change only)
+export const validateReportUpdate = [
+  body('status')
+    .isIn(['pending', 'in-progress', 'resolved', 'rejected'])
+    .withMessage('Status must be one of: pending, in-progress, resolved, rejected'),
+];
+
+// Validation for report assignment
+export const validateReportAssignment = [
+  body('assignedTo')
+    .isMongoId()
+    .withMessage('Valid user ID is required for assignment'),
+
+  body('notes')
+    .optional()
+    .trim()
+    .isLength({ max: 500 })
+    .withMessage('Notes must not exceed 500 characters'),
+];
+
+// Validation for report resolution
+export const validateReportResolution = [
+  body('resolutionNotes')
+    .trim()
+    .isLength({ min: 5, max: 1000 })
+    .withMessage('Resolution notes must be between 5 and 1000 characters'),
+
+  body('actualCost')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('Actual cost must be a positive number'),
+];
+
+// Validation for report rejection
+export const validateReportRejection = [
+  body('rejectionReason')
+    .trim()
+    .isLength({ min: 5, max: 1000 })
+    .withMessage('Rejection reason must be between 5 and 1000 characters'),
+];
