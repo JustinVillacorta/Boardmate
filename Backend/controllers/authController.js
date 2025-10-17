@@ -491,3 +491,395 @@ export const universalLogin = catchAsync(async (req, res, next) => {
 
   sendTokenResponse(user, 200, res, userType);
 });
+
+// ==================== USER & TENANT MANAGEMENT ====================
+
+// @desc    Get all staff and tenants in one response with filtering and pagination
+// @route   GET /api/auth/staff-and-tenants
+// @access  Private (Admin/Staff)
+export const getStaffAndTenants = catchAsync(async (req, res, next) => {
+  const {
+    page = 1,
+    limit = 10,
+    userType, // 'staff', 'tenant', or 'all'
+    isArchived,
+    tenantStatus,
+    isVerified,
+    hasRoom,
+    search,
+    sortBy = 'createdAt',
+    sortOrder = 'desc'
+  } = req.query;
+
+  const results = {
+    staff: [],
+    tenants: [],
+    pagination: {
+      currentPage: parseInt(page),
+      totalPages: 0,
+      totalRecords: 0,
+      hasNextPage: false,
+      hasPrevPage: parseInt(page) > 1
+    }
+  };
+
+  // If requesting staff or all
+  if (!userType || userType === 'all' || userType === 'staff') {
+    const staffQuery = { role: 'staff' };
+    
+    if (isArchived !== undefined) staffQuery.isArchived = isArchived === 'true';
+    
+    if (search) {
+      staffQuery.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    const sort = {};
+    sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
+
+    results.staff = await User.find(staffQuery)
+      .select('-__v')
+      .sort(sort);
+  }
+
+  // If requesting tenants or all
+  if (!userType || userType === 'all' || userType === 'tenant') {
+    const tenantQuery = {};
+    
+    if (tenantStatus) tenantQuery.tenantStatus = tenantStatus;
+    if (isArchived !== undefined) tenantQuery.isArchived = isArchived === 'true';
+    if (isVerified !== undefined) tenantQuery.isVerified = isVerified === 'true';
+    
+    if (hasRoom === 'true') {
+      tenantQuery.room = { $ne: null };
+    } else if (hasRoom === 'false') {
+      tenantQuery.room = null;
+    }
+
+    if (search) {
+      tenantQuery.$or = [
+        { firstName: { $regex: search, $options: 'i' } },
+        { lastName: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+        { phoneNumber: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    const sort = {};
+    sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
+
+    results.tenants = await Tenant.find(tenantQuery)
+      .select('-__v')
+      .populate('room', 'roomNumber roomType monthlyRent status')
+      .sort(sort);
+  }
+
+  // Combine and paginate results
+  const allRecords = [
+    ...results.staff.map(staff => ({ ...staff.toObject(), type: 'staff' })),
+    ...results.tenants.map(tenant => ({ ...tenant.toObject(), type: 'tenant' }))
+  ];
+
+  // Apply pagination to combined results
+  const skip = (parseInt(page) - 1) * parseInt(limit);
+  const paginatedRecords = allRecords.slice(skip, skip + parseInt(limit));
+
+  // Update pagination info
+  results.pagination.totalRecords = allRecords.length;
+  results.pagination.totalPages = Math.ceil(allRecords.length / parseInt(limit));
+  results.pagination.hasNextPage = skip + paginatedRecords.length < allRecords.length;
+
+  res.status(200).json({
+    success: true,
+    data: {
+      records: paginatedRecords,
+      summary: {
+        totalStaff: results.staff.length,
+        totalTenants: results.tenants.length,
+        totalRecords: allRecords.length
+      },
+      pagination: results.pagination
+    }
+  });
+});
+
+// @desc    Get all staff users (Staff only, no admin) with filtering and pagination
+// @route   GET /api/auth/users
+// @access  Private (Admin/Staff)
+export const getUsers = catchAsync(async (req, res, next) => {
+  const {
+    page = 1,
+    limit = 10,
+    isArchived,
+    search,
+    sortBy = 'createdAt',
+    sortOrder = 'desc'
+  } = req.query;
+
+  // Build query - only get staff users, exclude admin
+  const query = { role: 'staff' };
+
+  if (isArchived !== undefined) query.isArchived = isArchived === 'true';
+
+  // Search functionality
+  if (search) {
+    query.$or = [
+      { name: { $regex: search, $options: 'i' } },
+      { email: { $regex: search, $options: 'i' } }
+    ];
+  }
+
+  // Pagination
+  const skip = (parseInt(page) - 1) * parseInt(limit);
+
+  // Sort options
+  const sort = {};
+  sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
+
+  // Execute query
+  const users = await User.find(query)
+    .select('-__v')
+    .sort(sort)
+    .skip(skip)
+    .limit(parseInt(limit));
+
+  // Get total count for pagination
+  const total = await User.countDocuments(query);
+
+  res.status(200).json({
+    success: true,
+    data: {
+      staff: users,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(total / parseInt(limit)),
+        totalStaff: total,
+        hasNextPage: skip + users.length < total,
+        hasPrevPage: parseInt(page) > 1
+      }
+    }
+  });
+});
+
+// @desc    Get all tenants with filtering and pagination
+// @route   GET /api/auth/tenants
+// @access  Private (Admin/Staff)
+export const getTenants = catchAsync(async (req, res, next) => {
+  const {
+    page = 1,
+    limit = 10,
+    tenantStatus,
+    isArchived,
+    isVerified,
+    hasRoom,
+    search,
+    sortBy = 'createdAt',
+    sortOrder = 'desc'
+  } = req.query;
+
+  // Build query
+  const query = {};
+
+  if (tenantStatus) query.tenantStatus = tenantStatus;
+  if (isArchived !== undefined) query.isArchived = isArchived === 'true';
+  if (isVerified !== undefined) query.isVerified = isVerified === 'true';
+  
+  // Filter by room assignment
+  if (hasRoom === 'true') {
+    query.room = { $ne: null };
+  } else if (hasRoom === 'false') {
+    query.room = null;
+  }
+
+  // Search functionality
+  if (search) {
+    query.$or = [
+      { firstName: { $regex: search, $options: 'i' } },
+      { lastName: { $regex: search, $options: 'i' } },
+      { email: { $regex: search, $options: 'i' } },
+      { phoneNumber: { $regex: search, $options: 'i' } }
+    ];
+  }
+
+  // Pagination
+  const skip = (parseInt(page) - 1) * parseInt(limit);
+
+  // Sort options
+  const sort = {};
+  sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
+
+  // Execute query
+  const tenants = await Tenant.find(query)
+    .select('-__v')
+    .populate('room', 'roomNumber roomType monthlyRent status')
+    .sort(sort)
+    .skip(skip)
+    .limit(parseInt(limit));
+
+  // Get total count for pagination
+  const total = await Tenant.countDocuments(query);
+
+  res.status(200).json({
+    success: true,
+    data: {
+      tenants,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(total / parseInt(limit)),
+        totalTenants: total,
+        hasNextPage: skip + tenants.length < total,
+        hasPrevPage: parseInt(page) > 1
+      }
+    }
+  });
+});
+
+// @desc    Get only tenants (more detailed view for tenant management)
+// @route   GET /api/auth/tenants-only
+// @access  Private (Admin/Staff)
+export const getTenantsOnly = catchAsync(async (req, res, next) => {
+  const {
+    page = 1,
+    limit = 10,
+    tenantStatus,
+    isArchived,
+    isVerified,
+    hasRoom,
+    hasActiveLease,
+    search,
+    sortBy = 'createdAt',
+    sortOrder = 'desc',
+    includeRoom = 'true',
+    includePayments = 'false'
+  } = req.query;
+
+  // Build query
+  const query = {};
+
+  if (tenantStatus) query.tenantStatus = tenantStatus;
+  if (isArchived !== undefined) query.isArchived = isArchived === 'true';
+  if (isVerified !== undefined) query.isVerified = isVerified === 'true';
+  
+  // Filter by room assignment
+  if (hasRoom === 'true') {
+    query.room = { $ne: null };
+  } else if (hasRoom === 'false') {
+    query.room = null;
+  }
+
+  // Filter by active lease
+  if (hasActiveLease === 'true') {
+    const today = new Date();
+    query.leaseStartDate = { $lte: today };
+    query.$or = [
+      { leaseEndDate: { $exists: false } },
+      { leaseEndDate: null },
+      { leaseEndDate: { $gte: today } }
+    ];
+  }
+
+  // Search functionality
+  if (search) {
+    query.$or = [
+      { firstName: { $regex: search, $options: 'i' } },
+      { lastName: { $regex: search, $options: 'i' } },
+      { email: { $regex: search, $options: 'i' } },
+      { phoneNumber: { $regex: search, $options: 'i' } },
+      { occupation: { $regex: search, $options: 'i' } },
+      { idNumber: { $regex: search, $options: 'i' } }
+    ];
+  }
+
+  // Pagination
+  const skip = (parseInt(page) - 1) * parseInt(limit);
+
+  // Sort options
+  const sort = {};
+  sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
+
+  // Build population options
+  let populateOptions = [];
+  if (includeRoom === 'true') {
+    populateOptions.push({
+      path: 'room',
+      select: 'roomNumber roomType monthlyRent securityDeposit status floor amenities'
+    });
+  }
+
+  // Execute query
+  let query_builder = Tenant.find(query)
+    .select('-__v -password')
+    .sort(sort)
+    .skip(skip)
+    .limit(parseInt(limit));
+
+  // Add population if requested
+  if (populateOptions.length > 0) {
+    populateOptions.forEach(pop => {
+      query_builder = query_builder.populate(pop);
+    });
+  }
+
+  const tenants = await query_builder.exec();
+
+  // Get additional data if payments are requested
+  if (includePayments === 'true') {
+    // This would require the Payment model - for now we'll skip this
+    // In a full implementation, you'd populate payment data here
+  }
+
+  // Get total count for pagination
+  const total = await Tenant.countDocuments(query);
+
+  // Get summary statistics
+  const stats = await Tenant.aggregate([
+    { $match: query },
+    {
+      $group: {
+        _id: null,
+        totalTenants: { $sum: 1 },
+        activeTenants: {
+          $sum: { $cond: [{ $eq: ['$tenantStatus', 'active'] }, 1, 0] }
+        },
+        inactiveTenants: {
+          $sum: { $cond: [{ $eq: ['$tenantStatus', 'inactive'] }, 1, 0] }
+        },
+        pendingTenants: {
+          $sum: { $cond: [{ $eq: ['$tenantStatus', 'pending'] }, 1, 0] }
+        },
+        verifiedTenants: {
+          $sum: { $cond: [{ $eq: ['$isVerified', true] }, 1, 0] }
+        },
+        tenantsWithRooms: {
+          $sum: { $cond: [{ $ne: ['$room', null] }, 1, 0] }
+        }
+      }
+    }
+  ]);
+
+  const summary = stats[0] || {
+    totalTenants: 0,
+    activeTenants: 0,
+    inactiveTenants: 0,
+    pendingTenants: 0,
+    verifiedTenants: 0,
+    tenantsWithRooms: 0
+  };
+
+  res.status(200).json({
+    success: true,
+    data: {
+      tenants,
+      summary,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(total / parseInt(limit)),
+        totalTenants: total,
+        hasNextPage: skip + tenants.length < total,
+        hasPrevPage: parseInt(page) > 1
+      }
+    }
+  });
+});

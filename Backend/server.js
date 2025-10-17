@@ -7,6 +7,7 @@ import dotenv from 'dotenv';
 
 // Import routes
 import authRoutes from './routes/authRoutes.js';
+import roomRoutes from './routes/roomRoutes.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
 // Load environment variables
@@ -37,6 +38,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/rooms', roomRoutes);
 
 // Health check route
 app.get('/api/health', (req, res) => {

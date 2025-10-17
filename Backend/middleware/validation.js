@@ -259,3 +259,211 @@ export const validateTenantUpdateDetails = [
 
 // Validation for updating tenant password (same as user password update)
 export const validateTenantUpdatePassword = validateUpdatePassword;
+
+// ==================== ROOM VALIDATIONS ====================
+
+// Validation for room creation
+export const validateRoomCreate = [
+  body('roomNumber')
+    .trim()
+    .isLength({ min: 1, max: 10 })
+    .withMessage('Room number is required and must not exceed 10 characters')
+    .matches(/^[a-zA-Z0-9\-]+$/)
+    .withMessage('Room number can only contain letters, numbers, and hyphens'),
+
+  body('roomType')
+    .isIn(['single', 'double', 'triple', 'quad'])
+    .withMessage('Room type must be one of: single, double, triple, quad'),
+
+  body('capacity')
+    .isInt({ min: 1, max: 4 })
+    .withMessage('Capacity must be between 1 and 4'),
+
+  body('monthlyRent')
+    .isFloat({ min: 0 })
+    .withMessage('Monthly rent must be a positive number'),
+
+  body('securityDeposit')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('Security deposit must be a positive number'),
+
+  body('description')
+    .optional()
+    .trim()
+    .isLength({ max: 500 })
+    .withMessage('Description must not exceed 500 characters'),
+
+  body('amenities')
+    .optional()
+    .isArray()
+    .withMessage('Amenities must be an array'),
+
+  body('amenities.*')
+    .optional()
+    .trim()
+    .isLength({ min: 1, max: 50 })
+    .withMessage('Each amenity must be between 1 and 50 characters'),
+
+  body('floor')
+    .optional()
+    .isInt({ min: 0 })
+    .withMessage('Floor must be a non-negative integer'),
+
+  body('area')
+    .optional()
+    .isFloat({ min: 1 })
+    .withMessage('Area must be a positive number'),
+
+  body('status')
+    .optional()
+    .isIn(['available', 'occupied', 'maintenance', 'unavailable'])
+    .withMessage('Status must be one of: available, occupied, maintenance, unavailable'),
+
+  body('images')
+    .optional()
+    .isArray()
+    .withMessage('Images must be an array'),
+
+  body('images.*')
+    .optional()
+    .trim()
+    .isURL()
+    .withMessage('Each image must be a valid URL'),
+
+  body('notes')
+    .optional()
+    .trim()
+    .isLength({ max: 1000 })
+    .withMessage('Notes must not exceed 1000 characters'),
+
+  body('nextMaintenanceDate')
+    .optional()
+    .isISO8601()
+    .withMessage('Next maintenance date must be a valid date'),
+];
+
+// Validation for room update
+export const validateRoomUpdate = [
+  body('roomNumber')
+    .optional()
+    .trim()
+    .isLength({ min: 1, max: 10 })
+    .withMessage('Room number must not exceed 10 characters')
+    .matches(/^[a-zA-Z0-9\-]+$/)
+    .withMessage('Room number can only contain letters, numbers, and hyphens'),
+
+  body('roomType')
+    .optional()
+    .isIn(['single', 'double', 'triple', 'quad'])
+    .withMessage('Room type must be one of: single, double, triple, quad'),
+
+  body('capacity')
+    .optional()
+    .isInt({ min: 1, max: 4 })
+    .withMessage('Capacity must be between 1 and 4'),
+
+  body('monthlyRent')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('Monthly rent must be a positive number'),
+
+  body('securityDeposit')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('Security deposit must be a positive number'),
+
+  body('description')
+    .optional()
+    .trim()
+    .isLength({ max: 500 })
+    .withMessage('Description must not exceed 500 characters'),
+
+  body('amenities')
+    .optional()
+    .isArray()
+    .withMessage('Amenities must be an array'),
+
+  body('amenities.*')
+    .optional()
+    .trim()
+    .isLength({ min: 1, max: 50 })
+    .withMessage('Each amenity must be between 1 and 50 characters'),
+
+  body('floor')
+    .optional()
+    .isInt({ min: 0 })
+    .withMessage('Floor must be a non-negative integer'),
+
+  body('area')
+    .optional()
+    .isFloat({ min: 1 })
+    .withMessage('Area must be a positive number'),
+
+  body('images')
+    .optional()
+    .isArray()
+    .withMessage('Images must be an array'),
+
+  body('images.*')
+    .optional()
+    .trim()
+    .isURL()
+    .withMessage('Each image must be a valid URL'),
+
+  body('notes')
+    .optional()
+    .trim()
+    .isLength({ max: 1000 })
+    .withMessage('Notes must not exceed 1000 characters'),
+
+  body('nextMaintenanceDate')
+    .optional()
+    .isISO8601()
+    .withMessage('Next maintenance date must be a valid date'),
+];
+
+// Validation for tenant assignment
+export const validateTenantAssignment = [
+  body('tenantId')
+    .isMongoId()
+    .withMessage('Valid tenant ID is required'),
+
+  body('leaseStartDate')
+    .isISO8601()
+    .withMessage('Valid lease start date is required'),
+
+  body('leaseEndDate')
+    .optional()
+    .isISO8601()
+    .withMessage('Lease end date must be a valid date')
+    .custom((value, { req }) => {
+      if (value && req.body.leaseStartDate && new Date(value) <= new Date(req.body.leaseStartDate)) {
+        throw new Error('Lease end date must be after start date');
+      }
+      return true;
+    }),
+
+  body('monthlyRent')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('Monthly rent must be a positive number'),
+
+  body('securityDeposit')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('Security deposit must be a positive number'),
+];
+
+// Validation for room status update
+export const validateRoomStatusUpdate = [
+  body('status')
+    .isIn(['available', 'occupied', 'maintenance', 'unavailable'])
+    .withMessage('Status must be one of: available, occupied, maintenance, unavailable'),
+
+  body('notes')
+    .optional()
+    .trim()
+    .isLength({ max: 1000 })
+    .withMessage('Notes must not exceed 1000 characters'),
+];

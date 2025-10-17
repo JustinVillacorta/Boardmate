@@ -18,6 +18,18 @@ Backend server for Boardmate - A comprehensive boarding house management system 
 - ✅ Input validation and sanitization
 - ✅ Rate limiting for security
 
+### Room Management System
+- ✅ **Complete Room CRUD**: Create, read, update, delete rooms
+- ✅ **Tenant Assignment**: Assign/remove tenants to/from rooms
+- ✅ **Smart Occupancy Tracking**: Automatic capacity and status management
+- ✅ **Room Filtering & Search**: Advanced search with multiple filters
+- ✅ **Availability Management**: Real-time room availability tracking
+- ✅ **Statistics & Analytics**: Room occupancy and revenue statistics
+- ✅ **Status Management**: Room status (available, occupied, maintenance, unavailable)
+- ✅ **Maintenance Tracking**: Schedule and track room maintenance
+- ✅ **Multi-tenant Support**: Rooms can accommodate multiple tenants based on capacity
+- ✅ **Lease Management**: Automatic lease information updates during assignment
+
 ### Security Features
 - JWT token authentication
 - Password encryption
@@ -45,20 +57,24 @@ Backend server for Boardmate - A comprehensive boarding house management system 
 ```
 Backend/
 ├── controllers/
-│   └── authController.js      # Authentication logic
+│   ├── authController.js      # Authentication business logic
+│   └── roomController.js      # Room management logic
 ├── middleware/
 │   ├── auth.js               # Authentication middleware
 │   ├── validation.js         # Input validation
 │   └── errorHandler.js       # Global error handling
 ├── models/
 │   ├── User.js               # User model (Admin/Staff)
-│   └── Tenant.js             # Tenant model with comprehensive profile
+│   ├── Tenant.js             # Tenant model with comprehensive profile
+│   └── Room.js               # Room model with tenant assignment methods
 ├── routes/
 │   ├── authRoutes.js         # Main authentication routes
-│   └── tenantRoutes.js       # Tenant-specific routes
+│   ├── tenantRoutes.js       # Tenant-specific routes
+│   └── roomRoutes.js         # Room management routes
 ├── utils/
 │   ├── AppError.js           # Custom error class
-│   └── catchAsync.js         # Async error handler
+│   ├── catchAsync.js         # Async error handler
+│   └── roomUtils.js          # Room utility functions
 ├── .env                      # Environment variables
 ├── .gitignore               # Git ignore rules
 ├── package.json             # Dependencies and scripts
@@ -119,6 +135,25 @@ npm run dev
 - `PUT /api/auth/tenant/updatedetails` - Update tenant details
 - `PUT /api/auth/tenant/updatepassword` - Update tenant password
 - `DELETE /api/auth/tenant/archive` - Archive tenant account
+
+### Room Management Routes (`/api/rooms`)
+
+#### Shared Routes (Admin/Staff/Tenant Access)
+- `GET /api/rooms/available` - Get available rooms with filters
+
+#### Tenant-Only Routes
+- `GET /api/rooms/my-room` - Get tenant's assigned room
+
+#### Admin/Staff Routes
+- `GET /api/rooms` - Get all rooms with filtering & pagination
+- `POST /api/rooms` - Create new room
+- `GET /api/rooms/stats` - Get room occupancy statistics
+- `GET /api/rooms/:id` - Get single room details
+- `PUT /api/rooms/:id` - Update room details
+- `DELETE /api/rooms/:id` - Delete room (Admin only)
+- `PATCH /api/rooms/:id/status` - Update room status
+- `POST /api/rooms/:id/assign-tenant` - Assign tenant to room
+- `DELETE /api/rooms/:id/remove-tenant/:tenantId` - Remove tenant from room
 
 ### Other Routes
 - `GET /api/health` - Health check endpoint
@@ -258,6 +293,71 @@ Content-Type: application/json
     "phoneNumber": "+0987654321"
   }
 }
+```
+
+### Create Room (Admin/Staff)
+```javascript
+POST /api/rooms
+Authorization: Bearer <admin-jwt-token>
+Content-Type: application/json
+
+{
+  "roomNumber": "101",
+  "roomType": "double",
+  "capacity": 2,
+  "monthlyRent": 500,
+  "securityDeposit": 250,
+  "description": "Spacious double room with city view",
+  "amenities": ["WiFi", "Air Conditioning", "Private Bathroom"],
+  "floor": 1,
+  "area": 25.5,
+  "images": ["https://example.com/room1.jpg"]
+}
+```
+
+### Get Available Rooms
+```javascript
+GET /api/rooms/available?roomType=double&maxRent=600
+Authorization: Bearer <your-jwt-token>
+```
+
+### Assign Tenant to Room (Admin/Staff)
+```javascript
+POST /api/rooms/507f1f77bcf86cd799439011/assign-tenant
+Authorization: Bearer <admin-jwt-token>
+Content-Type: application/json
+
+{
+  "tenantId": "507f1f77bcf86cd799439012",
+  "leaseStartDate": "2023-12-01",
+  "leaseEndDate": "2024-11-30",
+  "monthlyRent": 550,
+  "securityDeposit": 275
+}
+```
+
+### Get Room Statistics (Admin/Staff)
+```javascript
+GET /api/rooms/stats
+Authorization: Bearer <admin-jwt-token>
+```
+
+### Update Room Status (Admin/Staff)
+```javascript
+PATCH /api/rooms/507f1f77bcf86cd799439011/status
+Authorization: Bearer <admin-jwt-token>
+Content-Type: application/json
+
+{
+  "status": "maintenance",
+  "notes": "Plumbing repair scheduled for next week"
+}
+```
+
+### Get My Room (Tenant)
+```javascript
+GET /api/rooms/my-room
+Authorization: Bearer <tenant-jwt-token>
 ```
 
 ## Response Format
@@ -478,6 +578,80 @@ Content-Type: application/json
 }
 ```
 
+## Room Model Schema
+
+```javascript
+{
+  roomNumber: {
+    type: String,
+    required: true,
+    unique: true,
+    trim: true,
+    maxlength: 10,
+  },
+  roomType: {
+    type: String,
+    enum: ['single', 'double', 'triple', 'quad'],
+    required: true,
+    lowercase: true,
+  },
+  capacity: { 
+    type: Number, 
+    required: true, 
+    min: 1, 
+    max: 4 
+  },
+  monthlyRent: { 
+    type: Number, 
+    required: true, 
+    min: 0 
+  },
+  securityDeposit: { 
+    type: Number, 
+    default: 0, 
+    min: 0 
+  },
+  description: { 
+    type: String, 
+    trim: true, 
+    maxlength: 500 
+  },
+  amenities: [{ 
+    type: String, 
+    trim: true 
+  }],
+  floor: { 
+    type: Number, 
+    min: 0 
+  },
+  area: { 
+    type: Number, 
+    min: 1 
+  },
+  status: {
+    type: String,
+    enum: ['available', 'occupied', 'maintenance', 'unavailable'],
+    default: 'available',
+    lowercase: true,
+  },
+  tenants: [{ 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'Tenant' 
+  }],
+  occupancy: {
+    current: { type: Number, default: 0, min: 0 },
+    max: { type: Number, min: 1 },
+  },
+  isActive: { type: Boolean, default: true },
+  images: [{ type: String, trim: true }],
+  notes: { type: String, trim: true, maxlength: 1000 },
+  lastMaintenanceDate: Date,
+  nextMaintenanceDate: Date,
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+}
+```
+
 ## Validation Rules
 
 ### Registration
@@ -532,6 +706,34 @@ Content-Type: application/json
 - **Current Password**: Required
 - **New Password**: Same rules as registration password
 - **Confirm Password**: Must match new password
+
+## Room Validation Rules
+
+### Room Creation/Update
+- **Room Number**: Required, max 10 characters, alphanumeric and hyphens only, unique
+- **Room Type**: Must be one of: single, double, triple, quad
+- **Capacity**: Required, integer between 1 and 4
+- **Monthly Rent**: Required, positive number
+- **Security Deposit**: Optional, positive number
+- **Description**: Optional, max 500 characters
+- **Amenities**: Optional array of strings, each max 50 characters
+- **Floor**: Optional, non-negative integer
+- **Area**: Optional, positive number
+- **Status**: Must be one of: available, occupied, maintenance, unavailable
+- **Images**: Optional array of valid URLs
+- **Notes**: Optional, max 1000 characters
+- **Next Maintenance Date**: Optional, valid date
+
+### Tenant Assignment
+- **Tenant ID**: Required, valid MongoDB ObjectId
+- **Lease Start Date**: Required, valid ISO date
+- **Lease End Date**: Optional, valid ISO date, must be after start date
+- **Monthly Rent**: Optional, positive number (uses room rent if not provided)
+- **Security Deposit**: Optional, positive number (uses room deposit if not provided)
+
+### Room Status Update
+- **Status**: Required, must be one of: available, occupied, maintenance, unavailable
+- **Notes**: Optional, max 1000 characters
 
 ## Middleware
 

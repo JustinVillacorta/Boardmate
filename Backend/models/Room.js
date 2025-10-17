@@ -1,0 +1,317 @@
+import mongoose from 'mongoose';
+
+const roomSchema = new mongoose.Schema({
+  roomNumber: {
+    type: String,
+    required: true,
+    unique: true,
+    trim: true,
+    maxlength: 10,
+  },
+  roomType: {
+    type: String,
+    enum: ['single', 'double', 'triple', 'quad'],
+    required: true,
+    lowercase: true,
+  },
+  capacity: { 
+    type: Number, 
+    required: true, 
+    min: 1, 
+    max: 4 
+  },
+  monthlyRent: { 
+    type: Number, 
+    required: true, 
+    min: 0 
+  },
+  securityDeposit: { 
+    type: Number, 
+    default: 0, 
+    min: 0 
+  },
+  description: { 
+    type: String, 
+    trim: true, 
+    maxlength: 500 
+  },
+  amenities: [{ 
+    type: String, 
+    trim: true 
+  }],
+  floor: { 
+    type: Number, 
+    min: 0 
+  },
+  area: { 
+    type: Number, 
+    min: 1 
+  },
+  status: {
+    type: String,
+    enum: ['available', 'occupied', 'maintenance', 'unavailable'],
+    default: 'available',
+    lowercase: true,
+  },
+  tenants: [{ 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'Tenant' 
+  }],
+  occupancy: {
+    current: { 
+      type: Number, 
+      default: 0, 
+      min: 0 
+    },
+    max: { 
+      type: Number, 
+      min: 1 
+    },
+  },
+  isActive: { 
+    type: Boolean, 
+    default: true 
+  },
+  // Additional fields for better management
+  images: [{ 
+    type: String, 
+    trim: true 
+  }],
+  notes: { 
+    type: String, 
+    trim: true, 
+    maxlength: 1000 
+  },
+  lastMaintenanceDate: Date,
+  nextMaintenanceDate: Date,
+  createdBy: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'User' 
+  },
+  updatedBy: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'User' 
+  },
+}, { 
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
+});
+
+// Indexes for performance
+roomSchema.index({ roomNumber: 1 });
+roomSchema.index({ status: 1 });
+roomSchema.index({ roomType: 1 });
+roomSchema.index({ floor: 1 });
+roomSchema.index({ isActive: 1 });
+roomSchema.index({ 'occupancy.current': 1 });
+
+// Virtual for availability status
+roomSchema.virtual('isAvailable').get(function() {
+  return this.status === 'available' && 
+         this.isActive && 
+         this.occupancy.current < this.capacity;
+});
+
+// Virtual for occupancy rate
+roomSchema.virtual('occupancyRate').get(function() {
+  return this.capacity > 0 ? (this.occupancy.current / this.capacity) * 100 : 0;
+});
+
+// Virtual for remaining capacity
+roomSchema.virtual('remainingCapacity').get(function() {
+  return Math.max(0, this.capacity - this.occupancy.current);
+});
+
+// Pre-save middleware to update occupancy and status
+roomSchema.pre('save', async function(next) {
+  // Update current occupancy based on tenants array
+  if (this.isModified('tenants')) {
+    this.occupancy.current = this.tenants.length;
+    
+    // Auto-update status based on occupancy
+    if (this.occupancy.current === 0) {
+      this.status = 'available';
+    } else if (this.occupancy.current >= this.capacity) {
+      this.status = 'occupied';
+    } else if (this.occupancy.current > 0 && this.status === 'available') {
+      this.status = 'occupied'; // Partially occupied
+    }
+  }
+
+  // Set max occupancy if not set
+  if (!this.occupancy.max) {
+    this.occupancy.max = this.capacity;
+  }
+
+  next();
+});
+
+// Instance method to add tenant
+roomSchema.methods.addTenant = async function(tenantId) {
+  // Check if room has capacity
+  if (this.occupancy.current >= this.capacity) {
+    throw new Error('Room is at full capacity');
+  }
+
+  // Check if tenant is already assigned
+  if (this.tenants.includes(tenantId)) {
+    throw new Error('Tenant is already assigned to this room');
+  }
+
+  // Add tenant
+  this.tenants.push(tenantId);
+  
+  // Save room (this will trigger pre-save middleware)
+  await this.save();
+
+  // Update tenant's room reference
+  const Tenant = mongoose.model('Tenant');
+  await Tenant.findByIdAndUpdate(tenantId, { room: this._id });
+
+  return this;
+};
+
+// Instance method to remove tenant
+roomSchema.methods.removeTenant = async function(tenantId) {
+  // Check if tenant is assigned to this room
+  const tenantIndex = this.tenants.indexOf(tenantId);
+  if (tenantIndex === -1) {
+    throw new Error('Tenant is not assigned to this room');
+  }
+
+  // Remove tenant
+  this.tenants.splice(tenantIndex, 1);
+  
+  // Save room (this will trigger pre-save middleware)
+  await this.save();
+
+  // Update tenant's room reference
+  const Tenant = mongoose.model('Tenant');
+  await Tenant.findByIdAndUpdate(tenantId, { 
+    room: null,
+    tenantStatus: 'inactive'
+  });
+
+  return this;
+};
+
+// Instance method to get room details with tenant info
+roomSchema.methods.getFullDetails = function() {
+  return this.populate('tenants', 'firstName lastName email phoneNumber tenantStatus');
+};
+
+// Static method to find available rooms
+roomSchema.statics.findAvailable = function(options = {}) {
+  const query = {
+    isActive: true,
+    status: 'available',
+    $expr: { $lt: ['$occupancy.current', '$capacity'] }
+  };
+
+  // Add optional filters
+  if (options.roomType) {
+    query.roomType = options.roomType;
+  }
+  if (options.floor !== undefined) {
+    query.floor = options.floor;
+  }
+  if (options.minArea) {
+    query.area = { $gte: options.minArea };
+  }
+  if (options.maxRent) {
+    query.monthlyRent = { $lte: options.maxRent };
+  }
+
+  return this.find(query).populate('tenants', 'firstName lastName tenantStatus');
+};
+
+// Static method to find rooms by status
+roomSchema.statics.findByStatus = function(status) {
+  return this.find({ status, isActive: true }).populate('tenants');
+};
+
+// Static method to find rooms needing maintenance
+roomSchema.statics.findNeedingMaintenance = function() {
+  const today = new Date();
+  return this.find({
+    isActive: true,
+    $or: [
+      { status: 'maintenance' },
+      { nextMaintenanceDate: { $lte: today } }
+    ]
+  });
+};
+
+// Static method to get occupancy statistics
+roomSchema.statics.getOccupancyStats = async function() {
+  const stats = await this.aggregate([
+    { $match: { isActive: true } },
+    {
+      $group: {
+        _id: null,
+        totalRooms: { $sum: 1 },
+        totalCapacity: { $sum: '$capacity' },
+        totalOccupied: { $sum: '$occupancy.current' },
+        availableRooms: {
+          $sum: {
+            $cond: [
+              { $eq: ['$status', 'available'] },
+              1,
+              0
+            ]
+          }
+        },
+        occupiedRooms: {
+          $sum: {
+            $cond: [
+              { $eq: ['$status', 'occupied'] },
+              1,
+              0
+            ]
+          }
+        },
+        maintenanceRooms: {
+          $sum: {
+            $cond: [
+              { $eq: ['$status', 'maintenance'] },
+              1,
+              0
+            ]
+          }
+        },
+        unavailableRooms: {
+          $sum: {
+            $cond: [
+              { $eq: ['$status', 'unavailable'] },
+              1,
+              0
+            ]
+          }
+        }
+      }
+    }
+  ]);
+
+  const result = stats[0] || {
+    totalRooms: 0,
+    totalCapacity: 0,
+    totalOccupied: 0,
+    availableRooms: 0,
+    occupiedRooms: 0,
+    maintenanceRooms: 0,
+    unavailableRooms: 0
+  };
+
+  result.occupancyRate = result.totalCapacity > 0 
+    ? (result.totalOccupied / result.totalCapacity) * 100 
+    : 0;
+  
+  result.availabilityRate = result.totalRooms > 0 
+    ? (result.availableRooms / result.totalRooms) * 100 
+    : 0;
+
+  return result;
+};
+
+export default mongoose.model('Room', roomSchema);
