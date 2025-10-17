@@ -1,2 +1,2 @@
-# Boardermate
-Boardermate: Boarding House Management System
+# Boardmate
+Boardmate: Boarding House Management System
