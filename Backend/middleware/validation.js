@@ -702,6 +702,36 @@ export const validateReportUpdate = [
     .withMessage('Status must be one of: pending, in-progress, resolved, rejected'),
 ];
 
+// ==================== NOTIFICATION VALIDATIONS ====================
+
+// Validation for announcement creation
+export const validateAnnouncement = [
+  body('title')
+    .trim()
+    .isLength({ min: 3, max: 200 })
+    .withMessage('Title must be between 3 and 200 characters'),
+
+  body('message')
+    .trim()
+    .isLength({ min: 10, max: 1000 })
+    .withMessage('Message must be between 10 and 1000 characters'),
+
+  body('userIds')
+    .optional()
+    .isArray()
+    .withMessage('User IDs must be an array'),
+
+  body('userIds.*')
+    .optional()
+    .isMongoId()
+    .withMessage('Each user ID must be a valid MongoDB ObjectId'),
+
+  body('expiresAt')
+    .optional()
+    .isISO8601()
+    .withMessage('Expires at must be a valid date'),
+];
+
 // Validation for report assignment
 export const validateReportAssignment = [
   body('assignedTo')

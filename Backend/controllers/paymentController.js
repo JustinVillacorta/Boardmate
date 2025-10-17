@@ -6,6 +6,7 @@ import { AppError } from '../utils/AppError.js';
 import { catchAsync } from '../utils/catchAsync.js';
 import { generateReceiptPDF } from '../utils/receiptGenerator.js';
 import { generateReceiptHTML } from '../utils/receiptHTMLGenerator.js';
+import NotificationService from '../utils/notificationService.js';
 
 // @desc    Create new payment record
 // @route   POST /api/payments
@@ -69,6 +70,11 @@ export const createPayment = catchAsync(async (req, res, next) => {
     { path: 'room', select: 'roomNumber roomType monthlyRent' },
     { path: 'recordedBy', select: 'name email role' }
   ]);
+
+  // Create payment due notification if payment is pending and due soon
+  if (payment.status === 'pending') {
+    await NotificationService.createPaymentDueNotification(payment);
+  }
 
   res.status(201).json({
     success: true,

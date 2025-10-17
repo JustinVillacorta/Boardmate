@@ -4,6 +4,7 @@ import Tenant from '../models/Tenant.js';
 import Room from '../models/Room.js';
 import { AppError } from '../utils/AppError.js';
 import { catchAsync } from '../utils/catchAsync.js';
+import NotificationService from '../utils/notificationService.js';
 
 // @desc    Create new report
 // @route   POST /api/reports
@@ -71,6 +72,9 @@ export const createReport = catchAsync(async (req, res, next) => {
     { path: 'tenant', select: 'firstName lastName email phoneNumber' },
     { path: 'room', select: 'roomNumber roomType floor' }
   ]);
+
+  // Create notification for report creation
+  await NotificationService.createReportNotification(report, req.user.id);
 
   res.status(201).json({
     success: true,
@@ -261,6 +265,8 @@ export const updateReport = catchAsync(async (req, res, next) => {
     return next(new AppError('Status is required', 400));
   }
 
+  const oldStatus = report.status;
+
   // Update status
   report.status = status;
   await report.save();
@@ -270,6 +276,11 @@ export const updateReport = catchAsync(async (req, res, next) => {
     { path: 'tenant', select: 'firstName lastName email phoneNumber' },
     { path: 'room', select: 'roomNumber roomType floor' }
   ]);
+
+  // Create notification for status update
+  if (oldStatus !== status) {
+    await NotificationService.createReportStatusNotification(report, req.user.id, oldStatus);
+  }
 
   res.status(200).json({
     success: true,

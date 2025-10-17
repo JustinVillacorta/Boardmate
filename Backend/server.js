@@ -10,7 +10,9 @@ import authRoutes from './routes/authRoutes.js';
 import roomRoutes from './routes/roomRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
 import reportRoutes from './routes/reportRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import CronJobs from './utils/cronJobs.js';
 
 // Load environment variables
 dotenv.config();
@@ -43,6 +45,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/rooms', roomRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Health check route
 app.get('/api/health', (req, res) => {
@@ -81,6 +84,9 @@ const PORT = process.env.PORT || 5000;
 const startServer = async () => {
   await connectDB();
   
+  // Start cron jobs for notifications
+  CronJobs.startJobs();
+  
   app.listen(PORT, () => {
     console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
   });
@@ -91,6 +97,14 @@ startServer();
 // Graceful shutdown
 process.on('SIGTERM', async () => {
   console.log('SIGTERM received. Shutting down gracefully...');
+  CronJobs.stopJobs();
+  await mongoose.connection.close();
+  process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+  console.log('SIGINT received. Shutting down gracefully...');
+  CronJobs.stopJobs();
   await mongoose.connection.close();
   process.exit(0);
 });
