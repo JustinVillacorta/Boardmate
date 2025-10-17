@@ -15,7 +15,7 @@ import {
 } from '../controllers/paymentController.js';
 import {
   createReport,
-  getTenantReports,
+  getReports,
   getReport
 } from '../controllers/reportController.js';
 import {
@@ -84,7 +84,7 @@ router.get('/reports', (req, res, next) => {
   // Set tenantId to current user's ID for security
   req.params.tenantId = req.user.id;
   next();
-}, getTenantReports);
+}, getReports);
 
 // Get specific report (security check in controller)
 router.get('/reports/:id', getReport);

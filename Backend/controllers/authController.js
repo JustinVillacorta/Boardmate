@@ -883,3 +883,115 @@ export const getTenantsOnly = catchAsync(async (req, res, next) => {
     }
   });
 });
+
+// @desc    Get authentication statistics
+// @route   GET /api/auth/stats
+// @access  Private (Admin/Staff)
+export const getAuthStats = catchAsync(async (req, res, next) => {
+  // Get user statistics
+  const userStats = await User.aggregate([
+    {
+      $group: {
+        _id: null,
+        totalUsers: { $sum: 1 },
+        activeUsers: {
+          $sum: { $cond: [{ $eq: ['$isArchived', false] }, 1, 0] }
+        },
+        archivedUsers: {
+          $sum: { $cond: [{ $eq: ['$isArchived', true] }, 1, 0] }
+        },
+        adminUsers: {
+          $sum: { $cond: [{ $eq: ['$role', 'admin'] }, 1, 0] }
+        },
+        staffUsers: {
+          $sum: { $cond: [{ $eq: ['$role', 'staff'] }, 1, 0] }
+        }
+      }
+    }
+  ]);
+
+  // Get tenant statistics
+  const tenantStats = await Tenant.aggregate([
+    {
+      $group: {
+        _id: null,
+        totalTenants: { $sum: 1 },
+        activeTenants: {
+          $sum: { $cond: [{ $eq: ['$tenantStatus', 'active'] }, 1, 0] }
+        },
+        inactiveTenants: {
+          $sum: { $cond: [{ $eq: ['$tenantStatus', 'inactive'] }, 1, 0] }
+        },
+        pendingTenants: {
+          $sum: { $cond: [{ $eq: ['$tenantStatus', 'pending'] }, 1, 0] }
+        },
+        verifiedTenants: {
+          $sum: { $cond: [{ $eq: ['$isVerified', true] }, 1, 0] }
+        },
+        unverifiedTenants: {
+          $sum: { $cond: [{ $eq: ['$isVerified', false] }, 1, 0] }
+        },
+        tenantsWithRooms: {
+          $sum: { $cond: [{ $ne: ['$room', null] }, 1, 0] }
+        },
+        tenantsWithoutRooms: {
+          $sum: { $cond: [{ $eq: ['$room', null] }, 1, 0] }
+        },
+        archivedTenants: {
+          $sum: { $cond: [{ $eq: ['$isArchived', true] }, 1, 0] }
+        }
+      }
+    }
+  ]);
+
+  // Get recent registrations (last 30 days)
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+  const recentUserRegistrations = await User.countDocuments({
+    createdAt: { $gte: thirtyDaysAgo }
+  });
+
+  const recentTenantRegistrations = await Tenant.countDocuments({
+    createdAt: { $gte: thirtyDaysAgo }
+  });
+
+  // Compile statistics
+  const userStatsData = userStats[0] || {
+    totalUsers: 0,
+    activeUsers: 0,
+    archivedUsers: 0,
+    adminUsers: 0,
+    staffUsers: 0
+  };
+
+  const tenantStatsData = tenantStats[0] || {
+    totalTenants: 0,
+    activeTenants: 0,
+    inactiveTenants: 0,
+    pendingTenants: 0,
+    verifiedTenants: 0,
+    unverifiedTenants: 0,
+    tenantsWithRooms: 0,
+    tenantsWithoutRooms: 0,
+    archivedTenants: 0
+  };
+
+  res.status(200).json({
+    success: true,
+    data: {
+      users: userStatsData,
+      tenants: tenantStatsData,
+      recent: {
+        userRegistrations: recentUserRegistrations,
+        tenantRegistrations: recentTenantRegistrations,
+        totalRecentRegistrations: recentUserRegistrations + recentTenantRegistrations
+      },
+      totals: {
+        totalAccounts: userStatsData.totalUsers + tenantStatsData.totalTenants,
+        activeAccounts: userStatsData.activeUsers + tenantStatsData.activeTenants,
+        archivedAccounts: userStatsData.archivedUsers + tenantStatsData.archivedTenants
+      }
+    }
+  });
+});
