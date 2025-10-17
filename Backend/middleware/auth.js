@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
+import Tenant from '../models/Tenant.js';
 import { AppError } from '../utils/AppError.js';
 import { catchAsync } from '../utils/catchAsync.js';
 
@@ -25,8 +26,13 @@ export const protect = catchAsync(async (req, res, next) => {
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // Get user from token
-    const user = await User.findById(decoded.userId);
+    let user;
+    // Get user from token based on userType
+    if (decoded.userType === 'tenant') {
+      user = await Tenant.findById(decoded.userId);
+    } else {
+      user = await User.findById(decoded.userId);
+    }
 
     if (!user) {
       return next(new AppError('Not authorized, user not found', 401));
@@ -37,8 +43,9 @@ export const protect = catchAsync(async (req, res, next) => {
       return next(new AppError('Account has been archived', 401));
     }
 
-    // Grant access to protected route
+    // Add user info to request
     req.user = user;
+    req.userType = decoded.userType || 'user';
     next();
   } catch (error) {
     if (error.name === 'JsonWebTokenError') {
@@ -51,23 +58,36 @@ export const protect = catchAsync(async (req, res, next) => {
   }
 });
 
-// Authorize specific roles
-export const authorize = (...roles) => {
+// Authorize specific roles (for users) or user types
+export const authorize = (...rolesOrTypes) => {
   return (req, res, next) => {
-    if (!roles.includes(req.user.role)) {
-      return next(
-        new AppError(
-          `User role '${req.user.role}' is not authorized to access this route`,
-          403
-        )
-      );
+    // Check if it's a tenant and tenant is allowed
+    if (req.userType === 'tenant' && rolesOrTypes.includes('tenant')) {
+      return next();
     }
-    next();
+
+    // Check user roles (admin/staff)
+    if (req.userType === 'user' && req.user.role && rolesOrTypes.includes(req.user.role)) {
+      return next();
+    }
+
+    return next(
+      new AppError(
+        `Access denied. Required roles/types: ${rolesOrTypes.join(', ')}`,
+        403
+      )
+    );
   };
 };
 
 // Check if user is admin
 export const adminOnly = authorize('admin');
+
+// Check if user is tenant
+export const tenantOnly = authorize('tenant');
+
+// Check if user is admin or staff
+export const staffOrAdmin = authorize('admin', 'staff');
 
 // Optional authentication - doesn't fail if no token
 export const optionalAuth = catchAsync(async (req, res, next) => {
@@ -91,11 +111,17 @@ export const optionalAuth = catchAsync(async (req, res, next) => {
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // Get user from token
-    const user = await User.findById(decoded.userId);
+    // Get user from token based on userType
+    let user;
+    if (decoded.userType === 'tenant') {
+      user = await Tenant.findById(decoded.userId);
+    } else {
+      user = await User.findById(decoded.userId);
+    }
 
     if (user && !user.isArchived) {
       req.user = user;
+      req.userType = decoded.userType || 'user';
     }
   } catch (error) {
     // Continue without user if token is invalid
