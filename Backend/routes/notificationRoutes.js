@@ -21,7 +21,7 @@ router.get('/', getNotifications);
 router.get('/unread-count', getUnreadCount);
 
 // Mark all as read
-router.patch('/mark-all-read', markAllAsRead);
+router.put('/mark-all-read', markAllAsRead);
 
 // Single notification operations
 router.route('/:id')
@@ -29,7 +29,7 @@ router.route('/:id')
   .delete(deleteNotification);
 
 // Mark single notification as read
-router.patch('/:id/read', markAsRead);
+router.put('/:id/read', markAsRead);
 
 // Admin-only routes
 router.post('/announcement', adminOnly, validateAnnouncement, createAnnouncement);

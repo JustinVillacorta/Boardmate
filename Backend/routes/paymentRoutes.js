@@ -36,7 +36,7 @@ router.put('/:id', protect, staffOrAdmin, validatePaymentUpdate, updatePayment);
 router.delete('/:id', protect, staffOrAdmin, deletePayment);
 
 // Payment status operations (Admin/Staff only)
-router.patch('/:id/mark-paid', protect, staffOrAdmin, validateMarkPaymentPaid, markPaymentAsPaid);
+router.put('/:id/mark-paid', protect, staffOrAdmin, validateMarkPaymentPaid, markPaymentAsPaid);
 
 // ==================== RECEIPT ROUTES ====================
 

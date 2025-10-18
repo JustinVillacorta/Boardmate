@@ -134,6 +134,44 @@ curl -X PUT http://localhost:5000/api/auth/updatepassword \
   }'
 ```
 
+### 1.8 Update Tenant Details (Tenant Self-Update)
+```bash
+# curl - Tenant updating their own profile
+curl -X PUT http://localhost:5000/api/auth/tenant/updatedetails \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TENANT_TOKEN_HERE" \
+  -d '{
+    "firstName": "Jane Updated",
+    "lastName": "Doe Updated",
+    "phoneNumber": "+1234567891",
+    "occupation": "Senior Software Developer",
+    "address": {
+      "street": "456 Updated Street",
+      "city": "Updated City",
+      "province": "Updated Province",
+      "zipCode": "54321"
+    },
+    "emergencyContact": {
+      "name": "Updated Emergency Contact",
+      "relationship": "Sister",
+      "phoneNumber": "+1987654321"
+    }
+  }'
+```
+
+### 1.9 Update Tenant Password (Tenant Self-Update)
+```bash
+# curl - Tenant updating their own password
+curl -X PUT http://localhost:5000/api/auth/tenant/updatepassword \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TENANT_TOKEN_HERE" \
+  -d '{
+    "currentPassword": "Tenant123!",
+    "newPassword": "NewTenant123!",
+    "confirmPassword": "NewTenant123!"
+  }'
+```
+
 ---
 
 ## 2. ROOM MANAGEMENT ENDPOINTS
@@ -270,9 +308,9 @@ curl -X GET http://localhost:5000/api/payments/PAYMENT_ID_HERE \
   -H "Authorization: Bearer YOUR_TOKEN_HERE"
 ```
 
-### 3.4 Update Payment
+### 3.4 Update Payment and Mark as Paid
 ```bash
-# curl
+# curl - Update payment details and mark as paid
 curl -X PUT http://localhost:5000/api/payments/PAYMENT_ID_HERE \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_ADMIN_TOKEN_HERE" \
@@ -280,14 +318,15 @@ curl -X PUT http://localhost:5000/api/payments/PAYMENT_ID_HERE \
     "status": "paid",
     "paymentDate": "2024-01-30",
     "paymentMethod": "cash",
+    "transactionReference": "CASH001",
     "notes": "Payment received in cash"
   }'
 ```
 
-### 3.5 Mark Payment as Paid
+### 3.5 Quick Mark Payment as Paid (Alternative Method)
 ```bash
-# curl
-curl -X PATCH http://localhost:5000/api/payments/PAYMENT_ID_HERE/mark-paid \
+# curl - Quick mark as paid with minimal data
+curl -X PUT http://localhost:5000/api/payments/PAYMENT_ID_HERE/mark-paid \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_ADMIN_TOKEN_HERE" \
   -d '{
@@ -433,14 +472,14 @@ curl -X GET http://localhost:5000/api/notifications/NOTIFICATION_ID_HERE \
 ### 5.4 Mark Notification as Read
 ```bash
 # curl
-curl -X PATCH http://localhost:5000/api/notifications/NOTIFICATION_ID_HERE/read \
+curl -X PUT http://localhost:5000/api/notifications/NOTIFICATION_ID_HERE/read \
   -H "Authorization: Bearer YOUR_TOKEN_HERE"
 ```
 
 ### 5.5 Mark All Notifications as Read
 ```bash
 # curl
-curl -X PATCH http://localhost:5000/api/notifications/mark-all-read \
+curl -X PUT http://localhost:5000/api/notifications/mark-all-read \
   -H "Authorization: Bearer YOUR_TOKEN_HERE"
 ```
 

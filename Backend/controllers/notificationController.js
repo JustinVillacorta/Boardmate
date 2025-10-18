@@ -24,15 +24,18 @@ export const getNotifications = catchAsync(async (req, res, next) => {
     includeRead: includeRead === 'true'
   };
 
-  const notifications = await Notification.getUserNotifications(req.user.id, options);
+  // Handle both user and tenant types
+  const userId = req.user._id || req.user.id;
+
+  const notifications = await Notification.getUserNotifications(userId, options);
   const totalNotifications = await Notification.countDocuments({ 
-    user: req.user.id,
+    user: userId,
     ...(status && { status }),
     ...(type && { type }),
     ...(!options.includeRead && { status: 'unread' })
   });
 
-  const unreadCount = await Notification.getUnreadCount(req.user.id);
+  const unreadCount = await Notification.getUnreadCount(userId);
 
   res.status(200).json({
     success: true,
@@ -63,8 +66,9 @@ export const getNotification = catchAsync(async (req, res, next) => {
     return next(new AppError('Notification not found', 404));
   }
 
-  // Check if notification belongs to the user
-  if (notification.user.toString() !== req.user.id) {
+  // Check if notification belongs to the user (handle both user and tenant types)
+  const userId = req.user._id || req.user.id;
+  if (notification.user.toString() !== userId.toString()) {
     return next(new AppError('Access denied', 403));
   }
 
@@ -77,7 +81,7 @@ export const getNotification = catchAsync(async (req, res, next) => {
 });
 
 // @desc    Mark notification as read
-// @route   PATCH /api/notifications/:id/read
+// @route   PUT /api/notifications/:id/read
 // @access  Private
 export const markAsRead = catchAsync(async (req, res, next) => {
   const notification = await Notification.findById(req.params.id);
@@ -86,8 +90,9 @@ export const markAsRead = catchAsync(async (req, res, next) => {
     return next(new AppError('Notification not found', 404));
   }
 
-  // Check if notification belongs to the user
-  if (notification.user.toString() !== req.user.id) {
+  // Check if notification belongs to the user (handle both user and tenant types)
+  const userId = req.user._id || req.user.id;
+  if (notification.user.toString() !== userId.toString()) {
     return next(new AppError('Access denied', 403));
   }
 
@@ -100,13 +105,13 @@ export const markAsRead = catchAsync(async (req, res, next) => {
       notification
     }
   });
-});
-
-// @desc    Mark all notifications as read
-// @route   PATCH /api/notifications/mark-all-read
+});// @desc    Mark all notifications as read
+// @route   PUT /api/notifications/mark-all-read
 // @access  Private
 export const markAllAsRead = catchAsync(async (req, res, next) => {
-  const result = await Notification.markAllAsRead(req.user.id);
+  // Handle both user and tenant types
+  const userId = req.user._id || req.user.id;
+  const result = await Notification.markAllAsRead(userId);
 
   res.status(200).json({
     success: true,
@@ -127,8 +132,9 @@ export const deleteNotification = catchAsync(async (req, res, next) => {
     return next(new AppError('Notification not found', 404));
   }
 
-  // Check if notification belongs to the user
-  if (notification.user.toString() !== req.user.id) {
+  // Check if notification belongs to the user (handle both user and tenant types)
+  const userId = req.user._id || req.user.id;
+  if (notification.user.toString() !== userId.toString()) {
     return next(new AppError('Access denied', 403));
   }
 
@@ -144,7 +150,9 @@ export const deleteNotification = catchAsync(async (req, res, next) => {
 // @route   GET /api/notifications/unread-count
 // @access  Private
 export const getUnreadCount = catchAsync(async (req, res, next) => {
-  const unreadCount = await Notification.getUnreadCount(req.user.id);
+  // Handle both user and tenant types
+  const userId = req.user._id || req.user.id;
+  const unreadCount = await Notification.getUnreadCount(userId);
 
   res.status(200).json({
     success: true,
