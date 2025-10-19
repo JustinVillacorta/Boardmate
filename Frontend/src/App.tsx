@@ -1,7 +1,14 @@
 import React, { useState } from 'react';
-import LoginPage from './pages/Admin/LoginPage';
-import Dashboard from './pages/Admin/Dashboard';
-import StaffDashboard from './pages/Staff/Dashboard';
+import LoginPage from './pages/Admin/LoginPage.tsx';
+import Dashboard from './pages/Admin/Dashboard.tsx';
+import StaffDashboard from './pages/Staff/Dashboard.tsx';
+
+// Tenant pages
+import TenantDashboard from './pages/Tenant/Dashboard.tsx';
+import TenantNotifications from './pages/Tenant/Notifications.tsx';
+import TenantPayments from './pages/Tenant/Payments.tsx';
+import TenantProfile from './pages/Tenant/Profile.tsx';
+import TenantReports from './pages/Tenant/Reports.tsx';
 
 // Reusable page components
 import RoomsPage from './components/pages/RoomsPage';
@@ -20,9 +27,9 @@ const App: React.FC = () => {
     }
   });
   
-  const [userRole, setUserRole] = useState<'admin' | 'staff'>(() => {
+  const [userRole, setUserRole] = useState<'admin' | 'staff' | 'tenant'>(() => {
     try {
-      return (localStorage.getItem('userRole') as 'admin' | 'staff') || 'admin';
+      return (localStorage.getItem('userRole') as 'admin' | 'staff' | 'tenant') || 'admin';
     } catch (e) {
       return 'admin';
     }
@@ -30,7 +37,7 @@ const App: React.FC = () => {
   
   const [currentPage, setCurrentPage] = useState('dashboard'); // Default to dashboard page
 
-  const handleLogin = (role: 'admin' | 'staff') => {
+  const handleLogin = (role: 'admin' | 'staff' | 'tenant') => {
     try { 
       localStorage.setItem('isAuthenticated', 'true'); 
       localStorage.setItem('userRole', role);
@@ -92,9 +99,27 @@ const App: React.FC = () => {
     }
   };
 
+  const renderTenantPage = () => {
+    switch (currentPage) {
+      case 'dashboard':
+        return <TenantDashboard currentPage={currentPage} onNavigate={handleNavigation} />;
+      case 'payments':
+        return <TenantPayments currentPage={currentPage} onNavigate={handleNavigation} />;
+      case 'reports':
+        return <TenantReports currentPage={currentPage} onNavigate={handleNavigation} />;
+      case 'notifications':
+        return <TenantNotifications currentPage={currentPage} onNavigate={handleNavigation} />;
+      case 'profile':
+        return <TenantProfile currentPage={currentPage} onNavigate={handleNavigation} />;
+      default:
+        return <TenantDashboard currentPage={currentPage} onNavigate={handleNavigation} />;
+    }
+  };
+
   return (
     <div className="App">
       {isAuthenticated ? (
+        userRole === 'tenant' ? renderTenantPage() : 
         userRole === 'staff' ? renderStaffPage() : renderAdminPage()
       ) : (
         <LoginPage onLogin={handleLogin} />

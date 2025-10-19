@@ -14,7 +14,7 @@ import {
 interface SidebarProps {
   currentPage?: string;
   onNavigate?: (page: string) => void;
-  userRole?: 'admin' | 'staff';
+  userRole?: 'admin' | 'staff' | 'tenant';
 }
 
 interface NavigationItem {
@@ -32,7 +32,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage = 'dashboard', onNavigate
   // Get user role from localStorage if not provided
   const currentUserRole = userRole || (() => {
     try {
-      return (localStorage.getItem('userRole') as 'admin' | 'staff') || 'admin';
+      return (localStorage.getItem('userRole') as 'admin' | 'staff' | 'tenant') || 'admin';
     } catch (e) {
       return 'admin';
     }
@@ -40,10 +40,10 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage = 'dashboard', onNavigate
   
   // Mock user data - replace with actual auth context
   const user = {
-    username: currentUserRole === 'staff' ? "staff" : "admin",
-    role: currentUserRole === 'staff' ? "Staff" : "Admin",
+    username: currentUserRole === 'staff' ? "staff" : currentUserRole === 'tenant' ? "tenant" : "admin",
+    role: currentUserRole === 'staff' ? "Staff" : currentUserRole === 'tenant' ? "Tenant" : "Admin",
     tenant: {
-      firstName: currentUserRole === 'staff' ? "Staff" : "Admin",
+      firstName: currentUserRole === 'staff' ? "Staff" : currentUserRole === 'tenant' ? "Pikachu" : "Admin",
       lastName: "User"
     }
   };
@@ -68,15 +68,32 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage = 'dashboard', onNavigate
     }
   };
 
-  const navigationItems: NavigationItem[] = [
-    { name: "Dashboard", icon: LayoutDashboard, page: "dashboard", active: currentPage === 'dashboard' },
-    { name: "Users", icon: User, page: "users", active: currentPage === 'users' },
-    { name: "Rooms", icon: DoorOpen, page: "rooms", active: currentPage === 'rooms' },
-    { name: "Payment", icon: PhilippinePeso, page: "payment", active: currentPage === 'payment' },
-    { name: "Reports", icon: Wrench, page: "reports", active: currentPage === 'reports' },
-    { name: "Notifications", icon: BellDot, page: "notifications", active: currentPage === 'notifications' },
-    { name: "Logout", icon: LogOut, active: false, action: () => setShowLogoutConfirm(true) },
-  ];
+  // Role-specific navigation items
+  const getNavigationItems = (): NavigationItem[] => {
+    if (currentUserRole === 'tenant') {
+      return [
+        { name: "Dashboard", icon: LayoutDashboard, page: "dashboard", active: currentPage === 'dashboard' },
+        { name: "Payments", icon: PhilippinePeso, page: "payments", active: currentPage === 'payments' },
+        { name: "Reports", icon: Wrench, page: "reports", active: currentPage === 'reports' },
+        { name: "Notifications", icon: BellDot, page: "notifications", active: currentPage === 'notifications' },
+        { name: "Profile", icon: User, page: "profile", active: currentPage === 'profile' },
+        { name: "Logout", icon: LogOut, active: false, action: () => setShowLogoutConfirm(true) },
+      ];
+    } else {
+      // Admin and Staff navigation
+      return [
+        { name: "Dashboard", icon: LayoutDashboard, page: "dashboard", active: currentPage === 'dashboard' },
+        { name: "Users", icon: User, page: "users", active: currentPage === 'users' },
+        { name: "Rooms", icon: DoorOpen, page: "rooms", active: currentPage === 'rooms' },
+        { name: "Payment", icon: PhilippinePeso, page: "payment", active: currentPage === 'payment' },
+        { name: "Reports", icon: Wrench, page: "reports", active: currentPage === 'reports' },
+        { name: "Notifications", icon: BellDot, page: "notifications", active: currentPage === 'notifications' },
+        { name: "Logout", icon: LogOut, active: false, action: () => setShowLogoutConfirm(true) },
+      ];
+    }
+  };
+
+  const navigationItems = getNavigationItems();
 
   const sidebarContent = (
     <>

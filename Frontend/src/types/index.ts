@@ -1,9 +1,11 @@
 // Authentication types based on your backend models
+export type UserRole = 'admin' | 'staff' | 'tenant';
+
 export interface User {
   _id: string;
   name: string;
   email: string;
-  role: 'admin' | 'staff';
+  role: 'admin' | 'staff' | 'tenant';
   isArchived: boolean;
   createdAt: string;
   updatedAt: string;
@@ -30,7 +32,7 @@ export interface RegisterFormData {
   email: string;
   password: string;
   confirmPassword: string;
-  role?: 'admin' | 'staff';
+  role?: 'admin' | 'staff' | 'tenant';
 }
 
 export interface AuthResponse {

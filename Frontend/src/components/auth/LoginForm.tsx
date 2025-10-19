@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 
 interface LoginFormProps {
-  onLogin?: (userRole: 'admin' | 'staff') => void;
+  onLogin?: (userRole: 'admin' | 'staff' | 'tenant') => void;
 }
 
 const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
@@ -30,13 +30,16 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
       console.log('Login attempted with:', formData);
       
       // Static role detection
-      let userRole: 'admin' | 'staff' = 'admin';
+      let userRole: 'admin' | 'staff' | 'tenant' = 'admin';
       if (formData.email === 'staff@boardinghouse.com' && formData.password === 'staff123') {
         userRole = 'staff';
         localStorage.setItem('userRole', 'staff');
       } else if (formData.email === 'admin@boardinghouse.com' && formData.password === 'admin123') {
         userRole = 'admin';
         localStorage.setItem('userRole', 'admin');
+      } else if (formData.email === 'tenant@boardinghouse.com' && formData.password === 'tenant123') {
+        userRole = 'tenant';
+        localStorage.setItem('userRole', 'tenant');
       } else {
         // Default to admin for any other credentials
         userRole = 'admin';

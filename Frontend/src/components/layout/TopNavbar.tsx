@@ -4,12 +4,51 @@ import { Search, Bell } from "lucide-react";
 interface TopNavbarProps {
   title?: string;
   subtitle?: string;
+  currentPage?: string;
 }
 
 const TopNavbar: React.FC<TopNavbarProps> = ({ 
-  title = "Dashboard", 
-  subtitle = "Your room info, payments Account status" 
+  title, 
+  subtitle,
+  currentPage
 }) => {
+  // Get page-specific title and subtitle based on currentPage
+  const getPageInfo = (page?: string) => {
+    switch (page) {
+      case 'dashboard':
+        return {
+          title: 'Dashboard',
+          subtitle: 'Your room info, payments, and account status'
+        };
+      case 'payments':
+        return {
+          title: 'Payments',
+          subtitle: 'Your payment history and upcoming dues'
+        };
+      case 'reports':
+        return {
+          title: 'Reports',
+          subtitle: 'Submit and track your complaints and maintenance requests'
+        };
+      case 'notifications':
+        return {
+          title: 'Notifications',
+          subtitle: 'View and manage notifications'
+        };
+      case 'profile':
+        return {
+          title: 'Profile',
+          subtitle: 'Manage your account and preferences'
+        };
+      default:
+        return {
+          title: title || 'Dashboard',
+          subtitle: subtitle || 'Your room info, payments, and account status'
+        };
+    }
+  };
+
+  const pageInfo = getPageInfo(currentPage);
   const [showNotifications, setShowNotifications] = useState(false);
 
   const notifications = [
@@ -24,10 +63,10 @@ const TopNavbar: React.FC<TopNavbarProps> = ({
         {/* Left: Logo/Title - Responsive */}
         <div className="cursor-pointer flex flex-col items-start">
           <h1 className="text-xl lg:text-3xl font-semibold text-gray-800">
-            {title}
+            {pageInfo.title}
           </h1>
           <p className="text-xs lg:text-sm text-gray-400 hidden sm:block">
-            {subtitle}
+            {pageInfo.subtitle}
           </p>
         </div>
 
