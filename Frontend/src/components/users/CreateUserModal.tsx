@@ -39,9 +39,10 @@ interface UserData {
 interface CreateUserModalProps {
   onClose: () => void;
   onCreate: (userData: Omit<UserData, 'id'>) => void;
+  isStaffUser?: boolean;
 }
 
-const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onCreate }) => {
+const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onCreate, isStaffUser = false }) => {
   const [formData, setFormData] = useState<UserData>({
     // Personal Information
     firstName: '',
@@ -231,40 +232,42 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onCreate }) 
           <form onSubmit={handleSubmit} className="p-6 space-y-6">
             
             {/* User Type Selection */}
-            <div>
-              <label className="text-sm font-medium text-gray-700 mb-3 block">User Type</label>
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => handleChange('role', 'Tenant')}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg border font-medium text-sm transition-colors ${
-                    formData.role === 'Tenant' 
-                      ? 'bg-blue-600 text-white border-blue-600' 
-                      : 'bg-white text-gray-600 border-gray-300 hover:border-blue-300'
-                  }`}
-                  disabled={isSubmitting}
-                >
-                  <User className="w-4 h-4" />
-                  Tenant
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleChange('role', 'Staff')}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg border font-medium text-sm transition-colors ${
-                    formData.role === 'Staff' 
-                      ? 'bg-blue-600 text-white border-blue-600' 
-                      : 'bg-white text-gray-600 border-gray-300 hover:border-blue-300'
-                  }`}
-                  disabled={isSubmitting}
-                >
-                  <Shield className="w-4 h-4" />
-                  Staff
-                </button>
+            {!isStaffUser && (
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-3 block">User Type</label>
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => handleChange('role', 'Tenant')}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg border font-medium text-sm transition-colors ${
+                      formData.role === 'Tenant' 
+                        ? 'bg-blue-600 text-white border-blue-600' 
+                        : 'bg-white text-gray-600 border-gray-300 hover:border-blue-300'
+                    }`}
+                    disabled={isSubmitting}
+                  >
+                    <User className="w-4 h-4" />
+                    Tenant
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleChange('role', 'Staff')}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg border font-medium text-sm transition-colors ${
+                      formData.role === 'Staff' 
+                        ? 'bg-blue-600 text-white border-blue-600' 
+                        : 'bg-white text-gray-600 border-gray-300 hover:border-blue-300'
+                    }`}
+                    disabled={isSubmitting}
+                  >
+                    <Shield className="w-4 h-4" />
+                    Staff
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Conditional Form Content based on User Type */}
-            {formData.role === 'Staff' ? (
+            {formData.role === 'Staff' && !isStaffUser ? (
               /* Staff Form - Simple Layout - Only Basic Fields */
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Personal Information</h3>

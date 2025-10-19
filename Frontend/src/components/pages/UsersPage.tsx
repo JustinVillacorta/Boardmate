@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import Sidebar from '../../components/layout/Sidebar';
-import TopNavbar from '../../components/layout/TopNavbar';
-import UserCard from '../../components/users/UserCard';
-import CreateUserModal from '../../components/users/CreateUserModal';
-import EditUserModal from '../../components/users/EditUserModal';
-import ConfirmDialog from '../../components/ui/ConfirmDialog';
+import Sidebar from '../layout/Sidebar';
+import TopNavbar from '../layout/TopNavbar';
+import UserCard from '../users/UserCard';
+import CreateUserModal from '../users/CreateUserModal';
+import EditUserModal from '../users/EditUserModal';
+import ConfirmDialog from '../ui/ConfirmDialog';
 import { User, UserPlus } from 'lucide-react';
 
 interface UserData {
@@ -21,9 +21,10 @@ interface UserData {
 interface UsersPageProps {
   currentPage?: string;
   onNavigate?: (page: string) => void;
+  userRole?: 'admin' | 'staff';
 }
 
-const UsersPage: React.FC<UsersPageProps> = ({ currentPage, onNavigate }) => {
+const UsersPage: React.FC<UsersPageProps> = ({ currentPage, onNavigate, userRole = 'admin' }) => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserData | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -129,15 +130,24 @@ const UsersPage: React.FC<UsersPageProps> = ({ currentPage, onNavigate }) => {
     setIsConfirmOpen(false);
   };
 
+  // Role-based functionality
+  const canCreateUsers = true; // Both admin and staff can create users
+  const canEditUsers = userRole === 'admin'; // Only admin can edit users
+  const canArchiveUsers = userRole === 'admin'; // Only admin can archive users
+  const isStaffUser = userRole === 'staff'; // Staff can only create tenants
+
   return (
     <div className="flex min-h-screen bg-gray-50">
       {/* Sidebar */}
-      <Sidebar currentPage={currentPage} onNavigate={onNavigate} />
+      <Sidebar currentPage={currentPage} onNavigate={onNavigate} userRole={userRole} />
       
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0 lg:pl-64">
         {/* Top Navigation */}
-        <TopNavbar title="Users" subtitle="Manage system users and permissions" />
+        <TopNavbar 
+          title="Users" 
+          subtitle={userRole === 'staff' ? "Manage tenant accounts" : "Manage system users and permissions"} 
+        />
 
         {/* Page Content */}
         <main className="flex-1 p-4 lg:p-6 overflow-auto">
@@ -150,10 +160,10 @@ const UsersPage: React.FC<UsersPageProps> = ({ currentPage, onNavigate }) => {
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                   <h2 className="text-lg lg:text-xl font-semibold text-gray-900">
-                    User Management
+                    {userRole === 'staff' ? 'Tenant Management' : 'User Management'}
                   </h2>
                   <p className="text-sm text-gray-500 mt-1">
-                    {filteredUsers.length} users found
+                    {filteredUsers.length} {userRole === 'staff' ? 'tenants' : 'users'} found
                   </p>
                 </div>
                 
@@ -175,13 +185,15 @@ const UsersPage: React.FC<UsersPageProps> = ({ currentPage, onNavigate }) => {
                   </div>
                   
                   {/* Create User Button */}
-                  <button
-                    onClick={() => setIsCreateModalOpen(true)}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium whitespace-nowrap"
-                  >
-                    <UserPlus className="w-4 h-4" />
-                    Create User
-                  </button>
+                  {canCreateUsers && (
+                    <button
+                      onClick={() => setIsCreateModalOpen(true)}
+                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium whitespace-nowrap"
+                    >
+                      <UserPlus className="w-4 h-4" />
+                      {userRole === 'staff' ? 'Add Tenant' : 'Create User'}
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -194,8 +206,8 @@ const UsersPage: React.FC<UsersPageProps> = ({ currentPage, onNavigate }) => {
                     <UserCard
                       key={user.id}
                       user={user}
-                      onEdit={handleEditUser}
-                      onArchive={requestArchive}
+                      onEdit={canEditUsers ? handleEditUser : undefined}
+                      onArchive={canArchiveUsers ? requestArchive : undefined}
                     />
                   ))}
                 </div>
@@ -203,21 +215,21 @@ const UsersPage: React.FC<UsersPageProps> = ({ currentPage, onNavigate }) => {
                 <div className="text-center py-12">
                   <User className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    No users found
+                    No {userRole === 'staff' ? 'tenants' : 'users'} found
                   </h3>
                   <p className="text-gray-500 mb-6">
                     {searchQuery 
-                      ? `No users match "${searchQuery}"`
-                      : "Get started by creating your first user"
+                      ? `No ${userRole === 'staff' ? 'tenants' : 'users'} match "${searchQuery}"`
+                      : `Get started by creating your first ${userRole === 'staff' ? 'tenant' : 'user'}`
                     }
                   </p>
-                  {!searchQuery && (
+                  {!searchQuery && canCreateUsers && (
                     <button
                       onClick={() => setIsCreateModalOpen(true)}
                       className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
                     >
                       <UserPlus className="w-4 h-4" />
-                      Create User
+                      {userRole === 'staff' ? 'Add Tenant' : 'Create User'}
                     </button>
                   )}
                 </div>
@@ -232,11 +244,12 @@ const UsersPage: React.FC<UsersPageProps> = ({ currentPage, onNavigate }) => {
         <CreateUserModal
           onClose={() => setIsCreateModalOpen(false)}
           onCreate={handleCreateUser}
+          isStaffUser={isStaffUser}
         />
       )}
 
       {/* Edit User Modal */}
-      {editingUser && (
+      {editingUser && canEditUsers && (
         <EditUserModal
           user={editingUser}
           onClose={() => setEditingUser(null)}
@@ -245,20 +258,22 @@ const UsersPage: React.FC<UsersPageProps> = ({ currentPage, onNavigate }) => {
       )}
 
       {/* Archive Confirm Dialog */}
-      <ConfirmDialog
-        isOpen={isConfirmOpen}
-        title="Archive Account"
-        message={
-          <>
-            <p>Archiving this account will deactivate it and remove access.</p>
-            <p className="mt-2">Are you sure you want to archive <strong>{selectedToArchive ? (users.find(u => u.id === selectedToArchive)?.name) : 'this user'}</strong>?</p>
-          </>
-        }
-        confirmLabel="Archive"
-        cancelLabel="Cancel"
-        onConfirm={confirmArchive}
-        onCancel={cancelArchive}
-      />
+      {canArchiveUsers && (
+        <ConfirmDialog
+          isOpen={isConfirmOpen}
+          title="Archive Account"
+          message={
+            <>
+              <p>Archiving this account will deactivate it and remove access.</p>
+              <p className="mt-2">Are you sure you want to archive <strong>{selectedToArchive ? (users.find(u => u.id === selectedToArchive)?.name) : 'this user'}</strong>?</p>
+            </>
+          }
+          confirmLabel="Archive"
+          cancelLabel="Cancel"
+          onConfirm={confirmArchive}
+          onCancel={cancelArchive}
+        />
+      )}
     </div>
   );
 };

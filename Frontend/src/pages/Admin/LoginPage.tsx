@@ -2,7 +2,7 @@ import React from 'react';
 import LoginForm from '../../components/auth/LoginForm';
 
 interface LoginPageProps {
-  onLogin?: () => void;
+  onLogin?: (userRole: 'admin' | 'staff') => void;
 }
 
 const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {

@@ -14,6 +14,7 @@ import {
 interface SidebarProps {
   currentPage?: string;
   onNavigate?: (page: string) => void;
+  userRole?: 'admin' | 'staff';
 }
 
 interface NavigationItem {
@@ -24,16 +25,25 @@ interface NavigationItem {
   action?: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ currentPage = 'dashboard', onNavigate }) => {
+const Sidebar: React.FC<SidebarProps> = ({ currentPage = 'dashboard', onNavigate, userRole }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   
+  // Get user role from localStorage if not provided
+  const currentUserRole = userRole || (() => {
+    try {
+      return (localStorage.getItem('userRole') as 'admin' | 'staff') || 'admin';
+    } catch (e) {
+      return 'admin';
+    }
+  })();
+  
   // Mock user data - replace with actual auth context
   const user = {
-    username: "admin",
-    role: "Admin",
+    username: currentUserRole === 'staff' ? "staff" : "admin",
+    role: currentUserRole === 'staff' ? "Staff" : "Admin",
     tenant: {
-      firstName: "Admin",
+      firstName: currentUserRole === 'staff' ? "Staff" : "Admin",
       lastName: "User"
     }
   };
@@ -44,6 +54,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage = 'dashboard', onNavigate
       // Clear any auth tokens / flags and reload to show login screen
       try {
         localStorage.removeItem('authToken');
+        localStorage.removeItem('userRole');
       } catch (e) {
         // ignore
       }

@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import Sidebar from '../../components/layout/Sidebar';
-import TopNavbar from '../../components/layout/TopNavbar';
-import RoomCard from '../../components/rooms/RoomCard';
-import CreateRoomModal from '../../components/rooms/CreateRoomModal';
-import ManageTenantsModal from '../../components/rooms/ManageTenantsModal';
-import ConfirmDialog from '../../components/ui/ConfirmDialog';
-import EditRoomModal from '../../components/rooms/EditRoomModal';
+import Sidebar from '../layout/Sidebar';
+import TopNavbar from '../layout/TopNavbar';
+import RoomCard from '../rooms/RoomCard';
+import CreateRoomModal from '../rooms/CreateRoomModal';
+import ManageTenantsModal from '../rooms/ManageTenantsModal';
+import ConfirmDialog from '../ui/ConfirmDialog';
+import EditRoomModal from '../rooms/EditRoomModal';
 import { RefreshCw, Plus } from 'lucide-react';
 
 interface RoomData {
@@ -23,12 +23,18 @@ interface RoomData {
   securityDeposit?: string;
 }
 
-const Rooms: React.FC<{ currentPage?: string; onNavigate?: (p: string) => void }> = ({ currentPage, onNavigate }) => {
+interface RoomsPageProps {
+  currentPage?: string;
+  onNavigate?: (p: string) => void;
+  userRole?: 'admin' | 'staff';
+}
+
+const RoomsPage: React.FC<RoomsPageProps> = ({ currentPage, onNavigate, userRole = 'admin' }) => {
   const [search, setSearch] = useState('');
   const [rooms, setRooms] = useState<RoomData[]>([
-    { id: '1', name: 'Room 1', type: 'Single', rent: '\u20B11', capacity: 1, occupancy: '0/1', status: 'available', description: 'Cozy single room' },
-    { id: '10', name: 'Room 10', type: 'Single', rent: '\u20B151,020', capacity: 1, occupancy: '1/1', status: 'occupied', description: 'Cozy single room with window view' },
-    { id: '101', name: 'Room 101', type: 'Single', rent: '\u20B1500', capacity: 1, occupancy: '0/1', status: 'available', description: 'Cozy single room with window view' },
+    { id: '1', name: 'Room 1', type: 'Single', rent: '₱1', capacity: 1, occupancy: '0/1', status: 'available', description: 'Cozy single room' },
+    { id: '10', name: 'Room 10', type: 'Single', rent: '₱1,020', capacity: 1, occupancy: '1/1', status: 'occupied', description: 'Cozy single room with window view' },
+    { id: '101', name: 'Room 101', type: 'Single', rent: '₱500', capacity: 1, occupancy: '0/1', status: 'available', description: 'Cozy single room with window view' },
   ]);
 
   const filtered = rooms.filter(r =>
@@ -68,7 +74,7 @@ const Rooms: React.FC<{ currentPage?: string; onNavigate?: (p: string) => void }
       id: Date.now().toString(),
       name: data.roomNumber || `Room ${Date.now()}`,
       type: data.roomType || 'Single',
-      rent: data.monthlyRent || '\u20B10',
+      rent: data.monthlyRent || '₱0',
       capacity: data.capacity || 1,
       occupancy: '0/1',
       status: (data.status || 'Available').toLowerCase() as RoomData['status'],
@@ -110,9 +116,13 @@ const Rooms: React.FC<{ currentPage?: string; onNavigate?: (p: string) => void }
     }));
   };
 
+  // Role-based functionality
+  const canCreateRooms = userRole === 'admin'; // Only admin can create rooms
+  const canDeleteRooms = userRole === 'admin'; // Only admin can delete rooms
+
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <Sidebar currentPage={currentPage} onNavigate={onNavigate} />
+      <Sidebar currentPage={currentPage} onNavigate={onNavigate} userRole={userRole} />
 
       <div className="flex-1 flex flex-col min-w-0 lg:pl-64">
         <TopNavbar title="Rooms" subtitle="Manage room inventory and occupancy" />
@@ -124,7 +134,9 @@ const Rooms: React.FC<{ currentPage?: string; onNavigate?: (p: string) => void }
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                   <h2 className="text-lg lg:text-xl font-semibold text-gray-900">Room Management</h2>
-                  <p className="text-sm text-gray-500 mt-1">Manage room inventory and occupancy</p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    {userRole === 'staff' ? 'View room inventory and occupancy' : 'Manage room inventory and occupancy'}
+                  </p>
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-3 items-stretch">
@@ -143,12 +155,14 @@ const Rooms: React.FC<{ currentPage?: string; onNavigate?: (p: string) => void }
                     />
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => setIsCreateOpen(true)} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2">
-                      <Plus className="w-4 h-4" />
-                      Create Room
-                    </button>
-                  </div>
+                  {canCreateRooms && (
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => setIsCreateOpen(true)} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2">
+                        <Plus className="w-4 h-4" />
+                        Create Room
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -157,7 +171,13 @@ const Rooms: React.FC<{ currentPage?: string; onNavigate?: (p: string) => void }
               {filtered.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4 lg:gap-6">
                   {filtered.map(room => (
-                    <RoomCard key={room.id} room={room} onDelete={() => requestDelete(room.id)} onManageTenants={(id) => setSelectedRoomId(id)} onEdit={(id) => setEditingRoomId(id)} />
+                    <RoomCard 
+                      key={room.id} 
+                      room={room} 
+                      onDelete={canDeleteRooms ? () => requestDelete(room.id) : undefined} 
+                      onManageTenants={(id) => setSelectedRoomId(id)} 
+                      onEdit={(id) => setEditingRoomId(id)} 
+                    />
                   ))}
                 </div>
               ) : (
@@ -199,4 +219,4 @@ const Rooms: React.FC<{ currentPage?: string; onNavigate?: (p: string) => void }
   );
 };
 
-export default Rooms;
+export default RoomsPage;

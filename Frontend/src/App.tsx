@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import LoginPage from './pages/Admin/LoginPage';
 import Dashboard from './pages/Admin/Dashboard';
-import UsersPage from './pages/Admin/UsersPage';
-import Rooms from './pages/Admin/Rooms';
-import Payment from './pages/Admin/Payment';
-import PaymentHistory from './pages/Admin/PaymentHistory';
-import Reports from './pages/Admin/Reports';
-import Notifications from './pages/Admin/Notifications';
+import StaffDashboard from './pages/Staff/Dashboard';
+
+// Reusable page components
+import RoomsPage from './components/pages/RoomsPage';
+import PaymentPage from './components/pages/PaymentPage';
+import PaymentHistoryPage from './components/pages/PaymentHistoryPage';
+import ReportsPage from './components/pages/ReportsPage';
+import NotificationsPage from './components/pages/NotificationsPage';
+import UsersPage from './components/pages/UsersPage';
 
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
@@ -16,46 +19,85 @@ const App: React.FC = () => {
       return false;
     }
   });
+  
+  const [userRole, setUserRole] = useState<'admin' | 'staff'>(() => {
+    try {
+      return (localStorage.getItem('userRole') as 'admin' | 'staff') || 'admin';
+    } catch (e) {
+      return 'admin';
+    }
+  });
+  
   const [currentPage, setCurrentPage] = useState('dashboard'); // Default to dashboard page
+
+  const handleLogin = (role: 'admin' | 'staff') => {
+    try { 
+      localStorage.setItem('isAuthenticated', 'true'); 
+      localStorage.setItem('userRole', role);
+    } catch (e) {}
+    setIsAuthenticated(true);
+    setUserRole(role);
+    setCurrentPage('dashboard');
+  };
 
   const handleNavigation = (page: string) => {
     setCurrentPage(page);
   };
 
-  const renderCurrentPage = () => {
+  const renderAdminPage = () => {
     switch (currentPage) {
       case 'notifications':
-        return <Notifications currentPage={currentPage} onNavigate={handleNavigation} />;
+        return <NotificationsPage currentPage={currentPage} onNavigate={handleNavigation} userRole="admin" />;
 
       case 'reports':
-        return <Reports currentPage={currentPage} onNavigate={handleNavigation} />;
+        return <ReportsPage currentPage={currentPage} onNavigate={handleNavigation} userRole="admin" />;
 
       case 'payment-history':
-        return <PaymentHistory currentPage={currentPage} onNavigate={handleNavigation} />;
+        return <PaymentHistoryPage currentPage={currentPage} onNavigate={handleNavigation} userRole="admin" />;
       
       case 'dashboard':
         return <Dashboard currentPage={currentPage} onNavigate={handleNavigation} />;
       case 'users':
-        return <UsersPage currentPage={currentPage} onNavigate={handleNavigation} />;
+        return <UsersPage currentPage={currentPage} onNavigate={handleNavigation} userRole="admin" />;
       case 'payment':
-        return <Payment currentPage={currentPage} onNavigate={handleNavigation} />;
+        return <PaymentPage currentPage={currentPage} onNavigate={handleNavigation} userRole="admin" />;
         case 'rooms':
-          return <Rooms currentPage={currentPage} onNavigate={handleNavigation} />;
+          return <RoomsPage currentPage={currentPage} onNavigate={handleNavigation} userRole="admin" />;
       default:
         return <Dashboard currentPage={currentPage} onNavigate={handleNavigation} />;
+    }
+  };
+
+  const renderStaffPage = () => {
+    switch (currentPage) {
+      case 'notifications':
+        return <NotificationsPage currentPage={currentPage} onNavigate={handleNavigation} userRole="staff" />;
+
+      case 'reports':
+        return <ReportsPage currentPage={currentPage} onNavigate={handleNavigation} userRole="staff" />;
+
+      case 'payment-history':
+        return <PaymentHistoryPage currentPage={currentPage} onNavigate={handleNavigation} userRole="staff" />;
+      
+      case 'dashboard':
+        return <StaffDashboard currentPage={currentPage} onNavigate={handleNavigation} />;
+      case 'users':
+        return <UsersPage currentPage={currentPage} onNavigate={handleNavigation} userRole="staff" />;
+      case 'payment':
+        return <PaymentPage currentPage={currentPage} onNavigate={handleNavigation} userRole="staff" />;
+        case 'rooms':
+          return <RoomsPage currentPage={currentPage} onNavigate={handleNavigation} userRole="staff" />;
+      default:
+        return <StaffDashboard currentPage={currentPage} onNavigate={handleNavigation} />;
     }
   };
 
   return (
     <div className="App">
       {isAuthenticated ? (
-        renderCurrentPage()
+        userRole === 'staff' ? renderStaffPage() : renderAdminPage()
       ) : (
-        <LoginPage onLogin={() => {
-          try { localStorage.setItem('isAuthenticated', 'true'); } catch (e) {}
-          setIsAuthenticated(true);
-          setCurrentPage('dashboard');
-        }} />
+        <LoginPage onLogin={handleLogin} />
       )}
     </div>
   );

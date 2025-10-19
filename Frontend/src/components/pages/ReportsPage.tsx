@@ -1,10 +1,10 @@
 import React from 'react';
-import Sidebar from '../../components/layout/Sidebar';
-import TopNavbar from '../../components/layout/TopNavbar';
-import SummaryCard from '../../components/reports/SummaryCard';
+import Sidebar from '../layout/Sidebar';
+import TopNavbar from '../layout/TopNavbar';
+import SummaryCard from '../reports/SummaryCard';
 import { AlertCircle, CheckCircle2, Play, Clock } from 'lucide-react';
-import ReportCard from '../../components/reports/ReportCard';
-import { ReportItem } from '../../components/reports/types';
+import ReportCard from '../reports/ReportCard';
+import { ReportItem } from '../reports/types';
 
 const MOCK_REPORTS: ReportItem[] = [
   {
@@ -21,7 +21,13 @@ const MOCK_REPORTS: ReportItem[] = [
   },
 ];
 
-const Reports: React.FC<{ currentPage?: string; onNavigate?: (p: string) => void }> = ({ currentPage, onNavigate }) => {
+interface ReportsPageProps {
+  currentPage?: string;
+  onNavigate?: (p: string) => void;
+  userRole?: 'admin' | 'staff';
+}
+
+const ReportsPage: React.FC<ReportsPageProps> = ({ currentPage, onNavigate, userRole = 'admin' }) => {
   const [query, setQuery] = React.useState('');
   const [activeTab, setActiveTab] = React.useState<'All' | 'Resolved' | 'In Progress' | 'Pending' | 'Rejected'>('All');
   const [reports, setReports] = React.useState<ReportItem[]>(MOCK_REPORTS);
@@ -37,9 +43,13 @@ const Reports: React.FC<{ currentPage?: string; onNavigate?: (p: string) => void
     setReports(prev => prev.map(r => r.id === id ? { ...r, status } : r));
   };
 
+  // Role-based functionality
+  const canCreateReports = userRole === 'admin'; // Only admin can create reports
+  const canModifyReports = userRole === 'admin'; // Only admin can modify reports
+
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <Sidebar currentPage={currentPage} onNavigate={onNavigate} />
+      <Sidebar currentPage={currentPage} onNavigate={onNavigate} userRole={userRole} />
 
       <div className="flex-1 flex flex-col min-w-0 lg:pl-64">
         <TopNavbar title="Reports" subtitle="Generate and view reports" />
@@ -50,7 +60,9 @@ const Reports: React.FC<{ currentPage?: string; onNavigate?: (p: string) => void
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
                   <h1 className="text-2xl font-semibold">Reports</h1>
-                  <p className="text-sm text-gray-500">Generate and view reports</p>
+                  <p className="text-sm text-gray-500">
+                    {userRole === 'staff' ? 'View reports and maintenance requests' : 'Generate and view reports'}
+                  </p>
                 </div>
                 <div className="w-full md:w-1/2">
                   <input
@@ -114,7 +126,11 @@ const Reports: React.FC<{ currentPage?: string; onNavigate?: (p: string) => void
                 {filtered.length === 0 && <div className="py-8 text-center text-gray-500">No reports found.</div>}
 
                 {filtered.map(r => (
-                  <ReportCard key={r.id} report={r} onChangeStatus={handleStatusChange} />
+                  <ReportCard 
+                    key={r.id} 
+                    report={r} 
+                    onChangeStatus={canModifyReports ? handleStatusChange : undefined} 
+                  />
                 ))}
               </div>
             </div>
@@ -125,4 +141,4 @@ const Reports: React.FC<{ currentPage?: string; onNavigate?: (p: string) => void
   );
 };
 
-export default Reports;
+export default ReportsPage;

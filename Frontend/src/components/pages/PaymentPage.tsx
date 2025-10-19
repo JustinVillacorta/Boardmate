@@ -1,7 +1,7 @@
 import React from 'react';
-import Sidebar from '../../components/layout/Sidebar';
-import TopNavbar from '../../components/layout/TopNavbar';
-import PaymentCard from '../../components/payments/PaymentCard';
+import Sidebar from '../layout/Sidebar';
+import TopNavbar from '../layout/TopNavbar';
+import PaymentCard from '../payments/PaymentCard';
 
 interface PaymentRow {
   id: string;
@@ -17,25 +17,29 @@ const SAMPLE: PaymentRow[] = [
   { id: '2', room: 'Room 20', tenant: 'Keith Pogi', pending: '₱0', overdue: '₱0', lastPayment: 'No payments yet' },
 ];
 
-interface Props {
+interface PaymentPageProps {
   currentPage?: string;
   onNavigate?: (page: string) => void;
+  userRole?: 'admin' | 'staff';
 }
 
-const Payment: React.FC<Props> = ({ currentPage, onNavigate }) => {
+const PaymentPage: React.FC<PaymentPageProps> = ({ currentPage, onNavigate, userRole = 'admin' }) => {
   const [query, setQuery] = React.useState('');
 
   const filtered = SAMPLE.filter(r =>
     r.room.toLowerCase().includes(query.toLowerCase()) ||
     r.tenant.toLowerCase().includes(query.toLowerCase())
   );
+  
   return (
-    
     <div className="flex min-h-screen bg-gray-50">
-      <Sidebar currentPage={currentPage} onNavigate={onNavigate} />
+      <Sidebar currentPage={currentPage} onNavigate={onNavigate} userRole={userRole} />
 
       <div className="flex-1 flex flex-col min-w-0 lg:pl-64">
-        <TopNavbar title="Payment" subtitle="Manage your account and preferences" />
+        <TopNavbar 
+          title="Payment" 
+          subtitle={userRole === 'staff' ? "Manage tenant payments and dues" : "Manage your account and preferences"} 
+        />
 
         <main className="flex-1 p-4 lg:p-6 overflow-auto">
           <div className="max-w-full">
@@ -45,7 +49,9 @@ const Payment: React.FC<Props> = ({ currentPage, onNavigate }) => {
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                   <div>
                     <h2 className="text-lg lg:text-xl font-semibold text-gray-900">Payment Management</h2>
-                    <p className="text-sm text-gray-500 mt-1">Manage tenant payments and dues</p>
+                    <p className="text-sm text-gray-500 mt-1">
+                      {userRole === 'staff' ? 'Manage tenant payments and dues' : 'Manage tenant payments and dues'}
+                    </p>
                   </div>
 
                   <div className="w-full sm:w-96">
@@ -85,4 +91,4 @@ const Payment: React.FC<Props> = ({ currentPage, onNavigate }) => {
   );
 };
 
-export default Payment;
+export default PaymentPage;

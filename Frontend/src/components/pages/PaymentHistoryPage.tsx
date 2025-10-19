@@ -1,9 +1,9 @@
 import React from 'react';
-import Sidebar from '../../components/layout/Sidebar';
-import TopNavbar from '../../components/layout/TopNavbar';
-import DownloadDialog from '../../components/ui/DownloadDialog';
-import CreatePaymentForm, { PaymentPayload } from '../../components/payments/CreatePaymentForm';
-import MarkAsPaidForm, { default as _MarkAsPaidForm } from '../../components/payments/MarkAsPaidForm';
+import Sidebar from '../layout/Sidebar';
+import TopNavbar from '../layout/TopNavbar';
+import DownloadDialog from '../ui/DownloadDialog';
+import CreatePaymentForm, { PaymentPayload } from '../payments/CreatePaymentForm';
+import MarkAsPaidForm, { default as _MarkAsPaidForm } from '../payments/MarkAsPaidForm';
 
 interface PaymentRecord {
   id: string;
@@ -28,7 +28,13 @@ const OUTSTANDING_MOCK: PaymentRecord[] = [
   { id: 'o2', description: 'Water bill - November 2025', amount: '₱120', dueDate: '11/10/2025', status: 'Due' },
 ];
 
-const PaymentHistory: React.FC<{ currentPage?: string; onNavigate?: (p: string) => void }> = ({ currentPage, onNavigate }) => {
+interface PaymentHistoryPageProps {
+  currentPage?: string;
+  onNavigate?: (p: string) => void;
+  userRole?: 'admin' | 'staff';
+}
+
+const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ currentPage, onNavigate, userRole = 'admin' }) => {
   const [downloadRow, setDownloadRow] = React.useState<PaymentRecord | null>(null);
   const [showCreateForm, setShowCreateForm] = React.useState(false);
   const [outstanding, setOutstanding] = React.useState<PaymentRecord[]>(OUTSTANDING_MOCK);
@@ -67,12 +73,20 @@ const PaymentHistory: React.FC<{ currentPage?: string; onNavigate?: (p: string) 
   const sel = typeof window !== 'undefined' ? sessionStorage.getItem('selectedPaymentRoom') : null;
   const parsed = sel ? JSON.parse(sel) : { room: 'Unknown', tenant: '' };
 
+  // Role-based functionality
+  const canCreatePayments = userRole === 'admin'; // Only admin can create payments
+  const canMarkAsPaid = userRole === 'admin' || userRole === 'staff'; // Both can mark as paid
+  const canDownload = userRole === 'admin'; // Only admin can download
+
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <Sidebar currentPage={currentPage} onNavigate={onNavigate} />
+      <Sidebar currentPage={currentPage} onNavigate={onNavigate} userRole={userRole} />
 
       <div className="flex-1 flex flex-col min-w-0 lg:pl-64">
-        <TopNavbar title="Payment" subtitle="Manage your account and preferences" />
+        <TopNavbar 
+          title="Payment" 
+          subtitle={userRole === 'staff' ? "Manage tenant payments and dues" : "Manage your account and preferences"} 
+        />
 
         <main className="flex-1 p-4 lg:p-6 overflow-auto">
           <div className="max-w-full">
@@ -81,15 +95,17 @@ const PaymentHistory: React.FC<{ currentPage?: string; onNavigate?: (p: string) 
                 <h1 className="text-2xl font-semibold">Payment History</h1>
                 <p className="text-sm text-gray-500">{parsed.room} - {parsed.tenant}</p>
               </div>
-              <div className="flex items-center space-x-3">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateForm(true)}
-                  className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700"
-                >
-                  Create Payment
-                </button>
-              </div>
+              {canCreatePayments && (
+                <div className="flex items-center space-x-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateForm(true)}
+                    className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700"
+                  >
+                    Create Payment
+                  </button>
+                </div>
+              )}
             </div>
 
             <section className="bg-white rounded-xl shadow p-6 mb-6">
@@ -111,20 +127,22 @@ const PaymentHistory: React.FC<{ currentPage?: string; onNavigate?: (p: string) 
                         <td className="py-3 pr-6 font-medium">{row.amount}</td>
                         <td className="py-3 pr-6">{row.dueDate}</td>
                         <td className="py-3 pr-6">
-                          <button
-                            onClick={() => {
-                              setPayingRow(row);
-                              // prefill form: default paymentDate to today in yyyy-mm-dd for input
-                              const today = new Date();
-                              const yyyy = today.getFullYear();
-                              const mm = String(today.getMonth() + 1).padStart(2, '0');
-                              const dd = String(today.getDate()).padStart(2, '0');
-                              setPayForm({ paymentDate: `${yyyy}-${mm}-${dd}`, paymentMethod: 'cash', transactionReference: '', notes: '' });
-                            }}
-                            className="px-3 py-1 rounded-md bg-blue-600 text-white text-sm"
-                          >
-                            Mark as Paid
-                          </button>
+                          {canMarkAsPaid && (
+                            <button
+                              onClick={() => {
+                                setPayingRow(row);
+                                // prefill form: default paymentDate to today in yyyy-mm-dd for input
+                                const today = new Date();
+                                const yyyy = today.getFullYear();
+                                const mm = String(today.getMonth() + 1).padStart(2, '0');
+                                const dd = String(today.getDate()).padStart(2, '0');
+                                setPayForm({ paymentDate: `${yyyy}-${mm}-${dd}`, paymentMethod: 'cash', transactionReference: '', notes: '' });
+                              }}
+                              className="px-3 py-1 rounded-md bg-blue-600 text-white text-sm"
+                            >
+                              Mark as Paid
+                            </button>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -156,7 +174,9 @@ const PaymentHistory: React.FC<{ currentPage?: string; onNavigate?: (p: string) 
                         <td className="py-4 pr-6">{row.paidDate || '-'}</td>
                         <td className="py-4 pr-6"><span className="inline-flex items-center px-2 py-1 rounded-full bg-green-100 text-green-800 text-xs">{row.status}</span></td>
                         <td className="py-4 pr-6">
-                          <button onClick={() => { setDownloadRow(row); }} className="px-3 py-1 rounded-md bg-blue-50 text-blue-700 text-sm">Download</button>
+                          {canDownload && (
+                            <button onClick={() => { setDownloadRow(row); }} className="px-3 py-1 rounded-md bg-blue-50 text-blue-700 text-sm">Download</button>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -164,9 +184,11 @@ const PaymentHistory: React.FC<{ currentPage?: string; onNavigate?: (p: string) 
                 </table>
               </div>
             </section>
-            <DownloadDialog open={!!downloadRow} row={downloadRow} onClose={() => setDownloadRow(null)} onDownload={startDownload} />
+            {canDownload && (
+              <DownloadDialog open={!!downloadRow} row={downloadRow} onClose={() => setDownloadRow(null)} onDownload={startDownload} />
+            )}
             {/* Mark as Paid modal (component) */}
-            {payingRow && (
+            {payingRow && canMarkAsPaid && (
               <React.Suspense>
                 {/* lazy-free render: MarkAsPaidForm is local so normal import */}
                 <MarkAsPaidForm
@@ -190,7 +212,7 @@ const PaymentHistory: React.FC<{ currentPage?: string; onNavigate?: (p: string) 
                 />
               </React.Suspense>
             )}
-            {showCreateForm && (
+            {showCreateForm && canCreatePayments && (
               <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
                 <div className="fixed inset-0 bg-black/40" onClick={() => setShowCreateForm(false)} />
                 <div className="bg-white rounded-xl shadow max-w-3xl w-full z-10 p-6 max-h-[90vh] overflow-auto">
@@ -217,4 +239,4 @@ const PaymentHistory: React.FC<{ currentPage?: string; onNavigate?: (p: string) 
   );
 };
 
-export default PaymentHistory;
+export default PaymentHistoryPage;

@@ -14,8 +14,8 @@ interface UserData {
 
 interface UserCardProps {
   user: UserData;
-  onEdit: (userId: string) => void;
-  onArchive: (userId: string) => void;
+  onEdit?: (userId: string) => void;
+  onArchive?: (userId: string) => void;
 }
 
 const UserCard: React.FC<UserCardProps> = ({ user, onEdit, onArchive }) => {
@@ -106,23 +106,29 @@ const UserCard: React.FC<UserCardProps> = ({ user, onEdit, onArchive }) => {
         </div>
       </div>
 
-      {/* Action Buttons */}
-      <div className="flex gap-2">
-        <button
-          onClick={() => onEdit(user.id)}
-          className="flex-1 flex items-center justify-center gap-1 px-2 sm:px-3 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors text-xs sm:text-sm font-medium"
-        >
-          <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
-          <span className="hidden sm:inline">Edit</span>
-        </button>
-        <button
-          onClick={() => onArchive(user.id)}
-          className="flex-1 flex items-center justify-center gap-1 px-2 sm:px-3 py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors text-xs sm:text-sm font-medium"
-        >
-          <Archive className="w-3 h-3 sm:w-4 sm:h-4" />
-          <span className="hidden sm:inline">Archive</span>
-        </button>
-      </div>
+      {/* Action Buttons - Only show if functions are provided */}
+      {(onEdit || onArchive) && (
+        <div className="flex gap-2">
+          {onEdit && (
+            <button
+              onClick={() => onEdit(user.id)}
+              className="flex-1 flex items-center justify-center gap-1 px-2 sm:px-3 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors text-xs sm:text-sm font-medium"
+            >
+              <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">Edit</span>
+            </button>
+          )}
+          {onArchive && (
+            <button
+              onClick={() => onArchive(user.id)}
+              className="flex-1 flex items-center justify-center gap-1 px-2 sm:px-3 py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors text-xs sm:text-sm font-medium"
+            >
+              <Archive className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">Archive</span>
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 };

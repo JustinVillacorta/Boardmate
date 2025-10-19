@@ -1,10 +1,10 @@
 import React from 'react';
-import Sidebar from '../../components/layout/Sidebar';
-import TopNavbar from '../../components/layout/TopNavbar';
+import Sidebar from '../layout/Sidebar';
+import TopNavbar from '../layout/TopNavbar';
 import { Bell, X } from 'lucide-react';
-import NotificationCard from '../../components/notifications/NotificationCard';
-import NotificationsSummaryCard from '../../components/notifications/NotificationsSummaryCard';
-import CreateAnnouncementForm from '../../components/notifications/CreateAnnouncementForm';
+import NotificationCard from '../notifications/NotificationCard';
+import NotificationsSummaryCard from '../notifications/NotificationsSummaryCard';
+import CreateAnnouncementForm from '../notifications/CreateAnnouncementForm';
 
 type NotificationItem = {
   id: string;
@@ -48,7 +48,13 @@ const MOCK: NotificationItem[] = [
   },
 ];
 
-const Notifications: React.FC<{ currentPage?: string; onNavigate?: (p: string) => void }> = ({ currentPage, onNavigate }) => {
+interface NotificationsPageProps {
+  currentPage?: string;
+  onNavigate?: (p: string) => void;
+  userRole?: 'admin' | 'staff';
+}
+
+const NotificationsPage: React.FC<NotificationsPageProps> = ({ currentPage, onNavigate, userRole = 'admin' }) => {
   const [list, setList] = React.useState<NotificationItem[]>(MOCK);
   const [query, setQuery] = React.useState('');
 
@@ -76,9 +82,12 @@ const Notifications: React.FC<{ currentPage?: string; onNavigate?: (p: string) =
       ? filteredByQuery.filter(l => l.read)
       : filteredByQuery.filter(l => !l.read);
 
+  // Role-based functionality
+  const canCreateAnnouncements = userRole === 'admin'; // Only admin can create announcements
+
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <Sidebar currentPage={currentPage} onNavigate={onNavigate} />
+      <Sidebar currentPage={currentPage} onNavigate={onNavigate} userRole={userRole} />
       <div className="flex-1 flex flex-col min-w-0 lg:pl-64">
         <TopNavbar title="Notifications" subtitle="View and manage notifications" />
 
@@ -88,7 +97,9 @@ const Notifications: React.FC<{ currentPage?: string; onNavigate?: (p: string) =
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
                   <h1 className="text-2xl font-semibold">Notifications</h1>
-                  <p className="text-sm text-gray-500">View and manage notifications</p>
+                  <p className="text-sm text-gray-500">
+                    {userRole === 'staff' ? 'View notifications and announcements' : 'View and manage notifications'}
+                  </p>
                 </div>
                 <div className="w-full md:w-1/2">
                   <input
@@ -134,11 +145,15 @@ const Notifications: React.FC<{ currentPage?: string; onNavigate?: (p: string) =
 
                 <div className="hidden sm:flex items-center gap-3">
                   <button onClick={markAllRead} className="px-4 py-2 bg-green-600 text-white rounded">Mark All Read</button>
-                  <button onClick={() => setCreating(true)} className="px-4 py-2 bg-blue-600 text-white rounded">+ Create Announcement</button>
+                  {canCreateAnnouncements && (
+                    <button onClick={() => setCreating(true)} className="px-4 py-2 bg-blue-600 text-white rounded">+ Create Announcement</button>
+                  )}
                 </div>
                 <div className="flex sm:hidden flex-col gap-2">
                   <button onClick={markAllRead} className="px-3 py-2 bg-green-600 text-white rounded">Mark All Read</button>
-                  <button onClick={() => setCreating(true)} className="px-3 py-2 bg-blue-600 text-white rounded">+ Create</button>
+                  {canCreateAnnouncements && (
+                    <button onClick={() => setCreating(true)} className="px-3 py-2 bg-blue-600 text-white rounded">+ Create</button>
+                  )}
                 </div>
               </div>
             </div>
@@ -148,16 +163,18 @@ const Notifications: React.FC<{ currentPage?: string; onNavigate?: (p: string) =
                 <NotificationCard key={n.id} n={n} onMarkRead={markRead} />
               ))}
             </div>
-            <CreateAnnouncementForm
-              open={creating}
-              onCancel={() => setCreating(false)}
-              onCreate={({ title, message }) => {
-                  const id = 'n' + Date.now();
-                  const createdAt = new Date().toLocaleString();
-                  setList(prev => [{ id, title, tag: 'announcement', excerpt: message, createdAt, read: false }, ...prev]);
-                  setCreating(false);
-                }}
-            />
+            {canCreateAnnouncements && (
+              <CreateAnnouncementForm
+                open={creating}
+                onCancel={() => setCreating(false)}
+                onCreate={({ title, message }) => {
+                    const id = 'n' + Date.now();
+                    const createdAt = new Date().toLocaleString();
+                    setList(prev => [{ id, title, tag: 'announcement', excerpt: message, createdAt, read: false }, ...prev]);
+                    setCreating(false);
+                  }}
+              />
+            )}
           </div>
         </main>
       </div>
@@ -165,4 +182,4 @@ const Notifications: React.FC<{ currentPage?: string; onNavigate?: (p: string) =
   );
 };
 
-export default Notifications;
+export default NotificationsPage;
