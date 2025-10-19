@@ -1,25 +1,34 @@
 import React, { useState } from 'react';
 import LoginPage from './pages/LoginPage';
 import Dashboard from './pages/Dashboard';
+import UsersPage from './pages/UsersPage';
 
 const App: React.FC = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(true); // Set to true for development
+  const [currentPage, setCurrentPage] = useState('users'); // Default to users page
+
+  const handleNavigation = (page: string) => {
+    setCurrentPage(page);
+  };
+
+  const renderCurrentPage = () => {
+    switch (currentPage) {
+      case 'dashboard':
+        return <Dashboard currentPage={currentPage} onNavigate={handleNavigation} />;
+      case 'users':
+        return <UsersPage currentPage={currentPage} onNavigate={handleNavigation} />;
+      default:
+        return <Dashboard currentPage={currentPage} onNavigate={handleNavigation} />;
+    }
+  };
 
   return (
     <div className="App">
       {isAuthenticated ? (
-        <Dashboard />
+        renderCurrentPage()
       ) : (
         <LoginPage onLogin={() => setIsAuthenticated(true)} />
       )}
-      
-      {/* Demo toggle button - remove in production */}
-      <button
-        onClick={() => setIsAuthenticated(!isAuthenticated)}
-        className="fixed bottom-4 right-4 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-blue-700 transition-colors text-sm z-50"
-      >
-        {isAuthenticated ? 'Go to Login' : 'Go to Dashboard'}
-      </button>
     </div>
   );
 };

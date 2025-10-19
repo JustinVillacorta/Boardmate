@@ -1,7 +1,15 @@
 import React, { useState } from "react";
 import { Search, Bell } from "lucide-react";
 
-const TopNavbar: React.FC = () => {
+interface TopNavbarProps {
+  title?: string;
+  subtitle?: string;
+}
+
+const TopNavbar: React.FC<TopNavbarProps> = ({ 
+  title = "Dashboard", 
+  subtitle = "Your room info, payments Account status" 
+}) => {
   const [showNotifications, setShowNotifications] = useState(false);
 
   const notifications = [
@@ -16,10 +24,10 @@ const TopNavbar: React.FC = () => {
         {/* Left: Logo/Title - Responsive */}
         <div className="cursor-pointer flex flex-col items-start">
           <h1 className="text-xl lg:text-3xl font-semibold text-gray-800">
-            Dashboard
+            {title}
           </h1>
           <p className="text-xs lg:text-sm text-gray-400 hidden sm:block">
-            Your room info, payments Account status
+            {subtitle}
           </p>
         </div>
 

@@ -12,7 +12,12 @@ type PaymentData = {
   amount: number;
 };
 
-const Dashboard: React.FC = () => {
+interface DashboardProps {
+  currentPage?: string;
+  onNavigate?: (page: string) => void;
+}
+
+const Dashboard: React.FC<DashboardProps> = ({ currentPage, onNavigate }) => {
   // Sample payment data
   const SAMPLE_PAYMENTS: PaymentData[] = [
     { month: "Jan", collected: 13500, overdue: 500, amount: 14000 },
@@ -59,7 +64,7 @@ const Dashboard: React.FC = () => {
   return (
     <div className="flex min-h-screen bg-gray-50">
       {/* Sidebar */}
-      <Sidebar />
+      <Sidebar currentPage={currentPage} onNavigate={onNavigate} />
       
       {/* Main Content - Responsive */}
       <div className="flex-1 flex flex-col min-w-0 lg:pl-64">

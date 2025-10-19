@@ -11,7 +11,20 @@ import {
   X
 } from "lucide-react";
 
-const Sidebar: React.FC = () => {
+interface SidebarProps {
+  currentPage?: string;
+  onNavigate?: (page: string) => void;
+}
+
+interface NavigationItem {
+  name: string;
+  icon: React.ElementType;
+  page?: string;
+  active: boolean;
+  action?: () => void;
+}
+
+const Sidebar: React.FC<SidebarProps> = ({ currentPage = 'dashboard', onNavigate }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   
@@ -35,14 +48,14 @@ const Sidebar: React.FC = () => {
     }
   };
 
-  const navigationItems = [
-    { name: "Dashboard", icon: LayoutDashboard, path: "/main", active: true },
-    { name: "Users", icon: User, path: "/main-projects", active: false },
-    { name: "Rooms", icon: DoorOpen, path: "/rooms", active: false },
-    { name: "Payment", icon: PhilippinePeso, path: "/work-logs", active: false },
-    { name: "Reports", icon: Wrench, path: "/performance", active: false },
-    { name: "Notifications", icon: BellDot, path: "/notifications", active: false },
-    { name: "Logout", icon: LogOut, action: () => setShowLogoutConfirm(true) },
+  const navigationItems: NavigationItem[] = [
+    { name: "Dashboard", icon: LayoutDashboard, page: "dashboard", active: currentPage === 'dashboard' },
+    { name: "Users", icon: User, page: "users", active: currentPage === 'users' },
+    { name: "Rooms", icon: DoorOpen, page: "rooms", active: currentPage === 'rooms' },
+    { name: "Payment", icon: PhilippinePeso, page: "payment", active: currentPage === 'payment' },
+    { name: "Reports", icon: Wrench, page: "reports", active: currentPage === 'reports' },
+    { name: "Notifications", icon: BellDot, page: "notifications", active: currentPage === 'notifications' },
+    { name: "Logout", icon: LogOut, active: false, action: () => setShowLogoutConfirm(true) },
   ];
 
   const sidebarContent = (
@@ -107,8 +120,8 @@ const Sidebar: React.FC = () => {
             onClick={() => {
               if (item.action) {
                 item.action();
-              } else {
-                console.log(`Navigate to ${item.path}`);
+              } else if (item.page && onNavigate) {
+                onNavigate(item.page);
               }
               // Close mobile menu when item is clicked
               setIsMobileMenuOpen(false);
