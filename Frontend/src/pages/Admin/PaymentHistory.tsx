@@ -3,6 +3,7 @@ import Sidebar from '../../components/layout/Sidebar';
 import TopNavbar from '../../components/layout/TopNavbar';
 import DownloadDialog from '../../components/ui/DownloadDialog';
 import CreatePaymentForm, { PaymentPayload } from '../../components/payments/CreatePaymentForm';
+import MarkAsPaidForm, { default as _MarkAsPaidForm } from '../../components/payments/MarkAsPaidForm';
 
 interface PaymentRecord {
   id: string;
@@ -11,6 +12,9 @@ interface PaymentRecord {
   dueDate: string;
   paidDate?: string;
   status: 'Paid' | 'Due' | 'Overdue';
+  paymentMethod?: string;
+  transactionReference?: string;
+  notes?: string;
 }
 
 const MOCK: PaymentRecord[] = [
@@ -19,9 +23,18 @@ const MOCK: PaymentRecord[] = [
   { id: 'p3', description: 'Monthly rent - August 2025', amount: '₱500', dueDate: '8/5/2025', paidDate: '8/3/2025', status: 'Paid' },
 ];
 
+const OUTSTANDING_MOCK: PaymentRecord[] = [
+  { id: 'o1', description: 'Monthly rent - November 2025', amount: '₱500', dueDate: '11/05/2025', status: 'Due' },
+  { id: 'o2', description: 'Water bill - November 2025', amount: '₱120', dueDate: '11/10/2025', status: 'Due' },
+];
+
 const PaymentHistory: React.FC<{ currentPage?: string; onNavigate?: (p: string) => void }> = ({ currentPage, onNavigate }) => {
   const [downloadRow, setDownloadRow] = React.useState<PaymentRecord | null>(null);
   const [showCreateForm, setShowCreateForm] = React.useState(false);
+  const [outstanding, setOutstanding] = React.useState<PaymentRecord[]>(OUTSTANDING_MOCK);
+  const [history, setHistory] = React.useState<PaymentRecord[]>(MOCK);
+  const [payingRow, setPayingRow] = React.useState<PaymentRecord | null>(null);
+  const [payForm, setPayForm] = React.useState({ paymentDate: '', paymentMethod: 'cash', transactionReference: '', notes: '' });
 
   const startDownload = (row: PaymentRecord, fmt: 'csv' | 'json') => {
     if (fmt === 'json') {
@@ -81,7 +94,43 @@ const PaymentHistory: React.FC<{ currentPage?: string; onNavigate?: (p: string) 
 
             <section className="bg-white rounded-xl shadow p-6 mb-6">
               <h3 className="text-lg font-semibold mb-3">Current Outstanding Payments</h3>
-              <div className="py-8 text-center text-gray-500">No outstanding payments for this room.</div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-gray-600 border-b">
+                      <th className="py-3 pr-6">Description</th>
+                      <th className="py-3 pr-6">Amount</th>
+                      <th className="py-3 pr-6">Due Date</th>
+                      <th className="py-3 pr-6">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {outstanding.map(row => (
+                      <tr key={row.id}>
+                        <td className="py-3 pr-6">{row.description}</td>
+                        <td className="py-3 pr-6 font-medium">{row.amount}</td>
+                        <td className="py-3 pr-6">{row.dueDate}</td>
+                        <td className="py-3 pr-6">
+                          <button
+                            onClick={() => {
+                              setPayingRow(row);
+                              // prefill form: default paymentDate to today in yyyy-mm-dd for input
+                              const today = new Date();
+                              const yyyy = today.getFullYear();
+                              const mm = String(today.getMonth() + 1).padStart(2, '0');
+                              const dd = String(today.getDate()).padStart(2, '0');
+                              setPayForm({ paymentDate: `${yyyy}-${mm}-${dd}`, paymentMethod: 'cash', transactionReference: '', notes: '' });
+                            }}
+                            className="px-3 py-1 rounded-md bg-blue-600 text-white text-sm"
+                          >
+                            Mark as Paid
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </section>
 
             <section className="bg-white rounded-xl shadow p-6">
@@ -116,6 +165,31 @@ const PaymentHistory: React.FC<{ currentPage?: string; onNavigate?: (p: string) 
               </div>
             </section>
             <DownloadDialog open={!!downloadRow} row={downloadRow} onClose={() => setDownloadRow(null)} onDownload={startDownload} />
+            {/* Mark as Paid modal (component) */}
+            {payingRow && (
+              <React.Suspense>
+                {/* lazy-free render: MarkAsPaidForm is local so normal import */}
+                <MarkAsPaidForm
+                  open={!!payingRow}
+                  initial={{ paymentDate: payForm.paymentDate, paymentMethod: payForm.paymentMethod, transactionReference: payForm.transactionReference, notes: payForm.notes }}
+                  onCancel={() => setPayingRow(null)}
+                  onSubmit={(data: { paymentDate: string; paymentMethod: string; transactionReference: string; notes?: string }) => {
+                    if (!payingRow) return;
+                    const updated: PaymentRecord = {
+                      ...payingRow,
+                      status: 'Paid',
+                      paidDate: data.paymentDate,
+                      paymentMethod: data.paymentMethod,
+                      transactionReference: data.transactionReference,
+                      notes: data.notes,
+                    };
+                    setOutstanding(prev => prev.filter(r => r.id !== payingRow.id));
+                    setHistory(prev => [updated, ...prev]);
+                    setPayingRow(null);
+                  }}
+                />
+              </React.Suspense>
+            )}
             {showCreateForm && (
               <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
                 <div className="fixed inset-0 bg-black/40" onClick={() => setShowCreateForm(false)} />

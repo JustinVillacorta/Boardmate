@@ -50,6 +50,27 @@ const CreatePaymentForm: React.FC<{
     onSubmit(payload);
   };
 
+  const clearForm = () => {
+    setAmount(String(initial.amount ?? ''));
+    setPaymentType(initial.paymentType ?? defaultValues.paymentType!);
+    setPaymentMethod(initial.paymentMethod ?? defaultValues.paymentMethod!);
+    setDueDate(initial.dueDate ?? '');
+    setStatus(initial.status ?? defaultValues.status!);
+    setPaymentDate(initial.paymentDate ?? '');
+    setPeriodStart(initial.periodCovered?.startDate ?? '');
+    setPeriodEnd(initial.periodCovered?.endDate ?? '');
+    setTransactionReference(initial.transactionReference ?? '');
+    setDescription(initial.description ?? '');
+  };
+
+  // when status is 'due' clear paymentDate and transactionReference so they're not accessible
+  React.useEffect(() => {
+    if (status === 'due') {
+      setPaymentDate('');
+      setTransactionReference('');
+    }
+  }, [status]);
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -94,8 +115,8 @@ const CreatePaymentForm: React.FC<{
         </label>
 
         <label className="block">
-          <div className="text-sm text-gray-600 mb-1">Payment Date</div>
-          <input value={paymentDate} onChange={e => setPaymentDate(e.target.value)} type="date" className="w-full border rounded-md px-3 py-2" />
+            <div className="text-sm text-gray-600 mb-1">Payment Date</div>
+            <input value={paymentDate} onChange={e => setPaymentDate(e.target.value)} type="date" className="w-full border rounded-md px-3 py-2" disabled={status === 'due'} />
         </label>
       </div>
 
@@ -113,7 +134,7 @@ const CreatePaymentForm: React.FC<{
 
       <label className="block">
         <div className="text-sm text-gray-600 mb-1">Transaction Reference</div>
-        <input value={transactionReference} onChange={e => setTransactionReference(e.target.value)} type="text" className="w-full border rounded-md px-3 py-2" />
+        <input value={transactionReference} onChange={e => setTransactionReference(e.target.value)} type="text" className="w-full border rounded-md px-3 py-2" disabled={status === 'due'} />
       </label>
 
       <label className="block">
@@ -122,7 +143,7 @@ const CreatePaymentForm: React.FC<{
       </label>
 
       <div className="flex items-center justify-end space-x-3 pt-4 border-t">
-        <button type="button" onClick={() => onCancel && onCancel()} className="px-4 py-2 rounded-md text-gray-700 hover:bg-gray-50">Cancel</button>
+        <button type="button" onClick={clearForm} className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors font-medium">Clear</button>
         <button type="submit" className="px-4 py-2 rounded-md bg-blue-600 text-white">Create Payment</button>
       </div>
     </form>
