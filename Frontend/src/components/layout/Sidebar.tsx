@@ -41,8 +41,17 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage = 'dashboard', onNavigate
   const handleLogout = async () => {
     try {
       setShowLogoutConfirm(false);
-      // Add logout logic here
-      console.log("Logging out...");
+      // Clear any auth tokens / flags and reload to show login screen
+      try {
+        localStorage.removeItem('authToken');
+      } catch (e) {
+        // ignore
+      }
+      try {
+        localStorage.setItem('isAuthenticated', 'false');
+      } catch (e) {}
+      // reload the app so the top-level App reads the updated auth state
+      window.location.reload();
     } catch (error) {
       console.error('Logout error:', error);
     }
@@ -84,32 +93,22 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage = 'dashboard', onNavigate
         </div>
 
         {/* User Profile */}
-        <div className="mt-4 flex items-center gap-2">
-          <div className="w-8 h-8 lg:w-10 lg:h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-medium text-sm">
-            {user?.username ? user.username.charAt(0).toUpperCase() + (user.username.charAt(1) || '').toUpperCase() : 'U'}
-          </div>
-          <div className="flex-1">
-            <p className="text-sm font-medium text-gray-800">
-              {user?.tenant ? `${user.tenant.firstName} ${user.tenant.lastName}` : user?.username || 'User'}
-            </p>
-            <div className="flex items-center gap-1 text-xs text-black-700 bg-gray-300 px-2 py-1 rounded-full">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="12"
-                height="12"
-                fill="currentColor"
-                className="bi bi-shield"
-                viewBox="0 0 16 16"
-              >
-                <path d="M5.338 1.59a61 61 0 0 0-2.837.856.48.48 0 0 0-.328.39c-.554 4.157.726 7.19 2.253 9.188a10.7 10.7 0 0 0 2.287 2.233c.346.244.652.42.893.533q.18.085.293.118a1 1 0 0 0 .101.025 1 1 0 0 0 .1-.025q.114-.034.294-.118c.24-.113.547-.29.893-.533a10.7 10.7 0 0 0 2.287-2.233c1.527-1.997 2.807-5.031 2.253-9.188a.48.48 0 0 0-.328-.39c-.651-.213-1.75-.56-2.837-.855C9.552 1.29 8.531 1.067 8 1.067c-.53 0-1.552.223-2.662.524zM5.072.56C6.157.265 7.31 0 8 0s1.843.265 2.928.56c1.11.3 2.229.655 2.887.87a1.54 1.54 0 0 1 1.044 1.262c.596 4.477-.787 7.795-2.465 9.99a11.8 11.8 0 0 1-2.517 2.453 7 7 0 0 1-1.048.625c-.28.132-.581.24-.829.24s-.548-.108-.829-.24a7 7 0 0 1-1.048-.625 11.8 11.8 0 0 1-2.517-2.453C1.928 10.487.545 7.169 1.141 2.692A1.54 1.54 0 0 1 2.185 1.43 63 63 0 0 1 5.072.56"
-                  fill="#c62525ff" />
-              </svg>
-              <span className="font-semibold">
-                {user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'User'}
-              </span>
+          <div className="mt-4 flex items-center gap-2">
+            <div className="w-8 h-8 lg:w-10 lg:h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-medium text-sm">
+              {user?.username ? user.username.charAt(0).toUpperCase() + (user.username.charAt(1) || '').toUpperCase() : 'U'}
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-3">
+                <p className="text-sm font-medium text-gray-800">{user?.tenant ? `${user.tenant.firstName} ${user.tenant.lastName}` : user?.username || 'User'}</p>
+                <div className="flex items-center gap-2 text-xs text-gray-700 bg-gray-200 px-2 py-1 rounded-full">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" className="w-3 h-3 text-red-600 flex-shrink-0" fill="currentColor" aria-hidden>
+                    <path d="M5.338 1.59a61 61 0 0 0-2.837.856.48.48 0 0 0-.328.39c-.554 4.157.726 7.19 2.253 9.188a10.7 10.7 0 0 0 2.287 2.233c.346.244.652.42.893.533q.18.085.293.118a1 1 0 0 0 .101.025 1 1 0 0 0 .1-.025q.114-.034.294-.118c.24-.113.547-.29.893-.533a10.7 10.7 0 0 0 2.287-2.233c1.527-1.997 2.807-5.031 2.253-9.188a.48.48 0 0 0-.328-.39c-.651-.213-1.75-.56-2.837-.855C9.552 1.29 8.531 1.067 8 1.067c-.53 0-1.552.223-2.662.524zM5.072.56C6.157.265 7.31 0 8 0s1.843.265 2.928.56c1.11.3 2.229.655 2.887.87a1.54 1.54 0 0 1 1.044 1.262c.596 4.477-.787 7.795-2.465 9.99a11.8 11.8 0 0 1-2.517 2.453 7 7 0 0 1-1.048.625c-.28.132-.581.24-.829.24s-.548-.108-.829-.24a7 7 0 0 1-1.048-.625 11.8 11.8 0 0 1-2.517-2.453C1.928 10.487.545 7.169 1.141 2.692A1.54 1.54 0 0 1 2.185 1.43 63 63 0 0 1 5.072.56" />
+                  </svg>
+                  <span className="font-semibold">{user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'User'}</span>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
       </div>
       
       {/* Navigation */}
