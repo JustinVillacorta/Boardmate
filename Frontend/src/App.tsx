@@ -3,6 +3,8 @@ import LoginPage from './pages/Admin/LoginPage';
 import Dashboard from './pages/Admin/Dashboard';
 import UsersPage from './pages/Admin/UsersPage';
 import Rooms from './pages/Admin/Rooms';
+import Payment from './pages/Admin/Payment';
+import PaymentHistory from './pages/Admin/PaymentHistory';
 
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(true); // Set to true for development
@@ -14,10 +16,15 @@ const App: React.FC = () => {
 
   const renderCurrentPage = () => {
     switch (currentPage) {
+      case 'payment-history':
+        return <PaymentHistory currentPage={currentPage} onNavigate={handleNavigation} />;
+      
       case 'dashboard':
         return <Dashboard currentPage={currentPage} onNavigate={handleNavigation} />;
       case 'users':
         return <UsersPage currentPage={currentPage} onNavigate={handleNavigation} />;
+      case 'payment':
+        return <Payment currentPage={currentPage} onNavigate={handleNavigation} />;
         case 'rooms':
           return <Rooms currentPage={currentPage} onNavigate={handleNavigation} />;
       default:

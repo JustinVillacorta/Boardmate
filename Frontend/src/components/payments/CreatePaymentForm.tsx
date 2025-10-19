@@ -1,0 +1,132 @@
+import React from 'react';
+
+export interface PaymentPayload {
+  amount: number;
+  paymentType: string;
+  paymentMethod: string;
+  dueDate?: string;
+  status: string;
+  paymentDate?: string;
+  periodCovered?: { startDate?: string; endDate?: string };
+  transactionReference?: string;
+  description?: string;
+}
+
+export const defaultValues: Partial<PaymentPayload> = {
+  paymentType: 'rent',
+  paymentMethod: 'bank_transfer',
+  status: 'due',
+};
+
+const CreatePaymentForm: React.FC<{
+  initial?: Partial<PaymentPayload>;
+  onSubmit: (p: PaymentPayload) => void;
+  onCancel?: () => void;
+}> = ({ initial = {}, onSubmit, onCancel }) => {
+  const [amount, setAmount] = React.useState<string>(String(initial.amount ?? ''));
+  const [paymentType, setPaymentType] = React.useState<string>(initial.paymentType ?? defaultValues.paymentType!);
+  const [paymentMethod, setPaymentMethod] = React.useState<string>(initial.paymentMethod ?? defaultValues.paymentMethod!);
+  const [dueDate, setDueDate] = React.useState<string>(initial.dueDate ?? '');
+  const [status, setStatus] = React.useState<string>(initial.status ?? defaultValues.status!);
+  const [paymentDate, setPaymentDate] = React.useState<string>(initial.paymentDate ?? '');
+  const [periodStart, setPeriodStart] = React.useState<string>(initial.periodCovered?.startDate ?? '');
+  const [periodEnd, setPeriodEnd] = React.useState<string>(initial.periodCovered?.endDate ?? '');
+  const [transactionReference, setTransactionReference] = React.useState<string>(initial.transactionReference ?? '');
+  const [description, setDescription] = React.useState<string>(initial.description ?? '');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const payload: PaymentPayload = {
+      amount: Number(amount || 0),
+      paymentType,
+      paymentMethod,
+      dueDate: dueDate || undefined,
+      status,
+      paymentDate: paymentDate || undefined,
+      periodCovered: { startDate: periodStart || undefined, endDate: periodEnd || undefined },
+      transactionReference: transactionReference || undefined,
+      description: description || undefined,
+    };
+    onSubmit(payload);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <label className="block">
+          <div className="text-sm text-gray-600 mb-1">Amount</div>
+          <input value={amount} onChange={e => setAmount(e.target.value)} type="number" step="0.01" className="w-full border rounded-md px-3 py-2" required />
+        </label>
+
+        <label className="block">
+          <div className="text-sm text-gray-600 mb-1">Payment Type</div>
+          <select value={paymentType} onChange={e => setPaymentType(e.target.value)} className="w-full border rounded-md px-3 py-2">
+            <option value="rent">Rent</option>
+            <option value="utility">Utility</option>
+            <option value="other">Other</option>
+          </select>
+        </label>
+
+        <label className="block">
+          <div className="text-sm text-gray-600 mb-1">Payment Method</div>
+          <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)} className="w-full border rounded-md px-3 py-2">
+            <option value="bank_transfer">Bank Transfer</option>
+            <option value="cash">Cash</option>
+            <option value="card">Card</option>
+            <option value="gcash">GCash</option>
+          </select>
+        </label>
+
+        <label className="block">
+          <div className="text-sm text-gray-600 mb-1">Status</div>
+          <select value={status} onChange={e => setStatus(e.target.value)} className="w-full border rounded-md px-3 py-2">
+            <option value="paid">Paid</option>
+            <option value="due">Due</option>
+            <option value="overdue">Overdue</option>
+          </select>
+        </label>
+      </div>
+
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <label className="block">
+          <div className="text-sm text-gray-600 mb-1">Due Date</div>
+          <input value={dueDate} onChange={e => setDueDate(e.target.value)} type="date" className="w-full border rounded-md px-3 py-2" />
+        </label>
+
+        <label className="block">
+          <div className="text-sm text-gray-600 mb-1">Payment Date</div>
+          <input value={paymentDate} onChange={e => setPaymentDate(e.target.value)} type="date" className="w-full border rounded-md px-3 py-2" />
+        </label>
+      </div>
+
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <label className="block">
+          <div className="text-sm text-gray-600 mb-1">Period Start</div>
+          <input value={periodStart} onChange={e => setPeriodStart(e.target.value)} type="date" className="w-full border rounded-md px-3 py-2" />
+        </label>
+
+        <label className="block">
+          <div className="text-sm text-gray-600 mb-1">Period End</div>
+          <input value={periodEnd} onChange={e => setPeriodEnd(e.target.value)} type="date" className="w-full border rounded-md px-3 py-2" />
+        </label>
+      </div>
+
+      <label className="block">
+        <div className="text-sm text-gray-600 mb-1">Transaction Reference</div>
+        <input value={transactionReference} onChange={e => setTransactionReference(e.target.value)} type="text" className="w-full border rounded-md px-3 py-2" />
+      </label>
+
+      <label className="block">
+        <div className="text-sm text-gray-600 mb-1">Description</div>
+        <textarea value={description} onChange={e => setDescription(e.target.value)} rows={4} className="w-full border rounded-md px-3 py-2" />
+      </label>
+
+      <div className="flex items-center justify-end space-x-3 pt-4 border-t">
+        <button type="button" onClick={() => onCancel && onCancel()} className="px-4 py-2 rounded-md text-gray-700 hover:bg-gray-50">Cancel</button>
+        <button type="submit" className="px-4 py-2 rounded-md bg-blue-600 text-white">Create Payment</button>
+      </div>
+    </form>
+  );
+};
+
+export default CreatePaymentForm;
