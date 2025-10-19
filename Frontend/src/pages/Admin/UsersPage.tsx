@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import Sidebar from '../components/layout/Sidebar';
-import TopNavbar from '../components/layout/TopNavbar';
-import UserCard from '../components/users/UserCard';
-import CreateUserModal from '../components/users/CreateUserModal';
-import EditUserModal from '../components/users/EditUserModal';
-import ConfirmDialog from '../components/ui/ConfirmDialog';
+import Sidebar from '../../components/layout/Sidebar';
+import TopNavbar from '../../components/layout/TopNavbar';
+import UserCard from '../../components/users/UserCard';
+import CreateUserModal from '../../components/users/CreateUserModal';
+import EditUserModal from '../../components/users/EditUserModal';
+import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import { User, UserPlus } from 'lucide-react';
 
 interface UserData {
@@ -141,16 +141,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ currentPage, onNavigate }) => {
 
         {/* Page Content */}
         <main className="flex-1 p-4 lg:p-6 overflow-auto">
-          {/* Header */}
-          <div className="mb-6">
-            <div className="flex items-center gap-3 mb-2">
-              <User className="w-6 h-6 text-blue-600" />
-              <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Users</h1>
-            </div>
-            <p className="text-gray-600 text-sm lg:text-base">
-              Manage system users and permissions
-            </p>
-          </div>
+          
 
           {/* User Management Section */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200">

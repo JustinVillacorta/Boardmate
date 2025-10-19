@@ -1,8 +1,8 @@
 import React from "react";
-import Sidebar from "../components/layout/Sidebar";
-import TopNavbar from "../components/layout/TopNavbar";
-import MetricCards from "../components/dashboard/MetricCards";
-import Charts from "../components/dashboard/Charts";
+import Sidebar from "../../components/layout/Sidebar";
+import TopNavbar from "../../components/layout/TopNavbar";
+import MetricCards from "../../components/dashboard/MetricCards";
+import Charts from "../../components/dashboard/Charts";
 
 // Types for data structure
 type PaymentData = {

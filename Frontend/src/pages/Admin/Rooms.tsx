@@ -1,0 +1,202 @@
+import React, { useState } from 'react';
+import Sidebar from '../../components/layout/Sidebar';
+import TopNavbar from '../../components/layout/TopNavbar';
+import RoomCard from '../../components/rooms/RoomCard';
+import CreateRoomModal from '../../components/rooms/CreateRoomModal';
+import ManageTenantsModal from '../../components/rooms/ManageTenantsModal';
+import ConfirmDialog from '../../components/ui/ConfirmDialog';
+import EditRoomModal from '../../components/rooms/EditRoomModal';
+import { RefreshCw, Plus } from 'lucide-react';
+
+interface RoomData {
+  id: string;
+  name: string;
+  type: string;
+  rent: string;
+  capacity: number;
+  occupancy: string;
+  status: 'available' | 'occupied' | 'maintenance';
+  description?: string;
+  floor?: string;
+  area?: string;
+  amenities?: string[];
+  securityDeposit?: string;
+}
+
+const Rooms: React.FC<{ currentPage?: string; onNavigate?: (p: string) => void }> = ({ currentPage, onNavigate }) => {
+  const [search, setSearch] = useState('');
+  const [rooms, setRooms] = useState<RoomData[]>([
+    { id: '1', name: 'Room 1', type: 'Single', rent: '\u20B11', capacity: 1, occupancy: '0/1', status: 'available', description: 'Cozy single room' },
+    { id: '10', name: 'Room 10', type: 'Single', rent: '\u20B151,020', capacity: 1, occupancy: '1/1', status: 'occupied', description: 'Cozy single room with window view' },
+    { id: '101', name: 'Room 101', type: 'Single', rent: '\u20B1500', capacity: 1, occupancy: '0/1', status: 'available', description: 'Cozy single room with window view' },
+  ]);
+
+  const filtered = rooms.filter(r =>
+    r.name.toLowerCase().includes(search.toLowerCase()) ||
+    r.type.toLowerCase().includes(search.toLowerCase()) ||
+    (r.description || '').toLowerCase().includes(search.toLowerCase())
+  );
+
+  const handleDelete = (id: string) => {
+    setRooms(prev => prev.filter(r => r.id !== id));
+  };
+
+  // Delete confirm flow
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [selectedToDelete, setSelectedToDelete] = useState<string | null>(null);
+
+  const requestDelete = (id: string) => {
+    setSelectedToDelete(id);
+    setIsDeleteOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (selectedToDelete) setRooms(prev => prev.filter(r => r.id !== selectedToDelete));
+    setSelectedToDelete(null);
+    setIsDeleteOpen(false);
+  };
+
+  const cancelDelete = () => {
+    setSelectedToDelete(null);
+    setIsDeleteOpen(false);
+  };
+
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+
+  const handleCreate = (data: any) => {
+    const newRoom: RoomData = {
+      id: Date.now().toString(),
+      name: data.roomNumber || `Room ${Date.now()}`,
+      type: data.roomType || 'Single',
+      rent: data.monthlyRent || '\u20B10',
+      capacity: data.capacity || 1,
+      occupancy: '0/1',
+      status: (data.status || 'Available').toLowerCase() as RoomData['status'],
+      description: data.description || ''
+    };
+    setRooms(prev => [newRoom, ...prev]);
+  };
+
+  const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
+  const selectedRoom = selectedRoomId ? rooms.find(r => r.id === selectedRoomId) || null : null;
+  const [editingRoomId, setEditingRoomId] = useState<string | null>(null);
+  const editingRoom = editingRoomId ? rooms.find(r => r.id === editingRoomId) || null : null;
+
+  const handleUpdateRoom = (id: string, data: any) => {
+    setRooms(prev => prev.map(r => r.id === id ? ({
+      ...r,
+      name: data.roomNumber || r.name,
+      type: data.roomType || r.type,
+      rent: data.monthlyRent || r.rent,
+      capacity: data.capacity || r.capacity,
+      status: (data.status || r.status).toLowerCase() as RoomData['status'],
+      description: data.description || r.description,
+      floor: data.floor || r.floor,
+      area: data.area || r.area,
+      amenities: data.amenities || r.amenities
+    }) : r));
+  };
+
+  const handleAddTenant = (roomId: string) => {
+    setRooms(prev => prev.map(r => {
+      if (r.id !== roomId) return r;
+      // parse occupancy
+      const [curStr, totalStr] = r.occupancy.split('/');
+      const cur = Number(curStr) || 0;
+      const total = Number(totalStr) || r.capacity || 1;
+      if (cur >= total) return r; // already full
+      const newOccupancy = `${cur + 1}/${total}`;
+      return { ...r, occupancy: newOccupancy };
+    }));
+  };
+
+  return (
+    <div className="flex min-h-screen bg-gray-50">
+      <Sidebar currentPage={currentPage} onNavigate={onNavigate} />
+
+      <div className="flex-1 flex flex-col min-w-0 lg:pl-64">
+        <TopNavbar title="Rooms" subtitle="Manage room inventory and occupancy" />
+
+        <main className="flex-1 p-4 lg:p-6 overflow-auto">
+
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div className="p-4 lg:p-6 border-b border-gray-200">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <h2 className="text-lg lg:text-xl font-semibold text-gray-900">Room Management</h2>
+                  <p className="text-sm text-gray-500 mt-1">Manage room inventory and occupancy</p>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3 items-stretch">
+                  <div className="relative w-full sm:w-96">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Search rooms..."
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => setIsCreateOpen(true)} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2">
+                      <Plus className="w-4 h-4" />
+                      Create Room
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 lg:p-6">
+              {filtered.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4 lg:gap-6">
+                  {filtered.map(room => (
+                    <RoomCard key={room.id} room={room} onDelete={() => requestDelete(room.id)} onManageTenants={(id) => setSelectedRoomId(id)} onEdit={(id) => setEditingRoomId(id)} />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No rooms found</h3>
+                  <p className="text-gray-500 mb-6">Try adjusting your search or create a new room.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </main>
+      </div>
+      {isCreateOpen && (
+        <CreateRoomModal onClose={() => setIsCreateOpen(false)} onCreate={handleCreate} />
+      )}
+
+      {selectedRoom && (
+        <ManageTenantsModal room={selectedRoom} onClose={() => setSelectedRoomId(null)} onAddTenant={() => handleAddTenant(selectedRoom.id)} />
+      )}
+
+      {editingRoom && (
+        <EditRoomModal room={editingRoom} onClose={() => setEditingRoomId(null)} onUpdate={handleUpdateRoom} />
+      )}
+      <ConfirmDialog
+        isOpen={isDeleteOpen}
+        title="Delete Room"
+        message={
+          <>
+            <p>Deleting this room will remove it from the system.</p>
+            <p className="mt-2">Are you sure you want to delete <strong>{selectedToDelete ? (rooms.find(r => r.id === selectedToDelete)?.name) : 'this room'}</strong>?</p>
+          </>
+        }
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
+      />
+    </div>
+  );
+};
+
+export default Rooms;
