@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from '../../components/layout/Sidebar';
 import TopNavbar from '../../components/layout/TopNavbar';
 import RoomCard from '../../components/rooms/RoomCard';
@@ -7,6 +7,8 @@ import ManageTenantsModal from '../../components/rooms/ManageTenantsModal';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import EditRoomModal from '../../components/rooms/EditRoomModal';
 import { RefreshCw, Plus } from 'lucide-react';
+import * as roomManagementService from '../../services/roomManagementService';
+import { RoomDisplayData, RoomFilters } from '../../types/room';
 
 interface RoomData {
   id: string;
@@ -31,11 +33,40 @@ interface RoomsPageProps {
 
 const RoomsPage: React.FC<RoomsPageProps> = ({ currentPage, onNavigate, userRole = 'admin' }) => {
   const [search, setSearch] = useState('');
-  const [rooms, setRooms] = useState<RoomData[]>([
-    { id: '1', name: 'Room 1', type: 'Single', rent: '₱1', capacity: 1, occupancy: '0/1', status: 'available', description: 'Cozy single room' },
-    { id: '10', name: 'Room 10', type: 'Single', rent: '₱1,020', capacity: 1, occupancy: '1/1', status: 'occupied', description: 'Cozy single room with window view' },
-    { id: '101', name: 'Room 101', type: 'Single', rent: '₱500', capacity: 1, occupancy: '0/1', status: 'available', description: 'Cozy single room with window view' },
-  ]);
+  const [rooms, setRooms] = useState<RoomDisplayData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [filters, setFilters] = useState<RoomFilters>({
+    page: 1,
+    limit: 20
+  });
+
+  // Fetch rooms from API
+  const fetchRooms = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const searchFilters: RoomFilters = {
+        ...filters,
+        search: search || undefined
+      };
+      
+      const response = await roomManagementService.getRooms(searchFilters);
+      const transformedRooms = response.data.rooms.map(roomManagementService.transformRoom);
+      setRooms(transformedRooms);
+    } catch (err: any) {
+      console.error('Error fetching rooms:', err);
+      setError(err.message || 'Failed to fetch rooms');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch rooms on component mount and when filters change
+  useEffect(() => {
+    fetchRooms();
+  }, [filters, search]);
 
   const filtered = rooms.filter(r =>
     r.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -43,8 +74,14 @@ const RoomsPage: React.FC<RoomsPageProps> = ({ currentPage, onNavigate, userRole
     (r.description || '').toLowerCase().includes(search.toLowerCase())
   );
 
-  const handleDelete = (id: string) => {
-    setRooms(prev => prev.filter(r => r.id !== id));
+  const handleDelete = async (id: string) => {
+    try {
+      await roomManagementService.deleteRoom(id);
+      await fetchRooms(); // Refresh the list
+    } catch (err: any) {
+      console.error('Error deleting room:', err);
+      setError(err.message || 'Failed to delete room');
+    }
   };
 
   // Delete confirm flow
@@ -56,8 +93,10 @@ const RoomsPage: React.FC<RoomsPageProps> = ({ currentPage, onNavigate, userRole
     setIsDeleteOpen(true);
   };
 
-  const confirmDelete = () => {
-    if (selectedToDelete) setRooms(prev => prev.filter(r => r.id !== selectedToDelete));
+  const confirmDelete = async () => {
+    if (selectedToDelete) {
+      await handleDelete(selectedToDelete);
+    }
     setSelectedToDelete(null);
     setIsDeleteOpen(false);
   };
@@ -69,18 +108,14 @@ const RoomsPage: React.FC<RoomsPageProps> = ({ currentPage, onNavigate, userRole
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
-  const handleCreate = (data: any) => {
-    const newRoom: RoomData = {
-      id: Date.now().toString(),
-      name: data.roomNumber || `Room ${Date.now()}`,
-      type: data.roomType || 'Single',
-      rent: data.monthlyRent || '₱0',
-      capacity: data.capacity || 1,
-      occupancy: '0/1',
-      status: (data.status || 'Available').toLowerCase() as RoomData['status'],
-      description: data.description || ''
-    };
-    setRooms(prev => [newRoom, ...prev]);
+  const handleCreate = async (data: any) => {
+    try {
+      await roomManagementService.createRoom(data);
+      await fetchRooms(); // Refresh the list
+    } catch (err: any) {
+      console.error('Error creating room:', err);
+      setError(err.message || 'Failed to create room');
+    }
   };
 
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
@@ -88,32 +123,19 @@ const RoomsPage: React.FC<RoomsPageProps> = ({ currentPage, onNavigate, userRole
   const [editingRoomId, setEditingRoomId] = useState<string | null>(null);
   const editingRoom = editingRoomId ? rooms.find(r => r.id === editingRoomId) || null : null;
 
-  const handleUpdateRoom = (id: string, data: any) => {
-    setRooms(prev => prev.map(r => r.id === id ? ({
-      ...r,
-      name: data.roomNumber || r.name,
-      type: data.roomType || r.type,
-      rent: data.monthlyRent || r.rent,
-      capacity: data.capacity || r.capacity,
-      status: (data.status || r.status).toLowerCase() as RoomData['status'],
-      description: data.description || r.description,
-      floor: data.floor || r.floor,
-      area: data.area || r.area,
-      amenities: data.amenities || r.amenities
-    }) : r));
+  const handleUpdateRoom = async (id: string, data: any) => {
+    try {
+      await roomManagementService.updateRoom(id, data);
+      await fetchRooms(); // Refresh the list
+    } catch (err: any) {
+      console.error('Error updating room:', err);
+      setError(err.message || 'Failed to update room');
+    }
   };
 
-  const handleAddTenant = (roomId: string) => {
-    setRooms(prev => prev.map(r => {
-      if (r.id !== roomId) return r;
-      // parse occupancy
-      const [curStr, totalStr] = r.occupancy.split('/');
-      const cur = Number(curStr) || 0;
-      const total = Number(totalStr) || r.capacity || 1;
-      if (cur >= total) return r; // already full
-      const newOccupancy = `${cur + 1}/${total}`;
-      return { ...r, occupancy: newOccupancy };
-    }));
+  const handleAddTenant = async (roomId: string) => {
+    // Refresh rooms after tenant assignment
+    await fetchRooms();
   };
 
   // Role-based functionality
@@ -168,7 +190,31 @@ const RoomsPage: React.FC<RoomsPageProps> = ({ currentPage, onNavigate, userRole
             </div>
 
             <div className="p-4 lg:p-6">
-              {filtered.length > 0 ? (
+              {loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <RefreshCw className="w-5 h-5 animate-spin" />
+                    <span>Loading rooms...</span>
+                  </div>
+                </div>
+              ) : error ? (
+                <div className="text-center py-12">
+                  <div className="text-red-600 mb-4">
+                    <svg className="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Error Loading Rooms</h3>
+                    <p className="text-gray-500 mb-4">{error}</p>
+                    <button 
+                      onClick={fetchRooms}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 mx-auto"
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                      Try Again
+                    </button>
+                  </div>
+                </div>
+              ) : filtered.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4 lg:gap-6">
                   {filtered.map(room => (
                     <RoomCard 

@@ -1,5 +1,7 @@
-import React, { useMemo, useState } from 'react';
-import { X, UserPlus, Check } from 'lucide-react';
+import React, { useMemo, useState, useEffect } from 'react';
+import { X, UserPlus, Check, UserMinus } from 'lucide-react';
+import * as roomManagementService from '../../services/roomManagementService';
+import ConfirmDialog from '../ui/ConfirmDialog';
 
 interface RoomData {
   id: string;
@@ -15,8 +17,7 @@ interface RoomData {
 interface Props {
   room: RoomData;
   onClose: () => void;
-  // support both a no-arg callback and a callback that receives selected tenant ids
-  onAddTenant?: ((tenantIds?: string[]) => void) | undefined;
+  onAddTenant?: (roomId: string) => void;
 }
 
 const ManageTenantsModal: React.FC<Props> = ({ room, onClose, onAddTenant }) => {
@@ -26,18 +27,39 @@ const ManageTenantsModal: React.FC<Props> = ({ room, onClose, onAddTenant }) => 
 
   const [isSelectOpen, setIsSelectOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [availableTenants, setAvailableTenants] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isRemoveOpen, setIsRemoveOpen] = useState(false);
+  const [tenantToRemove, setTenantToRemove] = useState<string | null>(null);
 
-  // mock tenants for selection - in future replace with real tenant list prop or API
-  const mockTenants = useMemo(
-    () => [
-      { id: 't1', name: 'Alice Johnson', email: 'alice@example.com' },
-      { id: 't2', name: 'Bob Smith', email: 'bob@example.com' },
-      { id: 't3', name: 'Carlos Ruiz', email: 'carlos@example.com' },
-      { id: 't4', name: 'Dana Lee', email: 'dana@example.com' },
-      { id: 't5', name: 'Eve Adams', email: 'eve@example.com' },
-    ],
-    []
-  );
+  // Fetch available tenants
+  const fetchAvailableTenants = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await roomManagementService.getAvailableTenants();
+      console.log('Available tenants response:', response);
+      // The API returns data.records, not data.tenants
+      // Filter to only show tenants without rooms assigned
+      const allTenants = response.data.records || [];
+      console.log('All tenants from API:', allTenants.length);
+      const availableTenants = allTenants.filter(tenant => 
+        !tenant.room && !tenant.isArchived
+      );
+      console.log('Filtered available tenants:', availableTenants.length, availableTenants);
+      setAvailableTenants(availableTenants);
+    } catch (err: any) {
+      console.error('Error fetching tenants:', err);
+      setError(err.message || 'Failed to fetch available tenants');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAvailableTenants();
+  }, []);
 
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => {
@@ -48,14 +70,58 @@ const ManageTenantsModal: React.FC<Props> = ({ room, onClose, onAddTenant }) => 
     });
   };
 
-  const confirmSelection = () => {
+  const confirmSelection = async () => {
     if (selectedIds.length === 0) return;
-    // call callback with selected ids if it accepts them, or call without args for backwards compatibility
+    
     try {
-      onAddTenant && onAddTenant(selectedIds);
-    } finally {
+      setLoading(true);
+      // For now, assign the first selected tenant with default lease dates
+      const tenantId = selectedIds[0];
+      const today = new Date();
+      const oneYearLater = new Date();
+      oneYearLater.setFullYear(today.getFullYear() + 1);
+      
+      await roomManagementService.assignTenant(room.id, {
+        tenantId,
+        leaseStartDate: today.toISOString().split('T')[0],
+        leaseEndDate: oneYearLater.toISOString().split('T')[0]
+      });
+      
+      // Call the callback to refresh the room list
+      onAddTenant && onAddTenant(room.id);
+      
       setIsSelectOpen(false);
       setSelectedIds([]);
+    } catch (err: any) {
+      console.error('Error assigning tenant:', err);
+      setError(err.message || 'Failed to assign tenant');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRemoveTenant = (tenantId: string) => {
+    setTenantToRemove(tenantId);
+    setIsRemoveOpen(true);
+  };
+
+  const confirmRemoveTenant = async () => {
+    if (!tenantToRemove) return;
+    
+    try {
+      setLoading(true);
+      await roomManagementService.removeTenant(room.id, tenantToRemove);
+      
+      // Call the callback to refresh the room list
+      onAddTenant && onAddTenant(room.id);
+      
+      setIsRemoveOpen(false);
+      setTenantToRemove(null);
+    } catch (err: any) {
+      console.error('Error removing tenant:', err);
+      setError(err.message || 'Failed to remove tenant');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -122,7 +188,26 @@ const ManageTenantsModal: React.FC<Props> = ({ room, onClose, onAddTenant }) => 
             </div>
           ) : (
             <div className="space-y-3">
-              {/* If there were tenants, list them here */}
+              {room.tenants?.map((tenant: any) => (
+                <div key={tenant.id} className="p-4 border rounded-lg bg-gray-50">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-medium text-gray-900">{tenant.name}</div>
+                      <div className="text-sm text-gray-500">{tenant.email}</div>
+                      {tenant.phoneNumber && (
+                        <div className="text-xs text-gray-400">{tenant.phoneNumber}</div>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => handleRemoveTenant(tenant.id)}
+                      className="px-3 py-1 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-sm flex items-center gap-1"
+                    >
+                      <UserMinus className="w-4 h-4" />
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -143,7 +228,7 @@ const ManageTenantsModal: React.FC<Props> = ({ room, onClose, onAddTenant }) => 
             <div className="absolute inset-0 z-50 flex items-center justify-center">
               <div className="absolute inset-0 bg-black/40" onClick={() => setIsSelectOpen(false)} />
 
-              <div className="relative w-full max-w-2xl bg-white rounded-lg shadow-lg overflow-hidden flex flex-col max-h-[80vh] z-10">
+              <div className="relative w-full max-w-2xl bg-white rounded-lg shadow-lg flex flex-col max-h-[95vh] z-10">
                 <div className="flex items-start justify-between p-4 border-b">
                   <div>
                     <h3 className="text-lg font-semibold">Select Tenants</h3>
@@ -154,31 +239,64 @@ const ManageTenantsModal: React.FC<Props> = ({ room, onClose, onAddTenant }) => 
                   </button>
                 </div>
 
-                <div className="p-4 overflow-y-auto flex-1">
-                  <div className="text-sm text-gray-600 mb-2">Selected: {selectedIds.length} / {available}</div>
-                  <div className="space-y-2">
-                    {mockTenants.map(t => {
-                      const isSelected = selectedIds.includes(t.id);
-                      const disabled = !isSelected && selectedIds.length >= available;
-                      return (
+                <div className="p-4 flex-1 flex flex-col">
+                  {loading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="text-gray-500">Loading available tenants...</div>
+                    </div>
+                  ) : error ? (
+                    <div className="text-center py-8">
+                      <div className="text-red-600 mb-2">{error}</div>
+                      <button 
+                        onClick={fetchAvailableTenants}
+                        className="px-3 py-1 bg-blue-600 text-white rounded text-sm"
+                      >
+                        Retry
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="text-sm text-gray-600">Selected: {selectedIds.length} / {available}</div>
                         <button
-                          key={t.id}
-                          type="button"
-                          onClick={() => !disabled && toggleSelect(t.id)}
-                          className={`w-full text-left p-3 rounded-lg border flex items-center justify-between ${isSelected ? 'bg-blue-50 border-blue-200' : 'bg-white hover:bg-gray-50'} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          onClick={fetchAvailableTenants}
+                          className="text-xs text-blue-600 hover:text-blue-800 px-2 py-1 rounded hover:bg-blue-50"
                         >
-                          <div>
-                            <div className="font-medium">{t.name}</div>
-                            <div className="text-xs text-gray-500">{t.email}</div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {isSelected && <Check className="w-4 h-4 text-blue-600" />}
-                            {disabled && <div className="text-xs text-gray-400">limit</div>}
-                          </div>
+                          Refresh
                         </button>
-                      );
-                    })}
-                  </div>
+                      </div>
+                      <div className="space-y-2 overflow-y-auto scroll-smooth h-96 border border-gray-200 rounded-lg p-2" style={{ scrollbarWidth: 'thin' }}>
+                        {availableTenants && availableTenants.length > 0 ? availableTenants.map(tenant => {
+                          const isSelected = selectedIds.includes(tenant._id);
+                          const disabled = !isSelected && selectedIds.length >= available;
+                          return (
+                            <button
+                              key={tenant._id}
+                              type="button"
+                              onClick={() => !disabled && toggleSelect(tenant._id)}
+                              className={`w-full text-left p-3 rounded-lg border flex items-center justify-between ${isSelected ? 'bg-blue-50 border-blue-200' : 'bg-white hover:bg-gray-50'} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            >
+                              <div>
+                                <div className="font-medium">{tenant.firstName} {tenant.lastName}</div>
+                                <div className="text-xs text-gray-500">{tenant.email}</div>
+                                {tenant.phoneNumber && (
+                                  <div className="text-xs text-gray-400">{tenant.phoneNumber}</div>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {isSelected && <Check className="w-4 h-4 text-blue-600" />}
+                                {disabled && <div className="text-xs text-gray-400">limit</div>}
+                              </div>
+                            </button>
+                          );
+                        }) : (
+                          <div className="text-center py-8 text-gray-500">
+                            No available tenants found
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 <div className="p-3 border-t flex items-center justify-end gap-3">
@@ -191,6 +309,25 @@ const ManageTenantsModal: React.FC<Props> = ({ room, onClose, onAddTenant }) => 
             </div>
           )}
       </div>
+
+      {/* Confirmation Dialog for Tenant Removal */}
+      <ConfirmDialog
+        isOpen={isRemoveOpen}
+        title="Remove Tenant"
+        message={
+          <>
+            <p>Are you sure you want to remove this tenant from the room?</p>
+            <p className="mt-2 text-sm text-gray-600">This action will end their lease and make the room available for new tenants.</p>
+          </>
+        }
+        confirmLabel="Remove Tenant"
+        cancelLabel="Cancel"
+        onConfirm={confirmRemoveTenant}
+        onCancel={() => {
+          setIsRemoveOpen(false);
+          setTenantToRemove(null);
+        }}
+      />
     </div>
   );
 };

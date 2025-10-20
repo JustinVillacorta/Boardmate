@@ -15,11 +15,11 @@ const amenitiesList = [
 const EditRoomModal: React.FC<Props> = ({ room, onClose, onUpdate }) => {
   const [form, setForm] = useState({
     roomNumber: room.name || '',
-    roomType: room.type || 'Single',
+    roomType: room.type ? room.type.toLowerCase() : 'single',
     capacity: room.capacity || 1,
-    status: room.status ? (room.status.charAt(0).toUpperCase() + room.status.slice(1)) : 'Available',
-    monthlyRent: room.rent || '',
-    securityDeposit: room.securityDeposit || '',
+    status: room.status || 'available',
+    monthlyRent: room.rent ? room.rent.replace(/[^\d.]/g, '') : '',
+    securityDeposit: room.securityDeposit ? room.securityDeposit.replace(/[^\d.]/g, '') : '',
     amenities: room.amenities || [],
     description: room.description || '',
     floor: room.floor || '',
@@ -52,6 +52,18 @@ const EditRoomModal: React.FC<Props> = ({ room, onClose, onUpdate }) => {
     const e: Record<string,string> = {};
     if (!form.roomNumber) e.roomNumber = 'Room number is required';
     if (!form.monthlyRent) e.monthlyRent = 'Monthly rent is required';
+    if (form.monthlyRent && isNaN(parseFloat(form.monthlyRent.replace(/[^\d.]/g, '')))) {
+      e.monthlyRent = 'Please enter a valid amount';
+    }
+    if (form.securityDeposit && isNaN(parseFloat(form.securityDeposit.replace(/[^\d.]/g, '')))) {
+      e.securityDeposit = 'Please enter a valid amount';
+    }
+    if (form.floor && isNaN(parseInt(form.floor))) {
+      e.floor = 'Please enter a valid floor number';
+    }
+    if (form.area && isNaN(parseFloat(form.area))) {
+      e.area = 'Please enter a valid area';
+    }
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -59,11 +71,11 @@ const EditRoomModal: React.FC<Props> = ({ room, onClose, onUpdate }) => {
   const handleClear = () => {
     setForm({
       roomNumber: room.name || '',
-      roomType: room.type || 'Single',
+      roomType: room.type ? room.type.toLowerCase() : 'single',
       capacity: room.capacity || 1,
-      status: room.status ? (room.status.charAt(0).toUpperCase() + room.status.slice(1)) : 'Available',
-      monthlyRent: room.rent || '',
-      securityDeposit: room.securityDeposit || '',
+      status: room.status || 'available',
+      monthlyRent: room.rent ? room.rent.replace(/[^\d.]/g, '') : '',
+      securityDeposit: room.securityDeposit ? room.securityDeposit.replace(/[^\d.]/g, '') : '',
       amenities: room.amenities || [],
       description: room.description || '',
       floor: room.floor || '',
@@ -107,9 +119,10 @@ const EditRoomModal: React.FC<Props> = ({ room, onClose, onUpdate }) => {
               <div>
                 <label className="block text-xs text-gray-600">Room Type</label>
                 <select value={form.roomType} onChange={e => handleChange('roomType', e.target.value)} className="w-full mt-1 px-3 py-2 border rounded-lg text-sm">
-                  <option>Single</option>
-                  <option>Double</option>
-                  <option>Studio</option>
+                  <option value="single">Single</option>
+                  <option value="double">Double</option>
+                  <option value="triple">Triple</option>
+                  <option value="quad">Quad</option>
                 </select>
               </div>
 
@@ -121,9 +134,10 @@ const EditRoomModal: React.FC<Props> = ({ room, onClose, onUpdate }) => {
               <div>
                 <label className="block text-xs text-gray-600">Status</label>
                 <select value={form.status} onChange={e => handleChange('status', e.target.value)} className="w-full mt-1 px-3 py-2 border rounded-lg text-sm">
-                  <option>Available</option>
-                  <option>Occupied</option>
-                  <option>Maintenance</option>
+                  <option value="available">Available</option>
+                  <option value="occupied">Occupied</option>
+                  <option value="maintenance">Maintenance</option>
+                  <option value="unavailable">Unavailable</option>
                 </select>
               </div>
             </div>
