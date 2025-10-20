@@ -1,6 +1,7 @@
 import { validationResult } from 'express-validator';
 import Room from '../models/Room.js';
 import Tenant from '../models/Tenant.js';
+import Payment from '../models/Payment.js';
 import { AppError } from '../utils/AppError.js';
 import { catchAsync } from '../utils/catchAsync.js';
 
@@ -242,13 +243,36 @@ export const assignTenant = catchAsync(async (req, res, next) => {
 
     await Tenant.findByIdAndUpdate(tenantId, tenantUpdateData);
 
+    // Create deposit payment record (only if none exists)
+    const existingDeposit = await Payment.findOne({ tenant: tenantId, paymentType: 'deposit' });
+    const depositAmount = tenantUpdateData.securityDeposit || 0;
+    
+    console.log('Deposit check:', { tenantId, existingDeposit: !!existingDeposit, depositAmount });
+    
+    if (!existingDeposit && depositAmount > 0) {
+      const depositPayment = await Payment.create({
+        tenant: tenantId,
+        room: req.params.id,
+        amount: depositAmount,
+        paymentType: 'deposit',
+        paymentMethod: 'cash',
+        dueDate: leaseStartDate || new Date(),
+        status: 'pending',
+        description: 'Security deposit',
+        lateFee: { amount: 0, isLatePayment: false },
+      });
+      console.log('Deposit payment created:', depositPayment._id);
+    } else if (existingDeposit) {
+      console.log('Deposit already exists:', existingDeposit._id);
+    }
+
     // Get updated room with tenant details
     const updatedRoom = await Room.findById(req.params.id)
       .populate('tenants', 'firstName lastName email phoneNumber tenantStatus leaseStartDate leaseEndDate');
 
     res.status(200).json({
       success: true,
-      message: 'Tenant assigned to room successfully',
+      message: 'Tenant assigned to room successfully. Security deposit payment created.',
       data: { room: updatedRoom }
     });
 

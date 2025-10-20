@@ -146,7 +146,7 @@ paymentSchema.methods.markAsPaid = function(recordedBy = null, transactionRef = 
 // Static method to get payment summary for a tenant
 paymentSchema.statics.getTenantPaymentSummary = function(tenantId) {
   return this.aggregate([
-    { $match: { tenant: mongoose.Types.ObjectId(tenantId) } },
+    { $match: { tenant: new mongoose.Types.ObjectId(tenantId) } },
     {
       $group: {
         _id: '$status',

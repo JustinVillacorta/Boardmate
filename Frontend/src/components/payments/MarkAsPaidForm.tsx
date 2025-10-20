@@ -52,8 +52,11 @@ const MarkAsPaidForm: React.FC<{
             <select value={form.paymentMethod} onChange={e => setForm(f => ({ ...f, paymentMethod: e.target.value }))} className="w-full border rounded-md px-3 py-2">
               <option value="cash">Cash</option>
               <option value="bank_transfer">Bank Transfer</option>
-              <option value="card">Card</option>
-              <option value="gcash">GCash</option>
+              <option value="check">Check</option>
+              <option value="credit_card">Credit Card</option>
+              <option value="debit_card">Debit Card</option>
+              <option value="digital_wallet">Digital Wallet</option>
+              <option value="money_order">Money Order</option>
             </select>
           </div>
 

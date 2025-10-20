@@ -18,7 +18,7 @@ export const createPayment = catchAsync(async (req, res, next) => {
     return next(new AppError('Validation failed', 400, errors.array()));
   }
 
-  const {
+  let {
     tenant,
     room,
     amount,
@@ -46,6 +46,25 @@ export const createPayment = catchAsync(async (req, res, next) => {
     return next(new AppError('Room not found', 404));
   }
 
+  // Auto defaults for amount when not provided: rent -> monthlyRent, deposit -> securityDeposit
+  if ((amount === undefined || amount === null) && paymentType) {
+    if (paymentType === 'rent') {
+      const defaultRent = tenantExists.monthlyRent ?? (await Room.findById(room))?.monthlyRent;
+      if (defaultRent !== undefined) amount = defaultRent;
+    } else if (paymentType === 'deposit') {
+      const defaultDeposit = tenantExists.securityDeposit ?? (await Room.findById(room))?.securityDeposit;
+      if (defaultDeposit !== undefined) amount = defaultDeposit;
+    }
+  }
+
+  // Guard required amount
+  if (amount === undefined || amount === null) {
+    return next(new AppError('Amount is required', 400));
+  }
+
+  // Normalize status from potential "due" to "pending"
+  const normalizedStatus = status === 'due' ? 'pending' : (status || 'pending');
+
   // Create payment
   const payment = await Payment.create({
     tenant,
@@ -53,9 +72,9 @@ export const createPayment = catchAsync(async (req, res, next) => {
     amount,
     paymentType,
     paymentMethod,
-    paymentDate: paymentDate || (status === 'paid' ? new Date() : undefined),
+    paymentDate: paymentDate || (normalizedStatus === 'paid' ? new Date() : undefined),
     dueDate,
-    status: status || 'pending',
+    status: normalizedStatus,
     periodCovered,
     transactionReference,
     description,
@@ -82,6 +101,194 @@ export const createPayment = catchAsync(async (req, res, next) => {
     data: {
       payment
     }
+  });
+});
+
+// Utility to compute period start/end for a month
+function getMonthPeriod(date) {
+  const year = date.getFullYear();
+  const month = date.getMonth();
+  const startDate = new Date(year, month, 1);
+  const endDate = new Date(year, month + 1, 0);
+  return { startDate, endDate };
+}
+
+// @desc    Generate monthly rent charges for active tenants
+// @route   POST /api/payments/generate-monthly?date=YYYY-MM
+// @access  Private (Admin/Staff)
+// Helper: check if tenant has paid deposit
+async function hasDepositPaid(tenantId) {
+  const deposit = await Payment.findOne({ tenant: tenantId, paymentType: 'deposit', status: 'paid' });
+  return !!deposit;
+}
+
+// Generate monthly rent for a single tenant (deposit-gated)
+export async function generateMonthlyForTenant(tenantId, target = new Date(), recordedBy = null) {
+  const depositPaid = await hasDepositPaid(tenantId);
+  if (!depositPaid) {
+    return { created: 0, reason: 'Deposit not paid' };
+  }
+
+  const { startDate, endDate } = getMonthPeriod(target);
+  const tenant = await Tenant.findById(tenantId).populate('room', 'monthlyRent');
+  if (!tenant || tenant.isArchived || tenant.tenantStatus !== 'active') {
+    return { created: 0, reason: 'Tenant not active' };
+  }
+
+  const rentAmount = tenant.monthlyRent ?? tenant.room?.monthlyRent;
+  if (rentAmount === undefined) return { created: 0, reason: 'No rent amount' };
+
+  const existing = await Payment.findOne({
+    tenant: tenantId,
+    paymentType: 'rent',
+    'periodCovered.startDate': startDate,
+    'periodCovered.endDate': endDate,
+  });
+  if (existing) return { created: 0, reason: 'Already exists' };
+
+  await Payment.create({
+    tenant: tenantId,
+    room: tenant.room,
+    amount: rentAmount,
+    paymentType: 'rent',
+    paymentMethod: 'cash',
+    dueDate: new Date(yearMonthDay(startDate)),
+    status: 'pending',
+    periodCovered: { startDate, endDate },
+    recordedBy: recordedBy,
+    lateFee: { amount: 0, isLatePayment: false },
+  });
+  return { created: 1 };
+}
+
+export async function generateMonthlyRentChargesInternal(target, recordedBy = null) {
+  const { startDate, endDate } = getMonthPeriod(target);
+  const activeTenants = await Tenant.find({
+    isArchived: false,
+    tenantStatus: 'active',
+    leaseStartDate: { $lte: endDate },
+    $or: [
+      { leaseEndDate: { $exists: false } },
+      { leaseEndDate: null },
+      { leaseEndDate: { $gte: startDate } }
+    ]
+  }).populate('room', 'monthlyRent');
+
+  let created = 0;
+  for (const t of activeTenants) {
+    // Check deposit paid before generating
+    const depositPaid = await hasDepositPaid(t._id);
+    if (!depositPaid) continue;
+
+    const rentAmount = t.monthlyRent ?? t.room?.monthlyRent;
+    if (rentAmount === undefined) continue;
+    const existing = await Payment.findOne({
+      tenant: t._id,
+      paymentType: 'rent',
+      'periodCovered.startDate': startDate,
+      'periodCovered.endDate': endDate,
+    });
+    if (existing) continue;
+    await Payment.create({
+      tenant: t._id,
+      room: t.room,
+      amount: rentAmount,
+      paymentType: 'rent',
+      paymentMethod: 'cash',
+      dueDate: new Date(yearMonthDay(startDate)),
+      status: 'pending',
+      periodCovered: { startDate, endDate },
+      recordedBy: recordedBy,
+      lateFee: { amount: 0, isLatePayment: false },
+    });
+    created += 1;
+  }
+  return { created, month: startDate.toISOString().slice(0, 7) };
+}
+
+export const generateMonthlyRent = catchAsync(async (req, res, next) => {
+  const { date } = req.query;
+  const target = date ? new Date(`${date}-01T00:00:00`) : new Date();
+  const result = await generateMonthlyRentChargesInternal(target, req.user?.id || null);
+  res.status(200).json({ success: true, message: 'Monthly rent charges generated', data: result });
+});
+
+function yearMonthDay(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(Math.min(d.getDate(), 28)).padStart(2, '0');
+  return `${y}-${m}-${day}T00:00:00`;
+}
+
+// @desc    Tenant payment summary by type
+// @route   GET /api/payments/tenant/:tenantId/summary
+// @access  Private (Admin/Staff/Tenant)
+export const getTenantPaymentSummaryByType = catchAsync(async (req, res, next) => {
+  const { tenantId } = req.params;
+  const tenant = await Tenant.findById(tenantId);
+  if (!tenant) return next(new AppError('Tenant not found', 404));
+
+  const summary = await Payment.aggregate([
+    { $match: { tenant: tenant._id } },
+    {
+      $group: {
+        _id: '$paymentType',
+        totalAmount: { $sum: '$amount' },
+        paidAmount: { $sum: { $cond: [{ $eq: ['$status', 'paid'] }, '$amount', 0] } },
+        count: { $sum: 1 },
+        paidCount: { $sum: { $cond: [{ $eq: ['$status', 'paid'] }, 1, 0] } },
+      }
+    }
+  ]);
+
+  // Derive deposit status
+  const deposit = summary.find(s => s._id === 'deposit') || { totalAmount: 0, paidAmount: 0, count: 0, paidCount: 0 };
+
+  res.status(200).json({
+    success: true,
+    data: {
+      summary,
+      depositStatus: deposit.paidAmount >= deposit.totalAmount && deposit.totalAmount > 0 ? 'paid' : (deposit.count > 0 ? 'pending' : 'none')
+    }
+  });
+});
+
+// @desc    Create missing deposit records for all active tenants with rooms
+// @route   POST /api/payments/backfill-deposits
+// @access  Private (Admin only)
+export const backfillDeposits = catchAsync(async (req, res, next) => {
+  const tenants = await Tenant.find({
+    isArchived: false,
+    tenantStatus: 'active',
+    room: { $exists: true, $ne: null }
+  }).populate('room', 'securityDeposit');
+
+  let created = 0;
+  for (const tenant of tenants) {
+    const existingDeposit = await Payment.findOne({ tenant: tenant._id, paymentType: 'deposit' });
+    if (!existingDeposit) {
+      const depositAmount = tenant.securityDeposit || tenant.room?.securityDeposit || 0;
+      if (depositAmount > 0) {
+        await Payment.create({
+          tenant: tenant._id,
+          room: tenant.room._id,
+          amount: depositAmount,
+          paymentType: 'deposit',
+          paymentMethod: 'cash',
+          dueDate: tenant.leaseStartDate || new Date(),
+          status: 'pending',
+          description: 'Security deposit (backfilled)',
+          lateFee: { amount: 0, isLatePayment: false },
+        });
+        created += 1;
+      }
+    }
+  }
+
+  res.status(200).json({
+    success: true,
+    message: `Created ${created} missing deposit records`,
+    data: { created }
   });
 });
 
@@ -321,6 +528,9 @@ export const markPaymentAsPaid = catchAsync(async (req, res, next) => {
     return next(new AppError('Payment is already marked as paid', 400));
   }
 
+  const wasDeposit = payment.paymentType === 'deposit';
+  const tenantId = payment.tenant;
+
   // Use the model method to mark as paid
   await payment.markAsPaid(req.user.id, transactionReference);
 
@@ -328,6 +538,15 @@ export const markPaymentAsPaid = catchAsync(async (req, res, next) => {
   if (notes) {
     payment.notes = notes;
     await payment.save();
+  }
+
+  // If deposit was paid, auto-generate current month's rent
+  if (wasDeposit) {
+    try {
+      await generateMonthlyForTenant(tenantId, new Date(), req.user.id);
+    } catch (e) {
+      console.error('Failed to auto-generate rent after deposit paid:', e);
+    }
   }
 
   // Populate and return updated payment

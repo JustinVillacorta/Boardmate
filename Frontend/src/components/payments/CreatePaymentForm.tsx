@@ -14,8 +14,8 @@ export interface PaymentPayload {
 
 export const defaultValues: Partial<PaymentPayload> = {
   paymentType: 'rent',
-  paymentMethod: 'bank_transfer',
-  status: 'due',
+  paymentMethod: 'cash',
+  status: 'pending',
 };
 
 const CreatePaymentForm: React.FC<{
@@ -63,9 +63,9 @@ const CreatePaymentForm: React.FC<{
     setDescription(initial.description ?? '');
   };
 
-  // when status is 'due' clear paymentDate and transactionReference so they're not accessible
+  // when status is 'pending' clear paymentDate and transactionReference so they're not accessible
   React.useEffect(() => {
-    if (status === 'due') {
+    if (status === 'pending') {
       setPaymentDate('');
       setTransactionReference('');
     }
@@ -83,7 +83,10 @@ const CreatePaymentForm: React.FC<{
           <div className="text-sm text-gray-600 mb-1">Payment Type</div>
           <select value={paymentType} onChange={e => setPaymentType(e.target.value)} className="w-full border rounded-md px-3 py-2">
             <option value="rent">Rent</option>
+            <option value="deposit">Deposit</option>
             <option value="utility">Utility</option>
+            <option value="maintenance">Maintenance</option>
+            <option value="penalty">Penalty</option>
             <option value="other">Other</option>
           </select>
         </label>
@@ -91,18 +94,21 @@ const CreatePaymentForm: React.FC<{
         <label className="block">
           <div className="text-sm text-gray-600 mb-1">Payment Method</div>
           <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)} className="w-full border rounded-md px-3 py-2">
-            <option value="bank_transfer">Bank Transfer</option>
             <option value="cash">Cash</option>
-            <option value="card">Card</option>
-            <option value="gcash">GCash</option>
+            <option value="bank_transfer">Bank Transfer</option>
+            <option value="check">Check</option>
+            <option value="credit_card">Credit Card</option>
+            <option value="debit_card">Debit Card</option>
+            <option value="digital_wallet">Digital Wallet</option>
+            <option value="money_order">Money Order</option>
           </select>
         </label>
 
         <label className="block">
           <div className="text-sm text-gray-600 mb-1">Status</div>
           <select value={status} onChange={e => setStatus(e.target.value)} className="w-full border rounded-md px-3 py-2">
+            <option value="pending">Pending</option>
             <option value="paid">Paid</option>
-            <option value="due">Due</option>
             <option value="overdue">Overdue</option>
           </select>
         </label>

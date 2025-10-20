@@ -1,7 +1,9 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Sidebar from "../../components/layout/Sidebar";
 import TopNavbar from "../../components/layout/TopNavbar";
 import DownloadDialog from "../../components/ui/DownloadDialog";
+import PaymentService from "../../services/paymentService";
+import { generateReceiptPDF } from "../../utils/receiptPdfGenerator";
 
 interface PaymentsProps {
   currentPage?: string;
@@ -18,40 +20,47 @@ interface PaymentRecord {
 }
 
 const Payments: React.FC<PaymentsProps> = ({ currentPage, onNavigate }) => {
-  const [selectedPayment, setSelectedPayment] = useState<PaymentRecord | null>(null);
-  const [isDownloadDialogOpen, setIsDownloadDialogOpen] = useState(false);
+  const [tab, setTab] = useState<'all' | 'deposit' | 'rent' | 'utility'>('all');
+  const [items, setItems] = useState<PaymentRecord[]>([]);
 
-  // Hardcoded payment data
-  const payments: PaymentRecord[] = [
-    {
-      id: '1',
-      date: '2024-01-01',
-      amount: 3450,
-      status: 'Paid',
-      method: 'Bank Transfer',
-      hasReceipt: true
-    },
-    {
-      id: '2',
-      date: '2024-02-01',
-      amount: 3450,
-      status: 'Pending',
-      method: 'Pending',
-      hasReceipt: false
-    },
-    {
-      id: '3',
-      date: '2024-03-01',
-      amount: 3450,
-      status: 'Paid',
-      method: 'Credit Card',
-      hasReceipt: true
-    }
-  ];
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const tenantId = localStorage.getItem('tenantId');
+        const data = await PaymentService.tenantPayments(tenantId || '');
+        const payments = data?.data?.payments || [];
+        const rows: PaymentRecord[] = payments.map((p: any) => ({
+          id: p._id,
+          date: p.paymentDate || p.dueDate,
+          amount: p.amount,
+          status: p.status === 'paid' ? 'Paid' : 'Pending',
+          method: p.paymentMethod,
+          hasReceipt: p.status === 'paid',
+          type: p.paymentType,
+        }));
+        setItems(rows);
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    load();
+  }, []);
+
+  const payments: any[] = items.filter((p: any) => tab === 'all' ? true : p.type === tab);
 
   const handleDownloadReceipt = (payment: PaymentRecord) => {
-    setSelectedPayment(payment);
-    setIsDownloadDialogOpen(true);
+    const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+    generateReceiptPDF({
+      id: payment.id,
+      description: `Payment - ${payment.date}`,
+      amount: `₱${payment.amount.toLocaleString()}`,
+      dueDate: payment.date,
+      paidDate: payment.date,
+      status: payment.status,
+      paymentMethod: payment.method,
+      tenantName: userData.fullName || userData.name,
+      roomNumber: userData.room?.roomNumber,
+    });
   };
 
   const getStatusColor = (status: string) => {
@@ -78,7 +87,17 @@ const Payments: React.FC<PaymentsProps> = ({ currentPage, onNavigate }) => {
         {/* Payments Content */}
         <main className="flex-1 p-4 lg:p-6 overflow-auto">
 
-          {/* Payment History Table */}
+        {/* Filters */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-4">
+          <div className="p-4 flex gap-2">
+            <button onClick={() => setTab('all')} className={`px-3 py-1 rounded ${tab==='all'?'bg-blue-600 text-white':'bg-gray-100'}`}>All</button>
+            <button onClick={() => setTab('deposit')} className={`px-3 py-1 rounded ${tab==='deposit'?'bg-blue-600 text-white':'bg-gray-100'}`}>Deposit</button>
+            <button onClick={() => setTab('rent')} className={`px-3 py-1 rounded ${tab==='rent'?'bg-blue-600 text-white':'bg-gray-100'}`}>Rent</button>
+            <button onClick={() => setTab('utility')} className={`px-3 py-1 rounded ${tab==='utility'?'bg-blue-600 text-white':'bg-gray-100'}`}>Utilities</button>
+          </div>
+        </div>
+
+        {/* Payment History Table */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
@@ -90,6 +109,9 @@ const Payments: React.FC<PaymentsProps> = ({ currentPage, onNavigate }) => {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Amount
                     </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Type
+                  </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Status
                     </th>
@@ -110,6 +132,9 @@ const Payments: React.FC<PaymentsProps> = ({ currentPage, onNavigate }) => {
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         ₱{payment.amount.toLocaleString()}
                       </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {payment.type}
+                    </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(payment.status)}`}>
                           {payment.status}
@@ -155,29 +180,6 @@ const Payments: React.FC<PaymentsProps> = ({ currentPage, onNavigate }) => {
         </main>
       </div>
 
-      {/* Download Dialog */}
-      {isDownloadDialogOpen && selectedPayment && (
-        <DownloadDialog
-          open={isDownloadDialogOpen}
-          row={{
-            id: selectedPayment.id,
-            description: `Monthly Rent - ${new Date(selectedPayment.date).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`,
-            amount: selectedPayment.amount.toString(),
-            dueDate: selectedPayment.date,
-            paidDate: selectedPayment.date,
-            status: selectedPayment.status === 'Paid' ? 'Paid' : 'Due'
-          }}
-          onClose={() => {
-            setIsDownloadDialogOpen(false);
-            setSelectedPayment(null);
-          }}
-          onDownload={(row, format) => {
-            console.log('Downloading receipt for payment:', row, 'format:', format);
-            setIsDownloadDialogOpen(false);
-            setSelectedPayment(null);
-          }}
-        />
-      )}
     </div>
   );
 };

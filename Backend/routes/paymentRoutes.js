@@ -9,6 +9,8 @@ import {
   getTenantPayments,
   getOverduePayments,
   getPaymentStats,
+  generateMonthlyRent,
+  backfillDeposits,
   downloadReceipt,
   getReceiptData,
   getReceiptHTML
@@ -29,6 +31,8 @@ router.post('/', protect, staffOrAdmin, validatePaymentCreate, createPayment);
 router.get('/', protect, staffOrAdmin, getPayments);
 router.get('/stats', protect, staffOrAdmin, getPaymentStats);
 router.get('/overdue', protect, staffOrAdmin, getOverduePayments);
+router.post('/generate-monthly', protect, staffOrAdmin, generateMonthlyRent);
+router.post('/backfill-deposits', protect, staffOrAdmin, backfillDeposits);
 
 // Single payment operations (Admin/Staff only)
 router.get('/:id', protect, staffOrAdmin, getPayment);
@@ -71,5 +75,14 @@ router.get('/tenant/:tenantId', protect, (req, res, next) => {
   }
   next();
 }, getTenantPayments);
+
+// Tenant payment summary by type
+import { getTenantPaymentSummaryByType } from '../controllers/paymentController.js';
+router.get('/tenant/:tenantId/summary', protect, (req, res, next) => {
+  if (req.userType === 'tenant' && req.user.id !== req.params.tenantId) {
+    return res.status(403).json({ success: false, message: 'Access denied: You can only view your own summary' });
+  }
+  next();
+}, getTenantPaymentSummaryByType);
 
 export default router;

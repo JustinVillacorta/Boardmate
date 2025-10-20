@@ -4,6 +4,7 @@ import TopNavbar from '../../components/layout/TopNavbar';
 import DownloadDialog from '../../components/ui/DownloadDialog';
 import CreatePaymentForm, { PaymentPayload } from '../../components/payments/CreatePaymentForm';
 import MarkAsPaidForm, { default as _MarkAsPaidForm } from '../../components/payments/MarkAsPaidForm';
+import PaymentService from '../../services/paymentService';
 
 interface PaymentRecord {
   id: string;
@@ -17,17 +18,6 @@ interface PaymentRecord {
   notes?: string;
 }
 
-const MOCK: PaymentRecord[] = [
-  { id: 'p1', description: 'Monthly rent - October 2025', amount: '₱500', dueDate: '10/5/2025', paidDate: '10/16/2025', status: 'Paid' },
-  { id: 'p2', description: 'Utility bill - September 2025', amount: '₱150', dueDate: '9/10/2025', paidDate: '10/16/2025', status: 'Paid' },
-  { id: 'p3', description: 'Monthly rent - August 2025', amount: '₱500', dueDate: '8/5/2025', paidDate: '8/3/2025', status: 'Paid' },
-];
-
-const OUTSTANDING_MOCK: PaymentRecord[] = [
-  { id: 'o1', description: 'Monthly rent - November 2025', amount: '₱500', dueDate: '11/05/2025', status: 'Due' },
-  { id: 'o2', description: 'Water bill - November 2025', amount: '₱120', dueDate: '11/10/2025', status: 'Due' },
-];
-
 interface PaymentHistoryPageProps {
   currentPage?: string;
   onNavigate?: (p: string) => void;
@@ -37,41 +27,60 @@ interface PaymentHistoryPageProps {
 const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ currentPage, onNavigate, userRole = 'admin' }) => {
   const [downloadRow, setDownloadRow] = React.useState<PaymentRecord | null>(null);
   const [showCreateForm, setShowCreateForm] = React.useState(false);
-  const [outstanding, setOutstanding] = React.useState<PaymentRecord[]>(OUTSTANDING_MOCK);
-  const [history, setHistory] = React.useState<PaymentRecord[]>(MOCK);
+  const [outstanding, setOutstanding] = React.useState<PaymentRecord[]>([]);
+  const [history, setHistory] = React.useState<PaymentRecord[]>([]);
   const [payingRow, setPayingRow] = React.useState<PaymentRecord | null>(null);
   const [payForm, setPayForm] = React.useState({ paymentDate: '', paymentMethod: 'cash', transactionReference: '', notes: '' });
-
-  const startDownload = (row: PaymentRecord, fmt: 'csv' | 'json') => {
-    if (fmt === 'json') {
-      const blob = new Blob([JSON.stringify(row, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${row.id}.json`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-    } else {
-      // simple CSV of the fields
-      const headers = ['description', 'amount', 'dueDate', 'paidDate', 'status'];
-      const values = [row.description, row.amount, row.dueDate, row.paidDate || '', row.status];
-      const csv = headers.join(',') + '\n' + values.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',');
-      const blob = new Blob([csv], { type: 'text/csv' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${row.id}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-    }
-  };
+  const [depositStatus, setDepositStatus] = React.useState<'paid' | 'pending' | 'none' | undefined>(undefined);
+  const [loading, setLoading] = React.useState(false);
   // read selected room info from sessionStorage
   const sel = typeof window !== 'undefined' ? sessionStorage.getItem('selectedPaymentRoom') : null;
-  const parsed = sel ? JSON.parse(sel) : { room: 'Unknown', tenant: '' };
+  const parsed = sel ? JSON.parse(sel) : { room: 'Unknown', tenant: '', tenantId: '', roomId: '' };
+
+  const refresh = React.useCallback(async () => {
+    // Re-read from sessionStorage inside callback
+    const freshSel = typeof window !== 'undefined' ? sessionStorage.getItem('selectedPaymentRoom') : null;
+    const freshParsed = freshSel ? JSON.parse(freshSel) : { room: 'Unknown', tenant: '', tenantId: '', roomId: '' };
+    
+    if (!freshParsed.tenantId) {
+      console.error('No tenantId in sessionStorage');
+      return;
+    }
+    setLoading(true);
+    try {
+      console.log('Fetching payments for tenant:', freshParsed.tenantId);
+      const data = await PaymentService.tenantPayments(freshParsed.tenantId, { sortBy: 'dueDate', sortOrder: 'asc', limit: 100 });
+      const payments = data?.data?.payments || [];
+      const toRow = (p: any): PaymentRecord => ({
+        id: p._id,
+        description: p.description || `${p.paymentType} - ${p.periodCovered?.startDate ? new Date(p.periodCovered.startDate).toLocaleDateString() : ''}`,
+        amount: `₱${(p.amount + (p.lateFee?.amount || 0)).toLocaleString()}`,
+        dueDate: p.dueDate ? new Date(p.dueDate).toLocaleDateString() : '-',
+        paidDate: p.paymentDate ? new Date(p.paymentDate).toLocaleDateString() : undefined,
+        status: p.status === 'paid' ? 'Paid' : (p.status === 'overdue' ? 'Overdue' : 'Due'),
+        paymentMethod: p.paymentMethod,
+        transactionReference: p.transactionReference,
+        notes: p.notes,
+      });
+      const out = payments.filter((p: any) => p.status !== 'paid').map(toRow);
+      const hist = payments.filter((p: any) => p.status === 'paid').map(toRow);
+      setOutstanding(out);
+      setHistory(hist);
+
+      const summary = await PaymentService.tenantSummary(freshParsed.tenantId);
+      setDepositStatus(summary?.data?.depositStatus);
+      console.log('Payments loaded:', { outstanding: out.length, history: hist.length, depositStatus: summary?.data?.depositStatus });
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error('Error fetching payments:', e);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    refresh();
+  }, [refresh]);
 
   // Role-based functionality
   const canCreatePayments = userRole === 'admin'; // Only admin can create payments
@@ -92,12 +101,28 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ currentPage, on
         <main className="flex-1 p-4 lg:p-6 overflow-auto">
           <div className="max-w-full">
             <div className="mb-6 flex items-center justify-between">
-              <div>
-                <h1 className="text-2xl font-semibold">Payment History</h1>
-                <p className="text-sm text-gray-500">{parsed.room} - {parsed.tenant}</p>
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => onNavigate && onNavigate('payment')}
+                  className="inline-flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                  Back
+                </button>
+                <div>
+                  <h1 className="text-2xl font-semibold">Payment History</h1>
+                  <p className="text-sm text-gray-500">{parsed.room} - {parsed.tenant}</p>
+                </div>
               </div>
               {canCreatePayments && (
                 <div className="flex items-center space-x-3">
+                  {depositStatus && (
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${depositStatus==='paid'?'bg-green-100 text-green-800':depositStatus==='pending'?'bg-yellow-100 text-yellow-800':'bg-gray-100 text-gray-800'}`}>
+                      Deposit: {depositStatus}
+                    </span>
+                  )}
                   <button
                     type="button"
                     onClick={() => setShowCreateForm(true)}
@@ -111,6 +136,11 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ currentPage, on
 
             <section className="bg-white rounded-xl shadow p-6 mb-6">
               <h3 className="text-lg font-semibold mb-3">Current Outstanding Payments</h3>
+              {loading && <div className="text-sm text-gray-500">Loading...</div>}
+              {!loading && outstanding.length === 0 && (
+                <div className="text-sm text-gray-500 py-4">No outstanding payments</div>
+              )}
+              {!loading && outstanding.length > 0 && (
               <div className="overflow-x-auto">
                 <table className="min-w-full text-sm">
                   <thead>
@@ -132,7 +162,6 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ currentPage, on
                             <button
                               onClick={() => {
                                 setPayingRow(row);
-                                // prefill form: default paymentDate to today in yyyy-mm-dd for input
                                 const today = new Date();
                                 const yyyy = today.getFullYear();
                                 const mm = String(today.getMonth() + 1).padStart(2, '0');
@@ -150,10 +179,15 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ currentPage, on
                   </tbody>
                 </table>
               </div>
+              )}
             </section>
 
             <section className="bg-white rounded-xl shadow p-6">
               <h3 className="text-lg font-semibold mb-3">Payment History</h3>
+              {!loading && history.length === 0 && (
+                <div className="text-sm text-gray-500 py-4">No payment history</div>
+              )}
+              {!loading && history.length > 0 && (
               <div className="overflow-x-auto">
                 <table className="min-w-full text-sm">
                   <thead>
@@ -184,9 +218,16 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ currentPage, on
                   </tbody>
                 </table>
               </div>
+              )}
             </section>
             {canDownload && (
-              <DownloadDialog open={!!downloadRow} row={downloadRow} onClose={() => setDownloadRow(null)} onDownload={startDownload} />
+              <DownloadDialog 
+                open={!!downloadRow} 
+                row={downloadRow} 
+                onClose={() => setDownloadRow(null)} 
+                tenantName={parsed.tenant}
+                roomNumber={parsed.room}
+              />
             )}
             {/* Mark as Paid modal (component) */}
             {payingRow && canMarkAsPaid && (
@@ -196,19 +237,16 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ currentPage, on
                   open={!!payingRow}
                   initial={{ paymentDate: payForm.paymentDate, paymentMethod: payForm.paymentMethod, transactionReference: payForm.transactionReference, notes: payForm.notes }}
                   onCancel={() => setPayingRow(null)}
-                  onSubmit={(data: { paymentDate: string; paymentMethod: string; transactionReference: string; notes?: string }) => {
+                  onSubmit={async (data: { paymentDate: string; paymentMethod: string; transactionReference: string; notes?: string }) => {
                     if (!payingRow) return;
-                    const updated: PaymentRecord = {
-                      ...payingRow,
-                      status: 'Paid',
-                      paidDate: data.paymentDate,
-                      paymentMethod: data.paymentMethod,
-                      transactionReference: data.transactionReference,
-                      notes: data.notes,
-                    };
-                    setOutstanding(prev => prev.filter(r => r.id !== payingRow.id));
-                    setHistory(prev => [updated, ...prev]);
-                    setPayingRow(null);
+                    try {
+                      await PaymentService.markPaid(payingRow.id, { transactionReference: data.transactionReference, notes: data.notes });
+                      setPayingRow(null);
+                      await refresh();
+                    } catch (e) {
+                      // eslint-disable-next-line no-console
+                      console.error(e);
+                    }
                   }}
                 />
               </React.Suspense>
@@ -223,11 +261,18 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ currentPage, on
                   </div>
                   <CreatePaymentForm
                     onCancel={() => setShowCreateForm(false)}
-                    onSubmit={(payload: PaymentPayload) => {
-                      // TODO: POST to backend; for now log and close
-                      // eslint-disable-next-line no-console
-                      console.log('CreatePayment (modal) payload', payload);
-                      setShowCreateForm(false);
+                    onSubmit={async (payload: PaymentPayload) => {
+                      try {
+                        const freshSel = typeof window !== 'undefined' ? sessionStorage.getItem('selectedPaymentRoom') : null;
+                        const freshParsed = freshSel ? JSON.parse(freshSel) : { tenantId: '', roomId: '' };
+                        if (!freshParsed.tenantId || !freshParsed.roomId) { alert('No tenant/room in context'); return; }
+                        await PaymentService.create({ ...payload, tenant: freshParsed.tenantId, room: freshParsed.roomId });
+                        setShowCreateForm(false);
+                        await refresh();
+                      } catch (e) {
+                        // eslint-disable-next-line no-console
+                        console.error(e);
+                      }
                     }}
                   />
                 </div>

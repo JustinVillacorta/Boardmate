@@ -1,21 +1,18 @@
 import React from 'react';
+import PaymentService from '../../services/paymentService';
+import { userManagementService, StaffAndTenantData } from '../../services/userManagementService';
+import UserCard from '../../components/users/UserCard';
 import Sidebar from '../../components/layout/Sidebar';
 import TopNavbar from '../../components/layout/TopNavbar';
 import PaymentCard from '../../components/payments/PaymentCard';
 
-interface PaymentRow {
+interface TenantRow {
   id: string;
-  room: string;
-  tenant: string;
-  pending: string;
-  overdue: string;
-  lastPayment: string;
+  name: string;
+  email: string;
+  roomNumber: string;
+  roomId: string;
 }
-
-const SAMPLE: PaymentRow[] = [
-  { id: '1', room: 'Room 111', tenant: 'John Doe', pending: '₱0', overdue: '₱0', lastPayment: 'No payments yet' },
-  { id: '2', room: 'Room 20', tenant: 'Keith Pogi', pending: '₱0', overdue: '₱0', lastPayment: 'No payments yet' },
-];
 
 interface PaymentPageProps {
   currentPage?: string;
@@ -25,13 +22,40 @@ interface PaymentPageProps {
 
 const PaymentPage: React.FC<PaymentPageProps> = ({ currentPage, onNavigate, userRole = 'admin' }) => {
   const [query, setQuery] = React.useState('');
+  const [tenants, setTenants] = React.useState<TenantRow[]>([]);
+  const [loading, setLoading] = React.useState(false);
 
-  const filtered = SAMPLE.filter(r =>
-    r.room.toLowerCase().includes(query.toLowerCase()) ||
-    r.tenant.toLowerCase().includes(query.toLowerCase())
+  React.useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      try {
+        const res = await userManagementService.getStaffAndTenants({ userType: 'tenant', tenantStatus: 'active', hasRoom: true, limit: 50, sortBy: 'lastName', sortOrder: 'asc' });
+        const records = res?.data?.records || [];
+        const mapped: TenantRow[] = records.filter((r: StaffAndTenantData) => r.room?._id).map((r: StaffAndTenantData) => ({
+          id: r._id,
+          name: r.fullName || `${r.firstName || ''} ${r.lastName || ''}`.trim() || r.email,
+          email: r.email,
+          roomNumber: r.room?.roomNumber || '-',
+          roomId: r.room?._id || '',
+        }));
+        setTenants(mapped);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
+
+  const filtered = tenants.filter(r =>
+    r.roomNumber.toLowerCase().includes(query.toLowerCase()) ||
+    r.name.toLowerCase().includes(query.toLowerCase()) ||
+    r.email.toLowerCase().includes(query.toLowerCase())
   );
   
   return (
+    <>
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar currentPage={currentPage} onNavigate={onNavigate} userRole={userRole} />
 
@@ -54,8 +78,7 @@ const PaymentPage: React.FC<PaymentPageProps> = ({ currentPage, onNavigate, user
                       {userRole === 'staff' ? 'Manage tenant payments and dues' : 'Manage tenant payments and dues'}
                     </p>
                   </div>
-
-                  <div className="w-full sm:w-96">
+                  <div className="w-full sm:w-96 flex gap-2 justify-end">
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -65,7 +88,7 @@ const PaymentPage: React.FC<PaymentPageProps> = ({ currentPage, onNavigate, user
                       <input
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
-                        placeholder="Search rooms..."
+                        placeholder="Search tenants or rooms..."
                         className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                       />
                     </div>
@@ -76,19 +99,30 @@ const PaymentPage: React.FC<PaymentPageProps> = ({ currentPage, onNavigate, user
               <div className="p-4 lg:p-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {filtered.map(row => (
-                    <PaymentCard key={row.id} payment={row} onView={(id: string) => {
-                      // store selected room info and navigate
-                      try { sessionStorage.setItem('selectedPaymentRoom', JSON.stringify({ room: row.room, tenant: row.tenant })); } catch(e){}
+                    <div key={row.id} onClick={() => {
+                      try {
+                        sessionStorage.setItem('selectedPaymentRoom', JSON.stringify({ tenantId: row.id, roomId: row.roomId, tenant: row.name, room: row.roomNumber }));
+                      } catch(e) {}
                       onNavigate && onNavigate('payment-history');
-                    }} />
+                    }} className="cursor-pointer">
+                      <UserCard user={{ id: row.id, name: row.name, email: row.email, role: 'Tenant', status: 'Active', startDate: '', roomNumber: row.roomNumber }} />
+                    </div>
                   ))}
                 </div>
+                {loading && (
+                  <div className="text-sm text-gray-500 mt-4">Loading tenants...</div>
+                )}
+                {!loading && filtered.length === 0 && (
+                  <div className="text-sm text-gray-500 mt-4">No tenants found.</div>
+                )}
               </div>
             </section>
           </div>
         </main>
       </div>
     </div>
+    {/* Tenant selection navigates to dedicated history page */}
+    </>
   );
 };
 

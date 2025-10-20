@@ -1,5 +1,6 @@
 import cron from 'node-cron';
 import NotificationService from '../utils/notificationService.js';
+import { generateMonthlyRentChargesInternal } from '../controllers/paymentController.js';
 
 class CronJobs {
   // Start all scheduled jobs
@@ -18,6 +19,22 @@ class CronJobs {
     }, {
       scheduled: true,
       timezone: "America/New_York" // Adjust timezone as needed
+    });
+
+    // Monthly rent generation - runs on the 1st day at 08:00 AM
+    cron.schedule('0 8 1 * *', async () => {
+      console.log('Running monthly rent generation job...');
+      try {
+        const target = new Date();
+        target.setDate(1);
+        const result = await generateMonthlyRentChargesInternal(target, null);
+        console.log('Monthly rent generation completed:', result);
+      } catch (error) {
+        console.error('Error in monthly rent generation job:', error);
+      }
+    }, {
+      scheduled: true,
+      timezone: "America/New_York"
     });
 
     // Weekly lease reminder job - runs every Monday at 10:00 AM
