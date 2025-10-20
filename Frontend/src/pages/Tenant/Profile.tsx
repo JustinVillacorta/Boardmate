@@ -244,8 +244,8 @@ const Profile: React.FC<ProfileProps> = ({ currentPage, onNavigate }) => {
       
       {/* Main Content - Responsive */}
       <div className="flex-1 flex flex-col min-w-0 lg:pl-64">
-        {/* Top Navigation */}
-        <TopNavbar currentPage={currentPage} />
+  {/* Top Navigation */}
+  <TopNavbar currentPage={currentPage} onSearch={(q) => { /* profile page search (rare) */ }} onNotificationOpen={() => onNavigate && onNavigate('notifications')} />
 
         {/* Profile Content */}
         <main className="flex-1 p-4 lg:p-6 overflow-auto">

@@ -165,19 +165,28 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ currentPage, onNa
     // Smooth scroll and center into view
     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
-    // Add temporary ring animation
-    el.classList.add('ring-2', 'ring-blue-300');
+    // Add smooth flash highlight animation
+    el.classList.add('flash-highlight');
     const t = setTimeout(() => {
-      el.classList.remove('ring-2', 'ring-blue-300');
+      el.classList.remove('flash-highlight');
+      // clear selected id after animation completes
+      setSelectedId(null);
     }, 1200);
     return () => clearTimeout(t);
   }, [selectedId]);
 
+  // Clear any selection when the page changes (so highlight doesn't persist across navigation)
+  React.useEffect(() => {
+    return () => {
+      setSelectedId(null);
+    };
+  }, [currentPage]);
+
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar currentPage={currentPage} onNavigate={onNavigate} userRole={userRole} />
-      <div className="flex-1 flex flex-col min-w-0 lg:pl-64">
-      <TopNavbar currentPage={currentPage} subtitle={userRole === 'admin' ? 'View notifications and announcements' : 'View and manage notifications'} />
+  <div className="flex-1 flex flex-col min-w-0 lg:pl-64">
+  <TopNavbar currentPage={currentPage} subtitle={userRole === 'admin' ? 'View notifications and announcements' : 'View and manage notifications'} onSearch={(q) => setQuery(q)} onNotificationOpen={(n) => { if (n) { /* open specific notification */ } else onNavigate && onNavigate('notifications'); }} />
 
         <main className="flex-1 p-4 lg:p-6 overflow-auto">
           <div className="max-w-full">

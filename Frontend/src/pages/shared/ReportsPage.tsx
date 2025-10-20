@@ -122,17 +122,25 @@ const ReportsPage: React.FC<ReportsPageProps> = ({ currentPage, onNavigate, user
     const el = document.getElementById(`report-${selectedReportId}`);
     if (!el) return;
     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    el.classList.add('ring-2', 'ring-blue-300');
-    const t = setTimeout(() => el.classList.remove('ring-2', 'ring-blue-300'), 1200);
+    el.classList.add('flash-highlight');
+    const t = setTimeout(() => {
+      el.classList.remove('flash-highlight');
+      setSelectedReportId(null);
+    }, 1200);
     return () => clearTimeout(t);
   }, [selectedReportId, reports]);
+
+  // Clear selection when page changes/unmount
+  React.useEffect(() => {
+    return () => setSelectedReportId(null);
+  }, [currentPage]);
 
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar currentPage={currentPage} onNavigate={onNavigate} userRole={userRole} />
 
       <div className="flex-1 flex flex-col min-w-0 lg:pl-64">
-        <TopNavbar currentPage={currentPage} title="Reports" subtitle="Generate and view reports" />
+  <TopNavbar currentPage={currentPage} title="Reports" subtitle="Generate and view reports" onSearch={(q) => setQuery(q)} onNotificationOpen={() => onNavigate && onNavigate('notifications')} />
 
         <main className="flex-1 p-4 lg:p-6 overflow-auto">
           <div className="max-w-full">

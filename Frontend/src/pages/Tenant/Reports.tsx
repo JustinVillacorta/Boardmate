@@ -63,6 +63,25 @@ const TenantReports: React.FC<ReportsProps> = ({ currentPage, onNavigate }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query]);
 
+  // When selectedReportId is set and reports are loaded, scroll into view and flash then clear
+  React.useEffect(() => {
+    if (!selectedReportId) return;
+    const el = document.getElementById(`report-${selectedReportId}`);
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el.classList.add('flash-highlight');
+    const t = setTimeout(() => {
+      el.classList.remove('flash-highlight');
+      setSelectedReportId(null);
+    }, 1200);
+    return () => clearTimeout(t);
+  }, [selectedReportId, reports]);
+
+  // Clear selection when page changes/unmount
+  React.useEffect(() => {
+    return () => setSelectedReportId(null);
+  }, [currentPage]);
+
   const handleSubmitMaintenance = async (payload: any) => {
     try {
       await reportService.createReport(payload);
@@ -77,7 +96,7 @@ const TenantReports: React.FC<ReportsProps> = ({ currentPage, onNavigate }) => {
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar currentPage={currentPage} onNavigate={onNavigate} userRole="tenant" />
       <div className="flex-1 flex flex-col min-w-0 lg:pl-64">
-        <TopNavbar currentPage={currentPage} title="Reports" subtitle="Your maintenance requests" />
+  <TopNavbar currentPage={currentPage} title="Reports" subtitle="Your maintenance requests" onSearch={(q) => { /* tenant reports search */ }} onNotificationOpen={() => onNavigate && onNavigate('notifications')} />
 
         <main className="flex-1 p-4 lg:p-6 overflow-auto">
           <div className="max-w-full">

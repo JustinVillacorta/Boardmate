@@ -64,6 +64,8 @@ const PaymentPage: React.FC<PaymentPageProps> = ({ currentPage, onNavigate, user
           currentPage={currentPage}
           title="Payment" 
           subtitle={userRole === 'staff' ? "Manage tenant payments and dues" : "Manage your account and preferences"} 
+          onSearch={(q) => setQuery(q)}
+          onNotificationOpen={() => onNavigate && onNavigate('notifications')}
         />
 
         <main className="flex-1 p-4 lg:p-6 overflow-auto">

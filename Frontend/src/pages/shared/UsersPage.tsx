@@ -202,6 +202,8 @@ const UsersPage: React.FC<UsersPageProps> = ({ currentPage, onNavigate, userRole
           currentPage={currentPage}
           title="Users" 
           subtitle={userRole === 'staff' ? "Manage tenant accounts" : "Manage system users and permissions"}
+          onSearch={(q) => setSearchQuery(q)}
+          onNotificationOpen={() => onNavigate && onNavigate('notifications')}
         />
 
         {/* Page Content */}

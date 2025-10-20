@@ -96,6 +96,8 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ currentPage, on
           currentPage={currentPage}
           title="Payment" 
           subtitle={userRole === 'staff' ? "Manage tenant payments and dues" : "Manage your account and preferences"} 
+          onSearch={(q) => { /* payment history search */ }}
+          onNotificationOpen={() => onNavigate && onNavigate('notifications')}
         />
 
         <main className="flex-1 p-4 lg:p-6 overflow-auto">
@@ -266,7 +268,8 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ currentPage, on
                         const freshSel = typeof window !== 'undefined' ? sessionStorage.getItem('selectedPaymentRoom') : null;
                         const freshParsed = freshSel ? JSON.parse(freshSel) : { tenantId: '', roomId: '' };
                         if (!freshParsed.tenantId || !freshParsed.roomId) { alert('No tenant/room in context'); return; }
-                        await PaymentService.create({ ...payload, tenant: freshParsed.tenantId, room: freshParsed.roomId });
+                        // Cast to CreatePaymentDTO to satisfy stricter paymentType union in service types
+                        await PaymentService.create({ ...payload, tenant: freshParsed.tenantId, room: freshParsed.roomId } as any);
                         setShowCreateForm(false);
                         await refresh();
                       } catch (e) {

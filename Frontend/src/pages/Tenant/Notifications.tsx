@@ -15,6 +15,7 @@ const Notifications: React.FC<NotificationsProps> = ({ currentPage, onNavigate }
   const [notifications, setNotifications] = useState<Array<any>>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   // Tabs: All, Read, Unread
   const [activeTab, setActiveTab] = React.useState<'All' | 'Read' | 'Unread'>('All');
@@ -90,6 +91,9 @@ const Notifications: React.FC<NotificationsProps> = ({ currentPage, onNavigate }
       await markRead(id);
     }
 
+    // set selected id to highlight
+    setSelectedId(id);
+
     // Navigate based on metadata
     try {
       const meta = n.meta || {};
@@ -119,6 +123,25 @@ const Notifications: React.FC<NotificationsProps> = ({ currentPage, onNavigate }
     }
   };
 
+  // When selectedId changes, clear highlight after a timeout
+  React.useEffect(() => {
+    if (!selectedId) return;
+    const el = document.getElementById(`notification-${selectedId}`);
+    if (el) {
+      el.classList.add('flash-highlight');
+    }
+    const t = setTimeout(() => {
+      if (el) el.classList.remove('flash-highlight');
+      setSelectedId(null);
+    }, 1200);
+    return () => clearTimeout(t);
+  }, [selectedId]);
+
+  // Clear selection when page changes/unmounts
+  React.useEffect(() => {
+    return () => setSelectedId(null);
+  }, [currentPage]);
+
   return (
     <div className="flex min-h-screen bg-gray-50">
       {/* Sidebar */}
@@ -126,8 +149,8 @@ const Notifications: React.FC<NotificationsProps> = ({ currentPage, onNavigate }
       
       {/* Main Content - Responsive */}
       <div className="flex-1 flex flex-col min-w-0 lg:pl-64">
-        {/* Top Navigation */}
-        <TopNavbar currentPage={currentPage} />
+  {/* Top Navigation */}
+  <TopNavbar currentPage={currentPage} onSearch={(q) => setSearchQuery(q)} onNotificationOpen={(n) => { if (n) { /* handle specific */ } else onNavigate && onNavigate('notifications'); }} />
 
         {/* Notifications Content */}
         <main className="flex-1 p-4 lg:p-6 overflow-auto">

@@ -34,4 +34,24 @@
   .input-field {
     @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all;
   }
+
+  /* Smooth flash highlight used when jumping to an item (notifications/reports) */
+  .flash-highlight {
+    animation: flashHighlight 1.2s ease forwards;
+  }
+
+  @keyframes flashHighlight {
+    0% {
+      box-shadow: 0 0 0 4px rgba(59,130,246,0.35);
+      background-color: rgba(239,246,255,1);
+    }
+    50% {
+      box-shadow: 0 0 0 8px rgba(59,130,246,0.18);
+      background-color: rgba(239,246,255,0.9);
+    }
+    100% {
+      box-shadow: none;
+      background-color: transparent;
+    }
+  }
 }
