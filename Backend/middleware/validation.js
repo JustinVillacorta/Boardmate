@@ -119,11 +119,11 @@ export const validateTenantRegister = [
       const monthDiff = today.getMonth() - dob.getMonth();
       
       if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
-        return age >= 18;
+        return age >= 16;
       }
-      return age >= 18;
+      return age >= 16;
     })
-    .withMessage('Tenant must be at least 18 years old'),
+    .withMessage('Tenant must be at least 16 years old'),
 
   body('occupation')
     .optional()
