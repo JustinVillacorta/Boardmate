@@ -77,11 +77,6 @@ const Payments: React.FC<PaymentsProps> = ({ currentPage, onNavigate }) => {
 
         {/* Payments Content */}
         <main className="flex-1 p-4 lg:p-6 overflow-auto">
-          {/* Page Header */}
-          <div className="mb-6">
-            <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Payments</h1>
-            <p className="text-gray-600 mt-1">Your payment history and upcoming dues.</p>
-          </div>
 
           {/* Payment History Table */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">

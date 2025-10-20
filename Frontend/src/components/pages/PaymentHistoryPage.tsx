@@ -76,7 +76,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ currentPage, on
   // Role-based functionality
   const canCreatePayments = userRole === 'admin'; // Only admin can create payments
   const canMarkAsPaid = userRole === 'admin' || userRole === 'staff'; // Both can mark as paid
-  const canDownload = userRole === 'admin'; // Only admin can download
+  const canDownload = userRole === 'admin' || userRole === 'staff'; // admin and staff can download
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -167,7 +167,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ currentPage, on
                     </tr>
                   </thead>
                   <tbody className="divide-y">
-                    {MOCK.map(row => (
+                    {history.map(row => (
                       <tr key={row.id}>
                         <td className="py-4 pr-6">{row.description}</td>
                         <td className="py-4 pr-6 font-medium">{row.amount}</td>

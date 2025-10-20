@@ -128,12 +128,8 @@ const Reports: React.FC<ReportsProps> = ({ currentPage, onNavigate }) => {
 
         {/* Reports Content */}
         <main className="flex-1 p-4 lg:p-6 overflow-auto">
-          {/* Page Header */}
           <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Reports</h1>
-              <p className="text-gray-600 mt-1">Submit and track your complaints and maintenance requests.</p>
-            </div>
+            <h1 className="text-2xl font-semibold text-gray-900">Reports</h1>
             <button
               onClick={() => setIsSubmitFormOpen(true)}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"

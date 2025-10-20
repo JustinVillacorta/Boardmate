@@ -168,11 +168,6 @@ const Profile: React.FC<ProfileProps> = ({ currentPage, onNavigate }) => {
 
         {/* Profile Content */}
         <main className="flex-1 p-4 lg:p-6 overflow-auto">
-          {/* Page Header */}
-          <div className="mb-6">
-            <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Profile</h1>
-            <p className="text-gray-600 mt-1">Manage your account and preferences.</p>
-          </div>
 
           <div className="space-y-6">
             {/* Contact Information Card */}

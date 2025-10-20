@@ -45,7 +45,7 @@ const ReportsPage: React.FC<ReportsPageProps> = ({ currentPage, onNavigate, user
 
   // Role-based functionality
   const canCreateReports = userRole === 'admin'; // Only admin can create reports
-  const canModifyReports = userRole === 'admin'; // Only admin can modify reports
+  const canModifyReports = userRole === 'admin' || userRole === 'staff'; // Admin and staff can modify reports
 
   return (
     <div className="flex min-h-screen bg-gray-50">

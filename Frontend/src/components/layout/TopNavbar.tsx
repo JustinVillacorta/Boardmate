@@ -42,13 +42,19 @@ const TopNavbar: React.FC<TopNavbarProps> = ({
         };
       default:
         return {
+          // If explicit props are provided, prefer them; otherwise fall back to defaults
           title: title || 'Dashboard',
           subtitle: subtitle || 'Your room info, payments, and account status'
         };
     }
   };
 
-  const pageInfo = getPageInfo(currentPage);
+  // If caller passed an explicit title/subtitle, use them; otherwise derive from page
+  const derived = getPageInfo(currentPage);
+  const pageInfo = {
+    title: title || derived.title,
+    subtitle: subtitle || derived.subtitle,
+  };
   const [showNotifications, setShowNotifications] = useState(false);
 
   const notifications = [

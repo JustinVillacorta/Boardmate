@@ -3,7 +3,6 @@ import Sidebar from '../layout/Sidebar';
 import TopNavbar from '../layout/TopNavbar';
 import { Bell, X } from 'lucide-react';
 import NotificationCard from '../notifications/NotificationCard';
-import NotificationsSummaryCard from '../notifications/NotificationsSummaryCard';
 import CreateAnnouncementForm from '../notifications/CreateAnnouncementForm';
 
 type NotificationItem = {
@@ -89,7 +88,7 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ currentPage, onNa
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar currentPage={currentPage} onNavigate={onNavigate} userRole={userRole} />
       <div className="flex-1 flex flex-col min-w-0 lg:pl-64">
-        <TopNavbar currentPage={currentPage} title="Notifications" subtitle="View and manage notifications" />
+      <TopNavbar currentPage={currentPage} subtitle={userRole === 'admin' ? 'View notifications and announcements' : 'View and manage notifications'} />
 
         <main className="flex-1 p-4 lg:p-6 overflow-auto">
           <div className="max-w-full">
@@ -97,9 +96,7 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ currentPage, onNa
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
                   <h1 className="text-2xl font-semibold">Notifications</h1>
-                  <p className="text-sm text-gray-500">
-                    {userRole === 'staff' ? 'View notifications and announcements' : 'View and manage notifications'}
-                  </p>
+                  <p className="text-sm text-gray-500">Showing {displayed.length} notifications</p>
                 </div>
                 <div className="w-full md:w-1/2">
                   <input
@@ -112,16 +109,9 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ currentPage, onNa
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-              <NotificationsSummaryCard title="Total Notifications" value={list.length} />
-              <NotificationsSummaryCard title="Unread" value={<span className="text-red-600">{unreadCount}</span>} />
-              <NotificationsSummaryCard title="Read" value={<span className="text-green-600">{list.length - unreadCount}</span>} />
-            </div>
-
             <div className="flex items-center justify-between mb-4">
-              <div className="text-sm text-gray-500">Showing {displayed.length} notifications</div>
-              <div className="flex items-center gap-3">
-                {/* segmented control */}
+              <div className="flex items-center gap-4">
+                {/* segmented control moved to left */}
                 <div className="inline-flex rounded-lg bg-white shadow-sm p-1">
                   <button
                     onClick={() => setFilterType('all')}
@@ -142,7 +132,9 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ currentPage, onNa
                     Unread ({unreadCount})
                   </button>
                 </div>
+              </div>
 
+              <div className="flex items-center gap-3">
                 <div className="hidden sm:flex items-center gap-3">
                   <button onClick={markAllRead} className="px-4 py-2 bg-green-600 text-white rounded">Mark All Read</button>
                   {canCreateAnnouncements && (

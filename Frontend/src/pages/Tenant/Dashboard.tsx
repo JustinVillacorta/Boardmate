@@ -50,11 +50,6 @@ const Dashboard: React.FC<DashboardProps> = ({ currentPage, onNavigate }) => {
 
         {/* Dashboard Content */}
         <main className="flex-1 p-4 lg:p-6 overflow-auto space-y-4 lg:space-y-6">
-          {/* Page Header */}
-          <div className="mb-6">
-            <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Dashboard</h1>
-            <p className="text-gray-600 mt-1">Your room info, payments, and account status.</p>
-          </div>
 
           {/* Tenant Info Cards */}
           <TenantInfoCards tenantData={tenantData} />
