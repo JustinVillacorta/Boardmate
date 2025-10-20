@@ -46,7 +46,8 @@ const UsersPage: React.FC<UsersPageProps> = ({ currentPage, onNavigate, userRole
       setError('');
       const response = await userManagementService.getStaffAndTenants({
         limit: 50, // Get more users
-        userType: 'all'
+        // If this page is used by a staff user, only request tenants
+        userType: isStaffUser ? 'tenant' : 'all'
       });
       
       // Transform backend data to frontend format
