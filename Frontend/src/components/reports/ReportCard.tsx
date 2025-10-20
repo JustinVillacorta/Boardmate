@@ -12,9 +12,9 @@ const statusColor = (s: ReportItem['status']) => {
   }
 };
 
-const ReportCard: React.FC<{ report: ReportItem; onChangeStatus?: (id: string, status: ReportItem['status']) => void }> = ({ report, onChangeStatus }) => {
+const ReportCard: React.FC<{ report: ReportItem; onChangeStatus?: (id: string, status: ReportItem['status']) => void; selected?: boolean }> = ({ report, onChangeStatus, selected }) => {
   return (
-    <article className="bg-white rounded-xl shadow-sm overflow-hidden">
+    <article id={`report-${report.id}`} className={`${selected ? 'bg-blue-50 border-blue-300 ring-1 ring-blue-200' : 'bg-white'} rounded-xl shadow-sm overflow-hidden` }>
       <div className="flex flex-col sm:flex-row">
         {/* blue left bar on sm+, top bar on small screens */}
         <div className="bg-blue-500 w-full h-1 sm:w-1 sm:h-auto" />

@@ -19,6 +19,7 @@ const ReportsPage: React.FC<ReportsPageProps> = ({ currentPage, onNavigate, user
   const [reports, setReports] = React.useState<ReportItem[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [selectedReportId, setSelectedReportId] = React.useState<string | null>(null);
 
   const fetchReports = async () => {
     setLoading(true);
@@ -29,7 +30,6 @@ const ReportsPage: React.FC<ReportsPageProps> = ({ currentPage, onNavigate, user
       if (activeTab && activeTab !== 'All') params.status = activeTab.toLowerCase();
 
       const res = await reportService.getReports(params);
-      // Map backend shape to ReportItem if necessary
       // Map backend status values (e.g., 'in-progress') to UI labels ('In Progress')
       const mapStatusToLabel = (s: string) => {
         if (!s) return 'Pending';
@@ -61,6 +61,9 @@ const ReportsPage: React.FC<ReportsPageProps> = ({ currentPage, onNavigate, user
       }));
 
       setReports(mapped);
+  // if there's a selectedReportId in localStorage, set it so the UI can highlight/scroll
+  const stored = localStorage.getItem('selectedReportId');
+  if (stored) setSelectedReportId(stored);
     } catch (err: any) {
       setError(err?.message || 'Failed to load reports');
     } finally {
@@ -112,6 +115,17 @@ const ReportsPage: React.FC<ReportsPageProps> = ({ currentPage, onNavigate, user
     fetchReports();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, activeTab]);
+
+  // when selectedReportId is set and reports are loaded, scroll into view and flash
+  React.useEffect(() => {
+    if (!selectedReportId) return;
+    const el = document.getElementById(`report-${selectedReportId}`);
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el.classList.add('ring-2', 'ring-blue-300');
+    const t = setTimeout(() => el.classList.remove('ring-2', 'ring-blue-300'), 1200);
+    return () => clearTimeout(t);
+  }, [selectedReportId, reports]);
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -200,6 +214,7 @@ const ReportsPage: React.FC<ReportsPageProps> = ({ currentPage, onNavigate, user
                     <ReportCard 
                       key={r.id}
                       report={r}
+                      selected={r.id === selectedReportId}
                       onChangeStatus={canModifyReports ? handleStatusChange : undefined}
                     />
                   ))}

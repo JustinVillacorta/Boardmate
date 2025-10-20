@@ -5,6 +5,7 @@ import { Bell, X } from 'lucide-react';
 import NotificationCard from '../../components/notifications/NotificationCard';
 import NotificationsSummaryCard from '../../components/notifications/NotificationsSummaryCard';
 import CreateAnnouncementForm from '../../components/notifications/CreateAnnouncementForm';
+import { notificationService } from '../../services/notificationService';
 
 type NotificationItem = {
   id: string;
@@ -17,36 +18,8 @@ type NotificationItem = {
   read?: boolean;
 };
 
-const MOCK: NotificationItem[] = [
-  {
-    id: 'n1',
-    title: 'Utility Bill Due',
-    tag: 'payment due',
-    excerpt: 'Payment due: ₱3500 by 11/30/2024',
-    createdAt: 'Oct 15, 2025, 12:15 AM',
-    expiresAt: 'Nov 15, 2025, 09:18 PM',
-    meta: { amount: 3500, dueDate: '2024-11-30', utilities: ['electricity', 'water'] },
-    read: false,
-  },
-  {
-    id: 'n2',
-    title: 'Monthly Rent Due',
-    tag: 'payment due',
-    excerpt: 'Payment due: ₱15000 by 12/1/2024',
-    createdAt: 'Oct 14, 2025, 07:22 AM',
-    expiresAt: 'Dec 01, 2025, 00:00 PM',
-    meta: { amount: 15000, dueDate: '2024-12-01' },
-    read: false,
-  },
-  {
-    id: 'n3',
-    title: 'Reminder: Lease Signing',
-    tag: 'reminder',
-    excerpt: 'Lease signing scheduled on 12/05/2024',
-    createdAt: 'Oct 01, 2025, 09:00 AM',
-    read: true,
-  },
-];
+// initial empty list; will be loaded from backend
+const MOCK: NotificationItem[] = [];
 
 interface NotificationsPageProps {
   currentPage?: string;
@@ -57,6 +30,9 @@ interface NotificationsPageProps {
 const NotificationsPage: React.FC<NotificationsPageProps> = ({ currentPage, onNavigate, userRole = 'admin' }) => {
   const [list, setList] = React.useState<NotificationItem[]>(MOCK);
   const [query, setQuery] = React.useState('');
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  const [selectedId, setSelectedId] = React.useState<string | null>(null);
 
   const unreadCount = list.filter(l => !l.read).length;
   const readCount = list.filter(l => l.read).length;
@@ -64,9 +40,100 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ currentPage, onNa
   const [filterType, setFilterType] = React.useState<'all' | 'read' | 'unread'>('all');
   const [creating, setCreating] = React.useState(false);
 
-  const markRead = (id: string) => setList(prev => prev.map(p => p.id === id ? { ...p, read: true } : p));
+  const markRead = async (id: string) => {
+    // optimistic update
+    setList(prev => prev.map(p => p.id === id ? { ...p, read: true } : p));
+    try {
+      await notificationService.markAsRead(id);
+    } catch (err) {
+      // revert on error
+      await fetchNotifications();
+      alert('Failed to mark notification as read');
+    }
+  };
 
-  const markAllRead = () => setList(prev => prev.map(p => ({ ...p, read: true })));
+  const markAllRead = async () => {
+    // optimistic
+    setList(prev => prev.map(p => ({ ...p, read: true })));
+    try {
+      await notificationService.markAllAsRead();
+    } catch (err) {
+      await fetchNotifications();
+      alert('Failed to mark all as read');
+    }
+  };
+
+  const fetchNotifications = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await notificationService.getNotifications({ page: 1, limit: 50, includeRead: true });
+      // Map backend notifications to NotificationItem used in UI
+      const payload = res;
+      let rawList: any[] = [];
+      if (Array.isArray(payload?.data?.notifications)) rawList = payload.data.notifications;
+      else if (Array.isArray(payload?.notifications)) rawList = payload.notifications;
+      else if (Array.isArray(payload?.data)) rawList = payload.data;
+      else rawList = [];
+
+      const mapped = (rawList || []).map((n: any) => ({
+        id: n._id || n.id,
+        title: n.title,
+        tag: n.type || undefined,
+        excerpt: n.message || n.excerpt || undefined,
+        createdAt: n.createdAt ? new Date(n.createdAt).toLocaleString() : undefined,
+        expiresAt: n.expiresAt ? new Date(n.expiresAt).toLocaleString() : undefined,
+        meta: n.metadata || n.meta || undefined,
+        read: n.status === 'read'
+      }));
+      setList(mapped);
+    } catch (err: any) {
+      setError(err?.message || 'Failed to load notifications');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOpenNotification = async (n: NotificationItem) => {
+    // Mark read first
+    if (!n.read && n.id) {
+      await markRead(n.id);
+    }
+    // set selected
+    setSelectedId(n.id || null);
+
+    // Navigate based on metadata or type
+    try {
+      const meta = n.meta || {};
+      // Reports
+      if (meta.reportId || meta.report) {
+        const reportId = meta.reportId || meta.report;
+        // store selected report id so Reports page or detail can pick it up
+        localStorage.setItem('selectedReportId', String(reportId));
+        onNavigate && onNavigate('reports');
+        return;
+      }
+
+      // Rooms
+      if (meta.roomId || meta.room) {
+        const roomId = meta.roomId || meta.room;
+        localStorage.setItem('selectedRoomId', String(roomId));
+        onNavigate && onNavigate('rooms');
+        return;
+      }
+
+      // Payments
+      if (n.tag === 'payment due' || n.tag === 'payment_due' || meta.type === 'payment_due') {
+        onNavigate && onNavigate('payment');
+        return;
+      }
+
+      // Default: open notifications page (no-op) or navigate to dashboard
+      onNavigate && onNavigate('notifications');
+    } catch (err) {
+      console.error('Navigation from notification failed', err);
+    }
+  };
 
   const q = query.trim().toLowerCase();
   const filteredByQuery = q === '' ? list : list.filter(n => {
@@ -84,6 +151,27 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ currentPage, onNa
 
   // Role-based functionality
   const canCreateAnnouncements = userRole === 'admin'; // Only admin can create announcements
+
+  React.useEffect(() => {
+    fetchNotifications();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // When selectedId changes, scroll the element into view and flash a ring
+  React.useEffect(() => {
+    if (!selectedId) return;
+    const el = document.getElementById(`notification-${selectedId}`);
+    if (!el) return;
+    // Smooth scroll and center into view
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+    // Add temporary ring animation
+    el.classList.add('ring-2', 'ring-blue-300');
+    const t = setTimeout(() => {
+      el.classList.remove('ring-2', 'ring-blue-300');
+    }, 1200);
+    return () => clearTimeout(t);
+  }, [selectedId]);
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -152,19 +240,24 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ currentPage, onNa
             </div>
 
             <div className="space-y-4">
-              {displayed.map(n => (
-                <NotificationCard key={n.id} n={n} onMarkRead={markRead} />
-              ))}
+              {loading && <div className="py-8 text-center text-gray-500">Loading notifications...</div>}
+              {error && <div className="py-4 text-center text-red-500">{error}</div>}
+                {!loading && !error && displayed.map(n => (
+                  <NotificationCard key={n.id} n={n} onOpen={handleOpenNotification} selected={n.id === selectedId} />
+                ))}
             </div>
             {canCreateAnnouncements && (
               <CreateAnnouncementForm
                 open={creating}
                 onCancel={() => setCreating(false)}
-                onCreate={({ title, message }) => {
-                    const id = 'n' + Date.now();
-                    const createdAt = new Date().toLocaleString();
-                    setList(prev => [{ id, title, tag: 'announcement', excerpt: message, createdAt, read: false }, ...prev]);
-                    setCreating(false);
+                onCreate={async ({ title, message }) => {
+                    try {
+                      await notificationService.createAnnouncement({ title, message });
+                      await fetchNotifications();
+                      setCreating(false);
+                    } catch (err) {
+                      alert('Failed to create announcement');
+                    }
                   }}
               />
             )}
