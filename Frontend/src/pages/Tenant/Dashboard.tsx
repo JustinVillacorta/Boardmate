@@ -1,9 +1,10 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Sidebar from "../../components/layout/Sidebar";
 import TopNavbar from "../../components/layout/TopNavbar";
 import TenantInfoCards from "../../components/tenant/TenantInfoCards";
 import TenantQuickActions from "../../components/tenant/TenantQuickActions";
 import TenantRecentActivity from "../../components/tenant/TenantRecentActivity";
+import { tenantDashboardService, type TenantDashboardData } from "../../services/tenantDashboardService";
 
 interface DashboardProps {
   currentPage?: string;
@@ -12,14 +13,30 @@ interface DashboardProps {
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ currentPage, onNavigate, onLogout }) => {
-  // Hardcoded static data for tenant info
-  const tenantData = {
-    room: "203",
-    roomType: "Single Room",
-    monthlyRent: 3450,
-    nextPaymentDue: "2024-02-01",
-    accountStatus: "Active"
-  };
+  const [data, setData] = useState<TenantDashboardData | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    (async () => {
+      try {
+        const result = await tenantDashboardService.fetchTenantDashboard();
+        if (isMounted) {
+          setData(result);
+        }
+      } catch (e: any) {
+        if (isMounted) {
+          setError(e?.message || "Failed to load dashboard data");
+        }
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    })();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleViewPaymentHistory = () => {
     if (onNavigate) {
@@ -51,22 +68,39 @@ const Dashboard: React.FC<DashboardProps> = ({ currentPage, onNavigate, onLogout
 
         {/* Dashboard Content */}
         <main className="flex-1 p-4 lg:p-6 overflow-auto space-y-4 lg:space-y-6">
+          {/* Loading / Error states */}
+          {loading && (
+            <div className="text-gray-600">Loading dashboard...</div>
+          )}
+          {error && !loading && (
+            <div className="text-red-600">{error}</div>
+          )}
 
           {/* Tenant Info Cards */}
-          <TenantInfoCards tenantData={tenantData} />
+          {data && (
+            <TenantInfoCards 
+              tenant={data.tenant}
+              nextPaymentDue={data.nextPaymentDue}
+            />
+          )}
           
           {/* Dashboard Sections */}
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6">
-            {/* Quick Actions */}
-            <TenantQuickActions 
-              onViewPaymentHistory={handleViewPaymentHistory}
-              onSubmitMaintenanceRequest={handleSubmitMaintenanceRequest}
-              onUpdateProfile={handleUpdateProfile}
-            />
-            
-            {/* Recent Activity */}
-            <TenantRecentActivity />
-          </div>
+          {data && (
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6">
+              {/* Quick Actions */}
+              <TenantQuickActions 
+                onViewPaymentHistory={handleViewPaymentHistory}
+                onSubmitMaintenanceRequest={handleSubmitMaintenanceRequest}
+                onUpdateProfile={handleUpdateProfile}
+              />
+              
+              {/* Recent Activity */}
+              <TenantRecentActivity 
+                payments={data.payments}
+                reports={data.reports}
+              />
+            </div>
+          )}
         </main>
       </div>
     </div>
