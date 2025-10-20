@@ -1,9 +1,9 @@
 import React from 'react';
-import Sidebar from '../layout/Sidebar';
-import TopNavbar from '../layout/TopNavbar';
-import DownloadDialog from '../ui/DownloadDialog';
-import CreatePaymentForm, { PaymentPayload } from '../payments/CreatePaymentForm';
-import MarkAsPaidForm, { default as _MarkAsPaidForm } from '../payments/MarkAsPaidForm';
+import Sidebar from '../../components/layout/Sidebar';
+import TopNavbar from '../../components/layout/TopNavbar';
+import DownloadDialog from '../../components/ui/DownloadDialog';
+import CreatePaymentForm, { PaymentPayload } from '../../components/payments/CreatePaymentForm';
+import MarkAsPaidForm, { default as _MarkAsPaidForm } from '../../components/payments/MarkAsPaidForm';
 
 interface PaymentRecord {
   id: string;

@@ -1,9 +1,10 @@
 import React from 'react';
-import Sidebar from '../layout/Sidebar';
-import TopNavbar from '../layout/TopNavbar';
+import Sidebar from '../../components/layout/Sidebar';
+import TopNavbar from '../../components/layout/TopNavbar';
 import { Bell, X } from 'lucide-react';
-import NotificationCard from '../notifications/NotificationCard';
-import CreateAnnouncementForm from '../notifications/CreateAnnouncementForm';
+import NotificationCard from '../../components/notifications/NotificationCard';
+import NotificationsSummaryCard from '../../components/notifications/NotificationsSummaryCard';
+import CreateAnnouncementForm from '../../components/notifications/CreateAnnouncementForm';
 
 type NotificationItem = {
   id: string;

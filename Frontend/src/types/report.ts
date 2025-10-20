@@ -1,3 +1,4 @@
+// Report types
 export interface ReportItem {
   id: string;
   title: string;
@@ -11,4 +12,15 @@ export interface ReportItem {
   status: 'Resolved' | 'In Progress' | 'Pending' | 'Rejected';
 }
 
-export default ReportItem;
+export interface Report {
+  _id: string;
+  title: string;
+  type: 'financial' | 'occupancy' | 'maintenance' | 'custom';
+  dateRange: {
+    start: string;
+    end: string;
+  };
+  data: any;
+  generatedBy: string;
+  createdAt: string;
+}

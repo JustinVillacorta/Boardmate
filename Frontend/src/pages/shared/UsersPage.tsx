@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import Sidebar from '../layout/Sidebar';
-import TopNavbar from '../layout/TopNavbar';
-import UserCard from '../users/UserCard';
-import CreateUserModal from '../users/CreateUserModal';
-import EditUserModal from '../users/EditUserModal';
-import ConfirmDialog from '../ui/ConfirmDialog';
+import Sidebar from '../../components/layout/Sidebar';
+import TopNavbar from '../../components/layout/TopNavbar';
+import UserCard from '../../components/users/UserCard';
+import CreateUserModal from '../../components/users/CreateUserModal';
+import EditUserModal from '../../components/users/EditUserModal';
+import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import { User, UserPlus } from 'lucide-react';
 
 interface UserData {

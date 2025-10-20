@@ -1,7 +1,7 @@
 import React from 'react';
-import Sidebar from '../layout/Sidebar';
-import TopNavbar from '../layout/TopNavbar';
-import PaymentCard from '../payments/PaymentCard';
+import Sidebar from '../../components/layout/Sidebar';
+import TopNavbar from '../../components/layout/TopNavbar';
+import PaymentCard from '../../components/payments/PaymentCard';
 
 interface PaymentRow {
   id: string;

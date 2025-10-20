@@ -11,12 +11,12 @@ import TenantProfile from './pages/Tenant/Profile.tsx';
 import TenantReports from './pages/Tenant/Reports.tsx';
 
 // Reusable page components
-import RoomsPage from './components/pages/RoomsPage';
-import PaymentPage from './components/pages/PaymentPage';
-import PaymentHistoryPage from './components/pages/PaymentHistoryPage';
-import ReportsPage from './components/pages/ReportsPage';
-import NotificationsPage from './components/pages/NotificationsPage';
-import UsersPage from './components/pages/UsersPage';
+import RoomsPage from './pages/shared/RoomsPage';
+import PaymentPage from './pages/shared/PaymentPage';
+import PaymentHistoryPage from './pages/shared/PaymentHistoryPage';
+import ReportsPage from './pages/shared/ReportsPage';
+import NotificationsPage from './pages/shared/NotificationsPage';
+import UsersPage from './pages/shared/UsersPage';
 
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {

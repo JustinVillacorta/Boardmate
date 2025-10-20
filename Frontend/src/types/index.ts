@@ -1,3 +1,9 @@
+// Re-export all domain types for centralized access
+export * from './notification';
+export * from './payment';
+export * from './report';
+export * from './room';
+
 // Authentication types based on your backend models
 export type UserRole = 'admin' | 'staff' | 'tenant';
 
@@ -59,61 +65,6 @@ export interface ApiResponse<T = any> {
     field: string;
     message: string;
   }>;
-}
-
-// Room management types
-export interface Room {
-  _id: string;
-  roomNumber: string;
-  capacity: number;
-  monthlyRate: number;
-  description?: string;
-  amenities: string[];
-  isOccupied: boolean;
-  currentTenants: string[];
-  createdAt: string;
-  updatedAt: string;
-}
-
-// Payment types
-export interface Payment {
-  _id: string;
-  tenant: string;
-  room: string;
-  amount: number;
-  paymentDate: string;
-  dueDate: string;
-  status: 'pending' | 'paid' | 'overdue' | 'partial';
-  paymentMethod?: 'cash' | 'bank_transfer' | 'gcash' | 'card';
-  notes?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-// Notification types
-export interface Notification {
-  _id: string;
-  recipient: string;
-  title: string;
-  message: string;
-  type: 'payment_reminder' | 'payment_received' | 'system' | 'maintenance';
-  isRead: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-// Report types
-export interface Report {
-  _id: string;
-  title: string;
-  type: 'financial' | 'occupancy' | 'maintenance' | 'custom';
-  dateRange: {
-    start: string;
-    end: string;
-  };
-  data: any;
-  generatedBy: string;
-  createdAt: string;
 }
 
 // Dashboard types

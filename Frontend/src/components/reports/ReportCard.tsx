@@ -1,6 +1,6 @@
 import React from 'react';
 import { User, Calendar, Clock, MapPin } from 'lucide-react';
-import { ReportItem } from './types';
+import { ReportItem } from '../../types/report';
 
 const statusColor = (s: ReportItem['status']) => {
   switch (s) {

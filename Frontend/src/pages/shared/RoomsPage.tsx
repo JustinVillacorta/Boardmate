@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import Sidebar from '../layout/Sidebar';
-import TopNavbar from '../layout/TopNavbar';
-import RoomCard from '../rooms/RoomCard';
-import CreateRoomModal from '../rooms/CreateRoomModal';
-import ManageTenantsModal from '../rooms/ManageTenantsModal';
-import ConfirmDialog from '../ui/ConfirmDialog';
-import EditRoomModal from '../rooms/EditRoomModal';
+import Sidebar from '../../components/layout/Sidebar';
+import TopNavbar from '../../components/layout/TopNavbar';
+import RoomCard from '../../components/rooms/RoomCard';
+import CreateRoomModal from '../../components/rooms/CreateRoomModal';
+import ManageTenantsModal from '../../components/rooms/ManageTenantsModal';
+import ConfirmDialog from '../../components/ui/ConfirmDialog';
+import EditRoomModal from '../../components/rooms/EditRoomModal';
 import { RefreshCw, Plus } from 'lucide-react';
 
 interface RoomData {

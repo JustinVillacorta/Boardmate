@@ -1,10 +1,10 @@
 import React from 'react';
-import Sidebar from '../layout/Sidebar';
-import TopNavbar from '../layout/TopNavbar';
-import SummaryCard from '../reports/SummaryCard';
+import Sidebar from '../../components/layout/Sidebar';
+import TopNavbar from '../../components/layout/TopNavbar';
+import SummaryCard from '../../components/reports/SummaryCard';
 import { AlertCircle, CheckCircle2, Play, Clock } from 'lucide-react';
-import ReportCard from '../reports/ReportCard';
-import { ReportItem } from '../reports/types';
+import ReportCard from '../../components/reports/ReportCard';
+import { ReportItem } from '../../types/report';
 
 const MOCK_REPORTS: ReportItem[] = [
   {
