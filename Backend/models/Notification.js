@@ -1,11 +1,17 @@
 import mongoose from 'mongoose';
 
 const notificationSchema = new mongoose.Schema({
+  // polymorphic reference: can point to User (staff/admin) or Tenant
   user: { 
     type: mongoose.Schema.Types.ObjectId, 
-    ref: 'User', 
+    refPath: 'userModel',
     required: true,
     index: true
+  },
+  userModel: {
+    type: String,
+    enum: ['User', 'Tenant'],
+    default: 'User'
   },
   title: { 
     type: String, 
@@ -49,10 +55,16 @@ const notificationSchema = new mongoose.Schema({
     type: Date, 
     default: null 
   },
+  // who created the notification (can be a User or a Tenant)
   createdBy: { 
     type: mongoose.Schema.Types.ObjectId, 
-    ref: 'User', 
+    refPath: 'createdByModel', 
     default: null 
+  },
+  createdByModel: {
+    type: String,
+    enum: ['User', 'Tenant'],
+    default: 'User'
   },
 }, { timestamps: true });
 

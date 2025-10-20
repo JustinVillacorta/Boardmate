@@ -16,6 +16,7 @@ class NotificationService {
       if (tenant && createdBy.toString() === report.tenant.toString()) {
         await Notification.createNotification({
           user: createdBy,
+          userModel: 'Tenant',
           title: 'Report Submitted Successfully',
           message: `Your ${report.type} report "${report.title}" has been submitted and is now pending review by management.`,
           type: 'report_update',
@@ -25,7 +26,8 @@ class NotificationService {
             reportStatus: report.status,
             roomId: report.room
           },
-          createdBy: createdBy
+          createdBy: createdBy,
+          createdByModel: 'Tenant'
         });
       }
 
@@ -37,6 +39,7 @@ class NotificationService {
 
       const staffNotifications = staffUsers.map(user => ({
         user: user._id,
+        userModel: 'User',
         title: 'New Report Submitted',
         message: `A new ${report.type} report "${report.title}" has been submitted by a tenant and requires attention.`,
         type: 'report_update',
@@ -47,7 +50,8 @@ class NotificationService {
           tenantId: report.tenant,
           roomId: report.room
         },
-        createdBy: createdBy
+        createdBy: createdBy,
+        createdByModel: (typeof createdBy === 'string' || createdBy instanceof String) ? 'Tenant' : 'User'
       }));
 
       await Promise.all(
