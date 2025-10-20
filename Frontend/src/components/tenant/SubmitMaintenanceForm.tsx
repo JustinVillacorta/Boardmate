@@ -1,42 +1,36 @@
 import React, { useState } from 'react';
-import { Paperclip, X } from 'lucide-react';
+import { X } from 'lucide-react';
+import { authService } from '../../services/authService';
 
 interface SubmitMaintenanceFormProps {
   onClose: () => void;
-  onSubmit: (formData: MaintenanceFormData) => void;
+  // payload expected by backend: { room, type: 'maintenance', title, description }
+  onSubmit: (payload: { room: string; type: string; title: string; description: string }) => void;
 }
 
 interface MaintenanceFormData {
-  requestDetails: string;
-  category: string;
-  location: string;
-  preferredTime: string;
-  contactInfo: string;
-  expectedCost: string;
-  attachment?: File;
+  type: string;
+  title: string;
+  description: string;
 }
 
 const SubmitMaintenanceForm: React.FC<SubmitMaintenanceFormProps> = ({ onClose, onSubmit }) => {
   const [formData, setFormData] = useState<MaintenanceFormData>({
-    requestDetails: '',
-    category: '',
-    location: '',
-    preferredTime: '',
-    contactInfo: '',
-    expectedCost: '',
-    attachment: undefined
+    type: 'maintenance',
+    title: '',
+    description: ''
   });
 
   const [errors, setErrors] = useState<Partial<MaintenanceFormData>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
-    
+
     // Clear error when user starts typing
     if (errors[name as keyof MaintenanceFormData]) {
       setErrors(prev => ({
@@ -46,40 +40,26 @@ const SubmitMaintenanceForm: React.FC<SubmitMaintenanceFormProps> = ({ onClose, 
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    setFormData(prev => ({
-      ...prev,
-      attachment: file
-    }));
-  };
-
   const validateForm = (): boolean => {
     const newErrors: Partial<MaintenanceFormData> = {};
 
-    if (!formData.requestDetails.trim()) {
-      newErrors.requestDetails = 'Request details are required';
-    } else if (formData.requestDetails.trim().length < 10) {
-      newErrors.requestDetails = 'Request details must be at least 10 characters';
+    if (!formData.type || !formData.type.trim()) {
+      newErrors.type = 'Type is required';
     }
 
-    if (!formData.category.trim()) {
-      newErrors.category = 'Category is required';
+    if (!formData.title.trim()) {
+      newErrors.title = 'Title is required';
+    } else if (formData.title.trim().length < 5) {
+      newErrors.title = 'Title must be at least 5 characters';
     }
 
-    if (!formData.location.trim()) {
-      newErrors.location = 'Location is required';
+    if (!formData.description.trim()) {
+      newErrors.description = 'Description is required';
+    } else if (formData.description.trim().length < 10) {
+      newErrors.description = 'Description must be at least 10 characters';
     }
 
-    if (!formData.preferredTime.trim()) {
-      newErrors.preferredTime = 'Preferred time is required';
-    }
-
-    if (!formData.contactInfo.trim()) {
-      newErrors.contactInfo = 'Contact information is required';
-    } else if (!/^\+?[\d\s\-\(\)]+$/.test(formData.contactInfo)) {
-      newErrors.contactInfo = 'Please enter a valid phone number';
-    }
+    // only title and description are required for API payload
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -87,32 +67,44 @@ const SubmitMaintenanceForm: React.FC<SubmitMaintenanceFormProps> = ({ onClose, 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
 
     setIsSubmitting(true);
-    
-    // Simulate API call
-    setTimeout(() => {
-      console.log('Submitting maintenance request:', formData);
-      onSubmit(formData);
+
+    try {
+      // Try to get tenant data from local storage first
+      let userData: any = authService.getUserData();
+
+      if (!userData) {
+        // Attempt to refresh from API
+        const refreshed = await authService.getCurrentUser();
+        userData = refreshed?.userData || null;
+      }
+
+      const tenant = userData as any;
+      const roomId = tenant?.room;
+
+      if (!roomId) {
+        throw new Error('No room assigned to your account. Please contact administration.');
+      }
+
+  const payload = { room: roomId, type: formData.type || 'maintenance', title: formData.title.trim(), description: formData.description.trim() };
+
+      await onSubmit(payload);
       setIsSubmitting(false);
       onClose();
-    }, 1000);
+    } catch (err: any) {
+      setIsSubmitting(false);
+      setErrors(prev => ({ ...prev, description: prev.description }));
+      alert(err?.message || 'Failed to submit maintenance request');
+    }
   };
 
   const handleClear = () => {
-    setFormData({
-      requestDetails: '',
-      category: '',
-      location: '',
-      preferredTime: '',
-      contactInfo: '',
-      expectedCost: '',
-      attachment: undefined
-    });
+    setFormData({ type: 'maintenance', title: '', description: '' });
     setErrors({});
   };
 
@@ -138,146 +130,58 @@ const SubmitMaintenanceForm: React.FC<SubmitMaintenanceFormProps> = ({ onClose, 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Request Details */}
+            {/* Type selector */}
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Request Details *
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Type *</label>
+              <select
+                name="type"
+                value={formData.type}
+                onChange={handleInputChange}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                  errors.type ? 'border-red-500' : 'border-gray-300'
+                }`}
+              >
+                <option value="maintenance">maintenance</option>
+                <option value="complaint">complaint</option>
+                <option value="other">other</option>
+              </select>
+              {errors.type && <p className="text-red-500 text-xs mt-1">{errors.type}</p>}
+            </div>
+
+            {/* Title */}
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Title *</label>
+              <input
+                name="title"
+                value={formData.title}
+                onChange={handleInputChange}
+                placeholder="Short summary (e.g., Broken Air Conditioning)"
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                  errors.title ? 'border-red-500' : 'border-gray-300'
+                }`}
+              />
+              {errors.title && <p className="text-red-500 text-xs mt-1">{errors.title}</p>}
+            </div>
+
+            {/* Description */}
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Description *</label>
               <textarea
-                name="requestDetails"
-                value={formData.requestDetails}
+                name="description"
+                value={formData.description}
                 onChange={handleInputChange}
-                placeholder="Brief summary of the issue (e.g., Leaky Faucet)"
+                placeholder="Describe the issue in detail"
                 className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  errors.requestDetails ? 'border-red-500' : 'border-gray-300'
+                  errors.description ? 'border-red-500' : 'border-gray-300'
                 }`}
-                rows={3}
+                rows={4}
               />
-              {errors.requestDetails && (
-                <p className="text-red-500 text-xs mt-1">{errors.requestDetails}</p>
+              {errors.description && (
+                <p className="text-red-500 text-xs mt-1">{errors.description}</p>
               )}
             </div>
 
-            {/* Category */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Category *
-              </label>
-              <input
-                type="text"
-                name="category"
-                value={formData.category}
-                onChange={handleInputChange}
-                placeholder="(e.g., plumbing)"
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  errors.category ? 'border-red-500' : 'border-gray-300'
-                }`}
-              />
-              {errors.category && (
-                <p className="text-red-500 text-xs mt-1">{errors.category}</p>
-              )}
-            </div>
-
-            {/* Location */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Location *
-              </label>
-              <input
-                type="text"
-                name="location"
-                value={formData.location}
-                onChange={handleInputChange}
-                placeholder="where is the issue? (e.g., showers)"
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  errors.location ? 'border-red-500' : 'border-gray-300'
-                }`}
-              />
-              {errors.location && (
-                <p className="text-red-500 text-xs mt-1">{errors.location}</p>
-              )}
-            </div>
-
-            {/* Preferred Time */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Preferred Time *
-              </label>
-              <input
-                type="text"
-                name="preferredTime"
-                value={formData.preferredTime}
-                onChange={handleInputChange}
-                placeholder="When can we access your room?"
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  errors.preferredTime ? 'border-red-500' : 'border-gray-300'
-                }`}
-              />
-              {errors.preferredTime && (
-                <p className="text-red-500 text-xs mt-1">{errors.preferredTime}</p>
-              )}
-            </div>
-
-            {/* Contact Information */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Contact Information *
-              </label>
-              <input
-                type="tel"
-                name="contactInfo"
-                value={formData.contactInfo}
-                onChange={handleInputChange}
-                placeholder="+63 (9xxx-xxx-xxxx)"
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  errors.contactInfo ? 'border-red-500' : 'border-gray-300'
-                }`}
-              />
-              {errors.contactInfo && (
-                <p className="text-red-500 text-xs mt-1">{errors.contactInfo}</p>
-              )}
-            </div>
-
-            {/* Expected Cost Range */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Expected Cost Range (Optional)
-              </label>
-              <input
-                type="text"
-                name="expectedCost"
-                value={formData.expectedCost}
-                onChange={handleInputChange}
-                placeholder="e.g., P580, etc."
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-
-            {/* Attachment */}
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Attachment (Optional)
-              </label>
-              <div className="flex items-center gap-3">
-                <input
-                  type="file"
-                  onChange={handleFileChange}
-                  accept="image/*,.pdf,.doc,.docx"
-                  className="hidden"
-                  id="attachment"
-                />
-                <label
-                  htmlFor="attachment"
-                  className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
-                >
-                  <Paperclip className="w-4 h-4 text-gray-500" />
-                  <span className="text-sm text-gray-700">Upload</span>
-                </label>
-                {formData.attachment && (
-                  <span className="text-sm text-gray-600">{formData.attachment.name}</span>
-                )}
-              </div>
-            </div>
+            {/* Only Title and Description are required by the API body; other fields removed */}
           </div>
 
           {/* Action Buttons */}

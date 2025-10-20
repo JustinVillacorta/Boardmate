@@ -42,16 +42,7 @@ const ReportCard: React.FC<{ report: ReportItem; onChangeStatus?: (id: string, s
             </div>
             <div className="mt-4 sm:mt-0 sm:w-40 flex-shrink-0 text-left sm:text-right sm:ml-4">
               <div className="text-sm text-gray-500">Status</div>
-              <select
-                value={report.status}
-                onChange={e => onChangeStatus && onChangeStatus(report.id, e.target.value as any)}
-                className={`mt-2 w-full sm:w-auto rounded-md px-3 py-2 ${statusColor(report.status)} border`}
-              >
-                <option value="Rejected">Rejected</option>
-                <option value="Pending">Pending</option>
-                <option value="In Progress">In Progress</option>
-                <option value="Resolved">Resolved</option>
-              </select>
+              <div className={`mt-2 inline-flex items-center rounded-md px-3 py-2 ${statusColor(report.status)} border`}>{report.status}</div>
             </div>
           </div>
         </div>
