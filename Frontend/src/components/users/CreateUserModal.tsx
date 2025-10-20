@@ -172,15 +172,11 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onCreate, is
       } else if (!/^[\+]?[0-9]{10,15}$/.test(formData.contactPhone.replace(/\s/g, ''))) {
         newErrors.contactPhone = 'Please enter a valid emergency contact phone number (10-15 digits)';
       }
-    }
 
-    // Emergency contact validation
-    if (!formData.contactName.trim()) {
-      newErrors.contactName = 'Emergency contact name is required';
-    }
-    
-    if (!formData.contactPhone.trim()) {
-      newErrors.contactPhone = 'Emergency contact phone is required';
+      // Emergency contact name (tenant only)
+      if (!formData.contactName.trim()) {
+        newErrors.contactName = 'Emergency contact name is required';
+      }
     }
 
     setErrors(newErrors);
@@ -195,6 +191,11 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onCreate, is
     setIsSubmitting(true);
     
     try {
+      // If the modal was opened in staff-only mode, enforce tenant creation
+      if (isStaffUser && formData.role === 'Staff') {
+        formData.role = 'Tenant';
+      }
+
       if (formData.role === 'Staff') {
         // Create staff user
         const staffData: RegisterStaffData = {
@@ -203,7 +204,6 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onCreate, is
           password: formData.password,
           role: 'staff'
         };
-        
         await registerService.registerStaff(staffData);
       } else {
         // Create tenant user
