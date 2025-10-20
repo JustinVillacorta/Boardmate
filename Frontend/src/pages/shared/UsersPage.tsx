@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from '../../components/layout/Sidebar';
 import TopNavbar from '../../components/layout/TopNavbar';
 import UserCard from '../../components/users/UserCard';
 import CreateUserModal from '../../components/users/CreateUserModal';
 import EditUserModal from '../../components/users/EditUserModal';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
-import { User, UserPlus } from 'lucide-react';
+import { userManagementService, StaffAndTenantData } from '../../services/userManagementService';
+import { User, UserPlus, Loader2 } from 'lucide-react';
 
 interface UserData {
   id: string;
@@ -15,6 +16,8 @@ interface UserData {
   status: 'Active' | 'Inactive';
   startDate: string;
   roomNumber?: string;
+  roomType?: string;
+  monthlyRent?: number;
   avatar?: string;
 }
 
@@ -28,36 +31,56 @@ const UsersPage: React.FC<UsersPageProps> = ({ currentPage, onNavigate, userRole
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserData | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [users, setUsers] = useState<UserData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  // Mock users data - replace with actual API call
-  const [users, setUsers] = useState<UserData[]>([
-    {
-      id: '1',
-      name: '222',
-      email: 'staff@boardinghouse.com',
-      role: 'Staff',
-      status: 'Inactive',
-      startDate: 'Sep 24, 2025',
-      avatar: '2'
-    },
-    {
-      id: '2',
-      name: 'tenant1',
-      email: 'tenant1@boardinghouse.com',
-      role: 'Tenant',
-      status: 'Inactive',
-      startDate: 'Sep 24, 2025',
-      roomNumber: '111'
-    },
-    {
-      id: '3',
-      name: 'Ampogiko',
-      email: 'cuagdannitsuj@gmail.com',
-      role: 'Staff',
-      status: 'Active',
-      startDate: 'Oct 11, 2025'
+  // Fetch users data on component mount
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const fetchUsers = async () => {
+    try {
+      setIsLoading(true);
+      setError('');
+      const response = await userManagementService.getStaffAndTenants({
+        limit: 50, // Get more users
+        userType: 'all'
+      });
+      
+      // Transform backend data to frontend format
+      const transformedUsers: UserData[] = response.data.records.map((record: StaffAndTenantData) => ({
+        id: record._id,
+        name: record.type === 'staff' 
+          ? record.name || 'Unknown Staff'
+          : record.fullName || `${record.firstName || ''} ${record.lastName || ''}`.trim() || 'Unknown Tenant',
+        email: record.email,
+        role: record.type === 'staff' 
+          ? (record.role === 'admin' ? 'Admin' : 'Staff')
+          : 'Tenant',
+        status: record.isArchived ? 'Inactive' : 'Active',
+        startDate: new Date(record.createdAt).toLocaleDateString('en-US', { 
+          month: 'short', 
+          day: 'numeric', 
+          year: 'numeric' 
+        }),
+        roomNumber: record.room?.roomNumber,
+        roomType: record.room?.roomType,
+        monthlyRent: record.room?.monthlyRent,
+        avatar: record.type === 'staff' 
+          ? record.name?.charAt(0) || 'S'
+          : record.firstName?.charAt(0) || record.lastName?.charAt(0) || 'T'
+      }));
+      
+      setUsers(transformedUsers);
+    } catch (error: any) {
+      setError(error.message || 'Failed to fetch users');
+      console.error('Error fetching users:', error);
+    } finally {
+      setIsLoading(false);
     }
-  ]);
+  };
 
   const filteredUsers = users.filter(user =>
     user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -65,19 +88,10 @@ const UsersPage: React.FC<UsersPageProps> = ({ currentPage, onNavigate, userRole
     user.role.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleCreateUser = (userData: any) => {
-    // Handle user creation - replace with actual API call
-    const newUser: UserData = {
-      id: Date.now().toString(),
-      name: `${userData.firstName} ${userData.lastName}`,
-      email: userData.email,
-      role: userData.role,
-      status: userData.isActive ? 'Active' : 'Inactive',
-      startDate: new Date().toLocaleDateString(),
-      roomNumber: userData.roomNumber,
-    };
-    
-    setUsers(prev => [...prev, newUser]);
+  const handleCreateUser = async (userData: any) => {
+    // User creation is handled by the CreateUserModal via registerService
+    // Just refresh the users list after successful creation
+    await fetchUsers();
     setIsCreateModalOpen(false);
   };
 
@@ -201,7 +215,30 @@ const UsersPage: React.FC<UsersPageProps> = ({ currentPage, onNavigate, userRole
 
             {/* Users Grid */}
             <div className="p-4 lg:p-6">
-              {filteredUsers.length > 0 ? (
+              {isLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="flex items-center gap-3 text-gray-600">
+                    <Loader2 className="w-6 h-6 animate-spin" />
+                    <span>Loading users...</span>
+                  </div>
+                </div>
+              ) : error ? (
+                <div className="text-center py-12">
+                  <div className="text-red-500 mb-4">
+                    <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">Error Loading Users</h3>
+                  <p className="text-gray-500 mb-6">{error}</p>
+                  <button
+                    onClick={fetchUsers}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Try Again
+                  </button>
+                </div>
+              ) : filteredUsers.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4 lg:gap-6">
                   {filteredUsers.map((user) => (
                     <UserCard

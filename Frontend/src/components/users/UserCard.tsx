@@ -9,6 +9,8 @@ interface UserData {
   status: 'Active' | 'Inactive';
   startDate: string;
   roomNumber?: string;
+  roomType?: string;
+  monthlyRent?: number;
   avatar?: string;
 }
 
@@ -92,11 +94,30 @@ const UserCard: React.FC<UserCardProps> = ({ user, onEdit, onArchive }) => {
           </span>
         </div>
 
-        {/* Room Number (for tenants) */}
-        {user.roomNumber && (
-          <div className="flex items-center justify-center gap-1 text-sm text-blue-600 bg-blue-50 px-3 py-1 rounded-lg">
-            <MapPin className="w-4 h-4" />
-            <span className="font-medium">Room {user.roomNumber}</span>
+        {/* Room Information (for tenants) */}
+        {user.role === 'Tenant' && (
+          <div className="space-y-2">
+            {user.roomNumber ? (
+              <>
+                <div className="flex items-center justify-center gap-1 text-sm text-blue-600 bg-blue-50 px-3 py-1 rounded-lg">
+                  <MapPin className="w-4 h-4" />
+                  <span className="font-medium">Room {user.roomNumber}</span>
+                </div>
+                {user.roomType && (
+                  <div className="text-center">
+                    <span className="text-xs text-gray-500 capitalize">
+                      {user.roomType} Room
+                      {user.monthlyRent && ` • ₱${user.monthlyRent.toLocaleString()}/month`}
+                    </span>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="flex items-center justify-center gap-1 text-sm text-gray-500 bg-gray-50 px-3 py-1 rounded-lg">
+                <MapPin className="w-4 h-4" />
+                <span className="font-medium">No Room Assigned</span>
+              </div>
+            )}
           </div>
         )}
 

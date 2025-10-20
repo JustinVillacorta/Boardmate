@@ -90,7 +90,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage = 'dashboard', onNavigate
         { name: "Dashboard", icon: LayoutDashboard, page: "dashboard", active: currentPage === 'dashboard' },
         { name: "Users", icon: User, page: "users", active: currentPage === 'users' },
         { name: "Rooms", icon: DoorOpen, page: "rooms", active: currentPage === 'rooms' },
-  { name: "Payment", icon: PhilippinePeso, page: "payment", active: currentPage === 'payment' || currentPage === 'payment-history' },
+        { name: "Payment", icon: PhilippinePeso, page: "payment", active: currentPage === 'payment' || currentPage === 'payment-history' },
         { name: "Reports", icon: Wrench, page: "reports", active: currentPage === 'reports' },
         { name: "Notifications", icon: BellDot, page: "notifications", active: currentPage === 'notifications' },
         { name: "Logout", icon: LogOut, active: false, action: () => setShowLogoutConfirm(true) },

@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { X, User, Mail, Shield, Calendar, MapPin, Phone, Home, CreditCard, Eye, EyeOff } from 'lucide-react';
+import { registerService } from '../../services/registerService';
+import { RegisterStaffData, RegisterTenantData } from '../../types';
 
 interface UserData {
   // Personal Information
@@ -41,6 +43,19 @@ interface CreateUserModalProps {
   onCreate: (userData: Omit<UserData, 'id'>) => void;
   isStaffUser?: boolean;
 }
+
+// Helper function to map frontend ID type display names to backend values
+const mapIdTypeToBackend = (frontendIdType: string): 'passport' | 'drivers_license' | 'national_id' | 'other' => {
+  const mapping: Record<string, 'passport' | 'drivers_license' | 'national_id' | 'other'> = {
+    'National ID': 'national_id',
+    'Driver\'s License': 'drivers_license',
+    'Passport': 'passport',
+    'SSS ID': 'other',
+    'PhilHealth ID': 'other',
+    'TIN ID': 'other'
+  };
+  return mapping[frontendIdType] || 'other';
+};
 
 const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onCreate, isStaffUser = false }) => {
   const [formData, setFormData] = useState<UserData>({
@@ -107,8 +122,10 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onCreate, is
 
     if (!formData.password.trim()) {
       newErrors.password = 'Password is required';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
+    } else if (formData.password.length < 8) {
+      newErrors.password = 'Password must be at least 8 characters';
+    } else if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) {
+      newErrors.password = 'Password must contain at least one lowercase letter, one uppercase letter, and one number';
     }
 
     if (formData.password !== formData.confirmPassword) {
@@ -117,11 +134,41 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onCreate, is
 
     // Tenant specific validation
     if (formData.role === 'Tenant') {
-      if (!formData.roomNumber?.trim()) {
-        newErrors.roomNumber = 'Room number is required for tenants';
+      // Date of birth validation (must be 18+)
+      if (!formData.dateOfBirth.trim()) {
+        newErrors.dateOfBirth = 'Date of birth is required';
+      } else {
+        const today = new Date();
+        const dob = new Date(formData.dateOfBirth);
+        const age = today.getFullYear() - dob.getFullYear();
+        const monthDiff = today.getMonth() - dob.getMonth();
+        
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+          if (age < 18) {
+            newErrors.dateOfBirth = 'Tenant must be at least 18 years old';
+          }
+        } else if (age < 18) {
+          newErrors.dateOfBirth = 'Tenant must be at least 18 years old';
+        }
       }
-      if (!formData.monthlyRent?.trim()) {
-        newErrors.monthlyRent = 'Monthly rent is required for tenants';
+
+      // Phone number validation
+      if (!formData.phoneNumber.trim()) {
+        newErrors.phoneNumber = 'Phone number is required';
+      } else if (!/^[\+]?[0-9]{10,15}$/.test(formData.phoneNumber.replace(/\s/g, ''))) {
+        newErrors.phoneNumber = 'Please enter a valid phone number (10-15 digits)';
+      }
+
+      // ID number validation
+      if (!formData.idNumber?.trim()) {
+        newErrors.idNumber = 'ID number is required';
+      }
+
+      // Emergency contact validation
+      if (!formData.contactPhone.trim()) {
+        newErrors.contactPhone = 'Emergency contact phone is required';
+      } else if (!/^[\+]?[0-9]{10,15}$/.test(formData.contactPhone.replace(/\s/g, ''))) {
+        newErrors.contactPhone = 'Please enter a valid emergency contact phone number (10-15 digits)';
       }
     }
 
@@ -146,9 +193,53 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onCreate, is
     setIsSubmitting(true);
     
     try {
+      if (formData.role === 'Staff') {
+        // Create staff user
+        const staffData: RegisterStaffData = {
+          name: `${formData.firstName} ${formData.lastName}`,
+          email: formData.email,
+          password: formData.password,
+          role: 'staff'
+        };
+        
+        await registerService.registerStaff(staffData);
+      } else {
+        // Create tenant user
+        const tenantData: RegisterTenantData = {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          password: formData.password,
+          phoneNumber: formData.phoneNumber,
+          dateOfBirth: formData.dateOfBirth,
+          occupation: formData.occupation || undefined,
+          address: {
+            street: formData.street || undefined,
+            city: formData.city || undefined,
+            province: formData.province || undefined,
+            zipCode: formData.zipCode || undefined
+          },
+          idType: mapIdTypeToBackend(formData.idType),
+          idNumber: formData.idNumber || '',
+          emergencyContact: {
+            name: formData.contactName,
+            relationship: formData.relationship,
+            phoneNumber: formData.contactPhone
+          }
+        };
+        
+        await registerService.registerTenant(tenantData);
+      }
+      
+      // Call the original onCreate callback for UI updates
       await onCreate(formData);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating user:', error);
+      // Set a general error message
+      setErrors({ 
+        ...errors, 
+        general: error.message || 'Failed to create user account' 
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -230,6 +321,13 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onCreate, is
         {/* Form - Scrollable Content */}
         <div className="flex-1 overflow-y-auto">
           <form onSubmit={handleSubmit} className="p-6 space-y-6">
+            
+            {/* General Error Message */}
+            {errors.general && (
+              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg">
+                {errors.general}
+              </div>
+            )}
             
             {/* User Type Selection */}
             {!isStaffUser && (
@@ -497,9 +595,14 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onCreate, is
                         type="date"
                         value={formData.dateOfBirth}
                         onChange={(e) => handleChange('dateOfBirth', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                          errors.dateOfBirth ? 'border-red-500' : 'border-gray-300'
+                        }`}
                         disabled={isSubmitting}
                       />
+                      {errors.dateOfBirth && (
+                        <p className="text-red-500 text-xs mt-1">{errors.dateOfBirth}</p>
+                      )}
                     </div>
 
                     {/* Phone Number */}

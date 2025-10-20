@@ -76,6 +76,48 @@ export interface AuthResponse {
   };
 }
 
+// Registration interfaces
+export interface RegisterStaffData {
+  name: string;
+  email: string;
+  password: string;
+  role: 'admin' | 'staff';
+}
+
+export interface RegisterTenantData {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  phoneNumber: string;
+  dateOfBirth: string;
+  occupation?: string;
+  address?: {
+    street?: string;
+    city?: string;
+    province?: string;
+    zipCode?: string;
+  };
+  idType: 'passport' | 'drivers_license' | 'national_id' | 'other';
+  idNumber: string;
+  emergencyContact: {
+    name: string;
+    relationship: string;
+    phoneNumber: string;
+  };
+}
+
+export interface RegisterResponse {
+  success: boolean;
+  message: string;
+  data: {
+    user?: User;
+    tenant?: Tenant;
+    token: string;
+    userType: UserType;
+  };
+}
+
 export interface ApiError {
   success: false;
   message: string;
