@@ -5,21 +5,7 @@ import SummaryCard from '../../components/reports/SummaryCard';
 import { AlertCircle, CheckCircle2, Play, Clock } from 'lucide-react';
 import ReportCard from '../../components/reports/ReportCard';
 import { ReportItem } from '../../types/report';
-
-const MOCK_REPORTS: ReportItem[] = [
-  {
-    id: 'r1',
-    title: 'Leaking faucet',
-    tags: ['maintenance'],
-    description: 'The bathroom faucet is leaking and needs repair.',
-    reporter: 'John Doe',
-    createdAt: '2025-11-10',
-    updatedAt: '2025-11-10',
-    room: '101',
-    daysOpen: 7,
-    status: 'Rejected',
-  },
-];
+import { reportService } from '../../services/reportService';
 
 interface ReportsPageProps {
   currentPage?: string;
@@ -30,7 +16,57 @@ interface ReportsPageProps {
 const ReportsPage: React.FC<ReportsPageProps> = ({ currentPage, onNavigate, userRole = 'admin' }) => {
   const [query, setQuery] = React.useState('');
   const [activeTab, setActiveTab] = React.useState<'All' | 'Resolved' | 'In Progress' | 'Pending' | 'Rejected'>('All');
-  const [reports, setReports] = React.useState<ReportItem[]>(MOCK_REPORTS);
+  const [reports, setReports] = React.useState<ReportItem[]>([]);
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+
+  const fetchReports = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const params: any = { page: 1, limit: 50 };
+      if (query) params.search = query;
+      if (activeTab && activeTab !== 'All') params.status = activeTab.toLowerCase();
+
+      const res = await reportService.getReports(params);
+      // Map backend shape to ReportItem if necessary
+      // Map backend status values (e.g., 'in-progress') to UI labels ('In Progress')
+      const mapStatusToLabel = (s: string) => {
+        if (!s) return 'Pending';
+        switch (s.toLowerCase()) {
+          case 'in-progress':
+          case 'in progress':
+            return 'In Progress';
+          case 'resolved':
+            return 'Resolved';
+          case 'rejected':
+            return 'Rejected';
+          case 'pending':
+          default:
+            return 'Pending';
+        }
+      };
+
+      const mapped: ReportItem[] = (res.data.reports || []).map((r: any) => ({
+        id: r._id,
+        title: r.title,
+        tags: r.type ? [r.type] : [],
+        description: r.description,
+        reporter: r.tenant ? `${r.tenant.firstName || ''} ${r.tenant.lastName || ''}`.trim() : undefined,
+        createdAt: r.submittedAt ? new Date(r.submittedAt).toLocaleDateString() : r.createdAt,
+        updatedAt: r.updatedAt ? new Date(r.updatedAt).toLocaleDateString() : undefined,
+        room: r.room ? (r.room.roomNumber || r.room) : undefined,
+        daysOpen: r.submittedAt ? Math.floor((Date.now() - new Date(r.submittedAt).getTime()) / (1000 * 60 * 60 * 24)) : undefined,
+        status: mapStatusToLabel(r.status || 'pending') as any,
+      }));
+
+      setReports(mapped);
+    } catch (err: any) {
+      setError(err?.message || 'Failed to load reports');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filtered = reports.filter(r => {
     if (activeTab !== 'All' && activeTab !== r.status && !(activeTab === 'In Progress' && r.status === 'In Progress')) return false;
@@ -39,13 +75,43 @@ const ReportsPage: React.FC<ReportsPageProps> = ({ currentPage, onNavigate, user
     return (r.title + ' ' + (r.description || '') + ' ' + (r.reporter || '')).toLowerCase().includes(q);
   });
 
-  const handleStatusChange = (id: string, status: ReportItem['status']) => {
-    setReports(prev => prev.map(r => r.id === id ? { ...r, status } : r));
+  const handleStatusChange = async (id: string, statusLabel: ReportItem['status']) => {
+    // Map UI label back to backend status value
+    const mapLabelToStatus = (label: string) => {
+      switch (label) {
+        case 'In Progress':
+          return 'in-progress';
+        case 'Resolved':
+          return 'resolved';
+        case 'Rejected':
+          return 'rejected';
+        case 'Pending':
+        default:
+          return 'pending';
+      }
+    };
+
+    const backendStatus = mapLabelToStatus(statusLabel as string);
+
+    // Optimistic update (keep UI label)
+    setReports(prev => prev.map(r => r.id === id ? { ...r, status: statusLabel } : r));
+    try {
+      await reportService.updateReport(id, { status: backendStatus });
+    } catch (err) {
+      // Revert on error and show basic alert
+      await fetchReports();
+      alert('Failed to update report status');
+    }
   };
 
   // Role-based functionality
   const canCreateReports = userRole === 'admin'; // Only admin can create reports
   const canModifyReports = userRole === 'admin' || userRole === 'staff'; // Admin and staff can modify reports
+
+  React.useEffect(() => {
+    fetchReports();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query, activeTab]);
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -122,17 +188,22 @@ const ReportsPage: React.FC<ReportsPageProps> = ({ currentPage, onNavigate, user
                 <div className="text-sm text-gray-500">Showing {filtered.length} reports</div>
               </div>
 
-              <div className="space-y-4">
-                {filtered.length === 0 && <div className="py-8 text-center text-gray-500">No reports found.</div>}
+                <div className="space-y-4">
+                  {loading && <div className="py-8 text-center text-gray-500">Loading reports...</div>}
+                  {error && <div className="py-4 text-center text-red-500">{error}</div>}
 
-                {filtered.map(r => (
-                  <ReportCard 
-                    key={r.id} 
-                    report={r} 
-                    onChangeStatus={canModifyReports ? handleStatusChange : undefined} 
-                  />
-                ))}
-              </div>
+                  {!loading && !error && filtered.length === 0 && (
+                    <div className="py-8 text-center text-gray-500">No reports found.</div>
+                  )}
+
+                  {!loading && !error && filtered.map(r => (
+                    <ReportCard 
+                      key={r.id}
+                      report={r}
+                      onChangeStatus={canModifyReports ? handleStatusChange : undefined}
+                    />
+                  ))}
+                </div>
             </div>
           </div>
         </main>
