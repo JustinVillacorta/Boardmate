@@ -39,12 +39,12 @@ const Charts: React.FC<ChartsProps> = ({ data }) => {
     { name: "Maintenance", value: data.occupancy.maintenanceRooms, color: "#ff7575ff" }
   ].filter(item => item.value > 0) : [];
 
-  const SAMPLE_PAYMENTS = [
-    { month: "Jan", collected: 13500, overdue: 500, amount: 14000 },
-    { month: "Feb", collected: 13200, overdue: 700, amount: 13900 },
-    { month: "Mar", collected: 13800, overdue: 600, amount: 14400 },
-    { month: "Apr", collected: 13000, overdue: 900, amount: 13900 },
-  ];
+  // Ensure donut is visible even when all values are zero
+  const totalOccupancy = (data.occupancy?.occupiedRooms || 0) + (data.occupancy?.availableRooms || 0) + (data.occupancy?.maintenanceRooms || 0);
+  const pieDataForRender = totalOccupancy > 0 ? workLogData : [{ name: "No Data", value: 1, color: "#e5e7eb" }];
+
+  const trendData = data.payments?.monthlyTrends || [];
+  const latest = trendData.length > 0 ? trendData[trendData.length - 1] : { collected: 0, overdue: 0 } as any;
 
   return (
     <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6">
@@ -56,20 +56,20 @@ const Charts: React.FC<ChartsProps> = ({ data }) => {
 
         {/* Responsive container for Pie Chart + Legend */}
         <div className="flex flex-col lg:flex-row items-center justify-center">
-          {/* Pie Chart */}
-          <div className="h-48 w-48 lg:h-64 lg:w-64 mb-4 lg:mb-0">
+          {/* Pie Chart - enlarged to fill column (fixed height for ResponsiveContainer) */}
+          <div className="w-full lg:w-1/2" style={{ height: 320 }}>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={workLogData}
+                  data={pieDataForRender}
                   cx="50%"
                   cy="50%"
-                  innerRadius={30}
-                  outerRadius={60}
+                  innerRadius={60}
+                  outerRadius={100}
                   paddingAngle={0}
                   dataKey="value"
                 >
-                  {workLogData.map((entry, index) => (
+                  {pieDataForRender.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
@@ -107,7 +107,7 @@ const Charts: React.FC<ChartsProps> = ({ data }) => {
         {/* Line Chart */}
         <div className="h-48 lg:h-64">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data.payments?.monthlyTrends || SAMPLE_PAYMENTS}>
+            <LineChart data={trendData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis 
                 dataKey="month" 
@@ -142,11 +142,11 @@ const Charts: React.FC<ChartsProps> = ({ data }) => {
         {/* Summary */}
         <div className="flex flex-col sm:flex-row justify-center gap-3 lg:gap-6 mt-4 lg:mt-6">
           <div className="px-4 lg:px-6 py-2 lg:py-3 bg-blue-50 rounded-lg text-center">
-            <p className="text-blue-600 font-semibold text-sm lg:text-base">₱ 12,505</p>
+            <p className="text-blue-600 font-semibold text-sm lg:text-base">₱ {latest.collected?.toLocaleString?.() || 0}</p>
             <p className="text-xs lg:text-sm text-gray-600">Collected</p>
           </div>
           <div className="px-4 lg:px-6 py-2 lg:py-3 bg-red-50 rounded-lg text-center">
-            <p className="text-red-600 font-semibold text-sm lg:text-base">₱ 945</p>
+            <p className="text-red-600 font-semibold text-sm lg:text-base">₱ {latest.overdue?.toLocaleString?.() || 0}</p>
             <p className="text-xs lg:text-sm text-gray-600">Overdue</p>
           </div>
         </div>

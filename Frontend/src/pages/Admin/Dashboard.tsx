@@ -1,8 +1,9 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Sidebar from "../../components/layout/Sidebar";
 import TopNavbar from "../../components/layout/TopNavbar";
 import MetricCards from "../../components/dashboard/MetricCards";
 import Charts from "../../components/dashboard/Charts";
+import { dashboardService, type DashboardData } from "../../services/dashboardService";
 
 // Types for data structure
 type PaymentData = {
@@ -19,48 +20,30 @@ interface DashboardProps {
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ currentPage, onNavigate, onLogout }) => {
-  // Sample payment data
-  const SAMPLE_PAYMENTS: PaymentData[] = [
-    { month: "Jan", collected: 13500, overdue: 500, amount: 14000 },
-    { month: "Feb", collected: 13200, overdue: 700, amount: 13900 },
-    { month: "Mar", collected: 13800, overdue: 600, amount: 14400 },
-    { month: "Apr", collected: 13000, overdue: 900, amount: 13900 },
-  ];
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
 
-  // Mock data - replace with actual data fetching
-  const data = {
-    occupancy: {
-      totalRooms: 5,
-      occupiedRooms: 2,
-      availableRooms: 2,
-      maintenanceRooms: 1,
-      occupancyRate: 40
-    },
-    stats: {
-      tenants: {
-        total: 2,
-        active: 2
-      }
-    },
-    payments: {
-      thisMonth: {
-        amount: 100000800,
-        count: 4
-      },
-      byStatus: {
-        paid: {
-          count: 6
+  useEffect(() => {
+    let isMounted = true;
+    (async () => {
+      try {
+        const result = await dashboardService.fetchAdminDashboard();
+        if (isMounted) {
+          setData(result);
         }
-      },
-      monthlyTrends: SAMPLE_PAYMENTS
-    },
-    reports: {
-      total: 1,
-      byStatus: {
-        pending: 0
+      } catch (e: any) {
+        if (isMounted) {
+          setError(e?.message || "Failed to load dashboard data");
+        }
+      } finally {
+        if (isMounted) setLoading(false);
       }
-    }
-  };
+    })();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -74,11 +57,18 @@ const Dashboard: React.FC<DashboardProps> = ({ currentPage, onNavigate, onLogout
 
         {/* Dashboard Content */}
         <main className="flex-1 p-4 lg:p-6 overflow-auto space-y-4 lg:space-y-6">
+          {/* Loading / Error states */}
+          {loading && (
+            <div className="text-gray-600">Loading dashboard...</div>
+          )}
+          {error && !loading && (
+            <div className="text-red-600">{error}</div>
+          )}
           {/* Metric Cards */}
-          <MetricCards data={data} />
+          {data && <MetricCards data={data} />}
           
           {/* Charts Section */}
-          <Charts data={data} />
+          {data && <Charts data={data} />}
         </main>
       </div>
     </div>
