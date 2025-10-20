@@ -13,8 +13,8 @@ export const protect = catchAsync(async (req, res, next) => {
     token = req.headers.authorization.split(' ')[1];
   }
   // Check for token in cookies
-  else if (req.cookies.token) {
-    token = req.cookies.token;
+  else if (req.cookies && req.cookies.token) {
+    token = req.cookies && req.cookies.token;
   }
 
   // Make sure token exists
@@ -98,8 +98,8 @@ export const optionalAuth = catchAsync(async (req, res, next) => {
     token = req.headers.authorization.split(' ')[1];
   }
   // Check for token in cookies
-  else if (req.cookies.token) {
-    token = req.cookies.token;
+  else if (req.cookies && req.cookies.token) {
+    token = req.cookies && req.cookies.token;
   }
 
   // If no token, continue without user

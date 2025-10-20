@@ -6,12 +6,13 @@ export * from './room';
 
 // Authentication types based on your backend models
 export type UserRole = 'admin' | 'staff' | 'tenant';
+export type UserType = 'user' | 'tenant';
 
 export interface User {
   _id: string;
   name: string;
   email: string;
-  role: 'admin' | 'staff' | 'tenant';
+  role: 'admin' | 'staff';
   isArchived: boolean;
   createdAt: string;
   updatedAt: string;
@@ -19,11 +20,34 @@ export interface User {
 
 export interface Tenant {
   _id: string;
-  name: string;
+  firstName: string;
+  lastName: string;
+  fullName: string;
   email: string;
-  phone: string;
+  phoneNumber: string;
+  dateOfBirth: string;
+  occupation?: string;
+  address?: {
+    street?: string;
+    city?: string;
+    province?: string;
+    zipCode?: string;
+  };
+  idType: 'passport' | 'drivers_license' | 'national_id' | 'other';
+  idNumber: string;
+  emergencyContact: {
+    name: string;
+    relationship: string;
+    phoneNumber: string;
+  };
   room?: string;
-  isActive: boolean;
+  leaseStartDate?: string;
+  leaseEndDate?: string;
+  monthlyRent?: number;
+  securityDeposit?: number;
+  tenantStatus: 'active' | 'inactive' | 'pending';
+  isArchived: boolean;
+  isVerified: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -43,9 +67,13 @@ export interface RegisterFormData {
 
 export interface AuthResponse {
   success: boolean;
-  token: string;
-  user: User | Tenant;
-  message?: string;
+  message: string;
+  data: {
+    user?: User;
+    tenant?: Tenant;
+    token: string;
+    userType: UserType;
+  };
 }
 
 export interface ApiError {

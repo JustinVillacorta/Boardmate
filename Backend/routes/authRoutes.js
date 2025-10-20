@@ -44,7 +44,7 @@ router.use('/tenant', tenantRoutes);
 
 // ==================== SHARED PROTECTED ROUTES ====================
 // Routes that work for both users and tenants
-router.post('/logout', protect, logout);
+router.post('/logout', logout);
 router.get('/me', protect, getMe);
 
 // ==================== ADMIN/STAFF MANAGEMENT ROUTES ====================

@@ -17,9 +17,10 @@ type PaymentData = {
 interface DashboardProps {
   currentPage?: string;
   onNavigate?: (page: string) => void;
+  onLogout?: () => void;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ currentPage, onNavigate }) => {
+const Dashboard: React.FC<DashboardProps> = ({ currentPage, onNavigate, onLogout }) => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   // Sample payment data
@@ -95,7 +96,7 @@ const Dashboard: React.FC<DashboardProps> = ({ currentPage, onNavigate }) => {
   return (
     <div className="flex min-h-screen bg-gray-50">
       {/* Sidebar */}
-      <Sidebar currentPage={currentPage} onNavigate={onNavigate} />
+      <Sidebar currentPage={currentPage} onNavigate={onNavigate} onLogout={onLogout} />
       
       {/* Main Content - Responsive */}
       <div className="flex-1 flex flex-col min-w-0 lg:pl-64">

@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import { authService } from '../../services/authService';
+import { UserRole } from '../../types';
 
 interface LoginFormProps {
-  onLogin?: (userRole: 'admin' | 'staff' | 'tenant') => void;
+  onLogin?: (userRole: UserRole) => void;
 }
 
 const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
@@ -11,6 +13,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -18,39 +21,34 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
       ...prev,
       [name]: value
     }));
+    // Clear error when user starts typing
+    if (error) setError('');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError('');
     
-    // Simulate API call with role detection
-    setTimeout(() => {
-      setIsLoading(false);
-      console.log('Login attempted with:', formData);
+    try {
+      const { userData, role, token } = await authService.login(formData);
       
-      // Static role detection
-      let userRole: 'admin' | 'staff' | 'tenant' = 'admin';
-      if (formData.email === 'staff@boardinghouse.com' && formData.password === 'staff123') {
-        userRole = 'staff';
-        localStorage.setItem('userRole', 'staff');
-      } else if (formData.email === 'admin@boardinghouse.com' && formData.password === 'admin123') {
-        userRole = 'admin';
-        localStorage.setItem('userRole', 'admin');
-      } else if (formData.email === 'tenant@boardinghouse.com' && formData.password === 'tenant123') {
-        userRole = 'tenant';
-        localStorage.setItem('userRole', 'tenant');
-      } else {
-        // Default to admin for any other credentials
-        userRole = 'admin';
-        localStorage.setItem('userRole', 'admin');
-      }
+      // Store authentication state
+      localStorage.setItem('isAuthenticated', 'true');
+      localStorage.setItem('userRole', role);
       
-      // Call onLogin if provided
+      console.log('Login successful:', { userData, role });
+      
+      // Call onLogin callback if provided
       if (onLogin) {
-        onLogin(userRole);
+        onLogin(role);
       }
-    }, 2000);
+    } catch (error: any) {
+      console.error('Login error:', error);
+      setError(error.message || 'Login failed. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const togglePasswordVisibility = () => {
@@ -59,6 +57,13 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Error Message */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg">
+          {error}
+        </div>
+      )}
+
       {/* Email Field */}
       <div>
         <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">

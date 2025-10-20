@@ -100,6 +100,7 @@ export const login = catchAsync(async (req, res, next) => {
     return next(new AppError('Invalid credentials', 401));
   }
 
+  console.log(`✅ Login successful for user: ${user.email} (${user.role})`);
   sendTokenResponse(user, 200, res, 'user');
 });
 
@@ -113,6 +114,9 @@ export const logout = catchAsync(async (req, res, next) => {
   });
 
   const userTypeText = req.userType === 'tenant' ? 'Tenant' : 'User';
+  const userEmail = req.user?.email || req.user?.email || 'Unknown user';
+  
+  console.log(`✅ Logout successful for ${userTypeText}: ${userEmail}`);
 
   res.status(200).json({
     success: true,
@@ -489,6 +493,7 @@ export const universalLogin = catchAsync(async (req, res, next) => {
     return next(new AppError('Invalid credentials', 401));
   }
 
+  console.log(`✅ Universal login successful for ${userType}: ${user.email}${userType === 'user' ? ` (${user.role})` : ''}`);
   sendTokenResponse(user, 200, res, userType);
 });
 

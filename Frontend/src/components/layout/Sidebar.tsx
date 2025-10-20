@@ -10,11 +10,13 @@ import {
   Menu,
   X
 } from "lucide-react";
+import { authService } from '../../services/authService';
 
 interface SidebarProps {
   currentPage?: string;
   onNavigate?: (page: string) => void;
   userRole?: 'admin' | 'staff' | 'tenant';
+  onLogout?: () => void;
 }
 
 interface NavigationItem {
@@ -25,7 +27,7 @@ interface NavigationItem {
   action?: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ currentPage = 'dashboard', onNavigate, userRole }) => {
+const Sidebar: React.FC<SidebarProps> = ({ currentPage = 'dashboard', onNavigate, userRole, onLogout }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   
@@ -51,20 +53,23 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage = 'dashboard', onNavigate
   const handleLogout = async () => {
     try {
       setShowLogoutConfirm(false);
-      // Clear any auth tokens / flags and reload to show login screen
-      try {
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('userRole');
-      } catch (e) {
-        // ignore
+      // Use the authService logout function
+      await authService.logout();
+      // Call the parent logout handler if provided
+      if (onLogout) {
+        onLogout();
+      } else {
+        // Fallback: reload the app
+        window.location.reload();
       }
-      try {
-        localStorage.setItem('isAuthenticated', 'false');
-      } catch (e) {}
-      // reload the app so the top-level App reads the updated auth state
-      window.location.reload();
     } catch (error) {
       console.error('Logout error:', error);
+      // Even if logout fails, clear local state
+      if (onLogout) {
+        onLogout();
+      } else {
+        window.location.reload();
+      }
     }
   };
 

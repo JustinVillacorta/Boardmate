@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import LoginPage from './pages/Admin/LoginPage.tsx';
 import Dashboard from './pages/Admin/Dashboard.tsx';
 import StaffDashboard from './pages/Staff/Dashboard.tsx';
@@ -18,33 +18,62 @@ import ReportsPage from './pages/shared/ReportsPage';
 import NotificationsPage from './pages/shared/NotificationsPage';
 import UsersPage from './pages/shared/UsersPage';
 
+// Auth service
+import { authService } from './services/authService';
+import { UserRole } from './types';
+
 const App: React.FC = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    try {
-      return localStorage.getItem('isAuthenticated') === 'true' ? true : false;
-    } catch (e) {
-      return false;
-    }
-  });
-  
-  const [userRole, setUserRole] = useState<'admin' | 'staff' | 'tenant'>(() => {
-    try {
-      return (localStorage.getItem('userRole') as 'admin' | 'staff' | 'tenant') || 'admin';
-    } catch (e) {
-      return 'admin';
-    }
-  });
-  
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userRole, setUserRole] = useState<UserRole>('admin');
+  const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState('dashboard'); // Default to dashboard page
 
-  const handleLogin = (role: 'admin' | 'staff' | 'tenant') => {
-    try { 
-      localStorage.setItem('isAuthenticated', 'true'); 
-      localStorage.setItem('userRole', role);
-    } catch (e) {}
+  // Validate token on app startup
+  useEffect(() => {
+    const validateToken = async () => {
+      try {
+        const result = await authService.getCurrentUser();
+        if (result) {
+          setIsAuthenticated(true);
+          setUserRole(result.role);
+          localStorage.setItem('isAuthenticated', 'true');
+          localStorage.setItem('userRole', result.role);
+        } else {
+          setIsAuthenticated(false);
+          setUserRole('admin');
+          localStorage.removeItem('isAuthenticated');
+          localStorage.removeItem('userRole');
+        }
+      } catch (error) {
+        console.error('Token validation failed:', error);
+        setIsAuthenticated(false);
+        setUserRole('admin');
+        localStorage.removeItem('isAuthenticated');
+        localStorage.removeItem('userRole');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    validateToken();
+  }, []);
+
+  const handleLogin = (role: UserRole) => {
     setIsAuthenticated(true);
     setUserRole(role);
     setCurrentPage('dashboard');
+  };
+
+  const handleLogout = async () => {
+    try {
+      await authService.logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      setIsAuthenticated(false);
+      setUserRole('admin');
+      setCurrentPage('dashboard');
+    }
   };
 
   const handleNavigation = (page: string) => {
@@ -63,7 +92,7 @@ const App: React.FC = () => {
         return <PaymentHistoryPage currentPage={currentPage} onNavigate={handleNavigation} userRole="admin" />;
       
       case 'dashboard':
-        return <Dashboard currentPage={currentPage} onNavigate={handleNavigation} />;
+        return <Dashboard currentPage={currentPage} onNavigate={handleNavigation} onLogout={handleLogout} />;
       case 'users':
         return <UsersPage currentPage={currentPage} onNavigate={handleNavigation} userRole="admin" />;
       case 'payment':
@@ -71,7 +100,7 @@ const App: React.FC = () => {
         case 'rooms':
           return <RoomsPage currentPage={currentPage} onNavigate={handleNavigation} userRole="admin" />;
       default:
-        return <Dashboard currentPage={currentPage} onNavigate={handleNavigation} />;
+        return <Dashboard currentPage={currentPage} onNavigate={handleNavigation} onLogout={handleLogout} />;
     }
   };
 
@@ -87,7 +116,7 @@ const App: React.FC = () => {
         return <PaymentHistoryPage currentPage={currentPage} onNavigate={handleNavigation} userRole="staff" />;
       
       case 'dashboard':
-        return <StaffDashboard currentPage={currentPage} onNavigate={handleNavigation} />;
+        return <StaffDashboard currentPage={currentPage} onNavigate={handleNavigation} onLogout={handleLogout} />;
       case 'users':
         return <UsersPage currentPage={currentPage} onNavigate={handleNavigation} userRole="staff" />;
       case 'payment':
@@ -95,14 +124,14 @@ const App: React.FC = () => {
         case 'rooms':
           return <RoomsPage currentPage={currentPage} onNavigate={handleNavigation} userRole="staff" />;
       default:
-        return <StaffDashboard currentPage={currentPage} onNavigate={handleNavigation} />;
+        return <StaffDashboard currentPage={currentPage} onNavigate={handleNavigation} onLogout={handleLogout} />;
     }
   };
 
   const renderTenantPage = () => {
     switch (currentPage) {
       case 'dashboard':
-        return <TenantDashboard currentPage={currentPage} onNavigate={handleNavigation} />;
+        return <TenantDashboard currentPage={currentPage} onNavigate={handleNavigation} onLogout={handleLogout} />;
       case 'payments':
         return <TenantPayments currentPage={currentPage} onNavigate={handleNavigation} />;
       case 'reports':
@@ -112,9 +141,21 @@ const App: React.FC = () => {
       case 'profile':
         return <TenantProfile currentPage={currentPage} onNavigate={handleNavigation} />;
       default:
-        return <TenantDashboard currentPage={currentPage} onNavigate={handleNavigation} />;
+        return <TenantDashboard currentPage={currentPage} onNavigate={handleNavigation} onLogout={handleLogout} />;
     }
   };
+
+  // Show loading spinner while validating token
+  if (isLoading) {
+    return (
+      <div className="App flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="App">
