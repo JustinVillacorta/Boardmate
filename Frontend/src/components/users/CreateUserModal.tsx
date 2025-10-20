@@ -774,54 +774,6 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onCreate, is
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Tenant Information</h3>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Room Number */}
-                    <div>
-                      <label className="text-sm font-medium text-gray-700 mb-2 block">Room Number</label>
-                      <input
-                        type="text"
-                        value={formData.roomNumber}
-                        onChange={(e) => handleChange('roomNumber', e.target.value)}
-                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                          errors.roomNumber ? 'border-red-500' : 'border-gray-300'
-                        }`}
-                        placeholder="101"
-                        disabled={isSubmitting}
-                      />
-                      {errors.roomNumber && (
-                        <p className="text-red-500 text-xs mt-1">{errors.roomNumber}</p>
-                      )}
-                    </div>
-
-                    {/* Monthly Rent */}
-                    <div>
-                      <label className="text-sm font-medium text-gray-700 mb-2 block">Monthly Rent</label>
-                      <input
-                        type="text"
-                        value={formData.monthlyRent}
-                        onChange={(e) => handleChange('monthlyRent', e.target.value)}
-                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                          errors.monthlyRent ? 'border-red-500' : 'border-gray-300'
-                        }`}
-                        placeholder="₱5,000"
-                        disabled={isSubmitting}
-                      />
-                      {errors.monthlyRent && (
-                        <p className="text-red-500 text-xs mt-1">{errors.monthlyRent}</p>
-                      )}
-                    </div>
-
-                    {/* Security Deposit */}
-                    <div>
-                      <label className="text-sm font-medium text-gray-700 mb-2 block">Security Deposit</label>
-                      <input
-                        type="text"
-                        value={formData.securityDeposit}
-                        onChange={(e) => handleChange('securityDeposit', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="₱10,000"
-                        disabled={isSubmitting}
-                      />
-                    </div>
 
                     {/* ID Type */}
                     <div>
@@ -841,8 +793,8 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onCreate, is
                       </select>
                     </div>
 
-                    {/* ID Number - Full width */}
-                    <div className="md:col-span-2">
+                    {/* ID Number */}
+                    <div>
                       <label className="text-sm font-medium text-gray-700 mb-2 block">ID Number</label>
                       <input
                         type="text"
