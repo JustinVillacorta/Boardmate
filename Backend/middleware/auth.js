@@ -89,6 +89,33 @@ export const tenantOnly = authorize('tenant');
 // Check if user is admin or staff
 export const staffOrAdmin = authorize('admin', 'staff');
 
+// Check if user can manage tenants (admin can manage all, staff can only manage tenants)
+export const canManageTenants = (req, res, next) => {
+  if (req.userType !== 'user') {
+    return next(new AppError('Access denied. User role required', 403));
+  }
+
+  if (req.user.role === 'admin') {
+    // Admin can manage everything
+    return next();
+  }
+
+  if (req.user.role === 'staff') {
+    // Staff can only manage tenants, not other staff
+    return next();
+  }
+
+  return next(new AppError('Access denied. Admin or staff role required', 403));
+};
+
+// Check if user can manage staff (admin only)
+export const canManageStaff = (req, res, next) => {
+  if (req.userType !== 'user' || req.user.role !== 'admin') {
+    return next(new AppError('Access denied. Admin role required', 403));
+  }
+  next();
+};
+
 // Optional authentication - doesn't fail if no token
 export const optionalAuth = catchAsync(async (req, res, next) => {
   let token;

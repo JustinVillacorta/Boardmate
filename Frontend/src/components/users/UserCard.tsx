@@ -1,5 +1,5 @@
 import React from 'react';
-import { Edit, Archive, MapPin } from 'lucide-react';
+import { Edit, Archive, ArchiveRestore, MapPin } from 'lucide-react';
 
 interface UserData {
   id: string;
@@ -18,9 +18,10 @@ interface UserCardProps {
   user: UserData;
   onEdit?: (userId: string) => void;
   onArchive?: (userId: string) => void;
+  onUnarchive?: (userId: string) => void;
 }
 
-const UserCard: React.FC<UserCardProps> = ({ user, onEdit, onArchive }) => {
+const UserCard: React.FC<UserCardProps> = ({ user, onEdit, onArchive, onUnarchive }) => {
   const getInitials = (name: string) => {
     const nameParts = name.trim().split(' ');
     if (nameParts.length >= 2) {
@@ -128,7 +129,7 @@ const UserCard: React.FC<UserCardProps> = ({ user, onEdit, onArchive }) => {
       </div>
 
       {/* Action Buttons - Only show if functions are provided */}
-      {(onEdit || onArchive) && (
+      {(onEdit || onArchive || onUnarchive) && (
         <div className="flex gap-2">
           {onEdit && (
             <button
@@ -139,13 +140,22 @@ const UserCard: React.FC<UserCardProps> = ({ user, onEdit, onArchive }) => {
               <span className="hidden sm:inline">Edit</span>
             </button>
           )}
-          {onArchive && (
+          {user.status === 'Active' && onArchive && (
             <button
               onClick={() => onArchive(user.id)}
               className="flex-1 flex items-center justify-center gap-1 px-2 sm:px-3 py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors text-xs sm:text-sm font-medium"
             >
               <Archive className="w-3 h-3 sm:w-4 sm:h-4" />
               <span className="hidden sm:inline">Archive</span>
+            </button>
+          )}
+          {user.status === 'Inactive' && onUnarchive && (
+            <button
+              onClick={() => onUnarchive(user.id)}
+              className="flex-1 flex items-center justify-center gap-1 px-2 sm:px-3 py-2 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors text-xs sm:text-sm font-medium"
+            >
+              <ArchiveRestore className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">Unarchive</span>
             </button>
           )}
         </div>

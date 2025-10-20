@@ -102,24 +102,49 @@ const UsersPage: React.FC<UsersPageProps> = ({ currentPage, onNavigate, userRole
     }
   };
 
-  const handleUpdateUser = (userId: string, userData: any) => {
-    setUsers(prev => prev.map(user => 
-      user.id === userId 
-        ? {
-            ...user,
-            name: `${userData.firstName} ${userData.lastName}`,
-            email: userData.email,
-            role: userData.role,
-            status: userData.isActive ? 'Active' : 'Inactive'
-          }
-        : user
-    ));
+  const handleUpdateUser = async () => {
+    // Refresh the users list after successful update
+    await fetchUsers();
     setEditingUser(null);
   };
 
-  const handleArchiveUser = (userId: string) => {
-    // Handle user archiving (immediate) - replaced by confirm flow below
-    setUsers(prev => prev.filter(user => user.id !== userId));
+
+  const handleArchiveUser = async (userId: string) => {
+    try {
+      const user = users.find(u => u.id === userId);
+      if (!user) return;
+
+      if (user.role === 'Staff' || user.role === 'Admin') {
+        await userManagementService.archiveStaff(userId);
+      } else {
+        await userManagementService.archiveTenant(userId);
+      }
+      
+      // Refresh the users list after successful archive
+      await fetchUsers();
+    } catch (error: any) {
+      console.error('Error archiving user:', error);
+      // You could add a toast notification here
+    }
+  };
+
+  const handleUnarchiveUser = async (userId: string) => {
+    try {
+      const user = users.find(u => u.id === userId);
+      if (!user) return;
+
+      if (user.role === 'Staff' || user.role === 'Admin') {
+        await userManagementService.unarchiveStaff(userId);
+      } else {
+        await userManagementService.unarchiveTenant(userId);
+      }
+      
+      // Refresh the users list after successful unarchive
+      await fetchUsers();
+    } catch (error: any) {
+      console.error('Error unarchiving user:', error);
+      setError(error.message || 'Failed to unarchive user');
+    }
   };
 
   // Confirm dialog state for archive
@@ -131,9 +156,9 @@ const UsersPage: React.FC<UsersPageProps> = ({ currentPage, onNavigate, userRole
     setIsConfirmOpen(true);
   };
 
-  const confirmArchive = () => {
+  const confirmArchive = async () => {
     if (selectedToArchive) {
-      setUsers(prev => prev.filter(user => user.id !== selectedToArchive));
+      await handleArchiveUser(selectedToArchive);
     }
     setSelectedToArchive(null);
     setIsConfirmOpen(false);
@@ -146,8 +171,22 @@ const UsersPage: React.FC<UsersPageProps> = ({ currentPage, onNavigate, userRole
 
   // Role-based functionality
   const canCreateUsers = true; // Both admin and staff can create users
-  const canEditUsers = userRole === 'admin'; // Only admin can edit users
-  const canArchiveUsers = userRole === 'admin'; // Only admin can archive users
+  const canEditUsers = userRole === 'admin' || userRole === 'staff'; // Admin can edit all, staff can edit tenants
+  const canArchiveUsers = userRole === 'admin' || userRole === 'staff'; // Admin can archive all, staff can archive tenants
+  
+  // Helper function to check if current user can edit a specific user
+  const canEditUser = (user: UserData) => {
+    if (userRole === 'admin') return true; // Admin can edit all
+    if (userRole === 'staff' && user.role === 'Tenant') return true; // Staff can edit tenants
+    return false; // Staff cannot edit other staff
+  };
+  
+  // Helper function to check if current user can archive a specific user
+  const canArchiveUser = (user: UserData) => {
+    if (userRole === 'admin') return true; // Admin can archive all
+    if (userRole === 'staff' && user.role === 'Tenant') return true; // Staff can archive tenants
+    return false; // Staff cannot archive other staff
+  };
   const isStaffUser = userRole === 'staff'; // Staff can only create tenants
 
   return (
@@ -244,8 +283,9 @@ const UsersPage: React.FC<UsersPageProps> = ({ currentPage, onNavigate, userRole
                     <UserCard
                       key={user.id}
                       user={user}
-                      onEdit={canEditUsers ? handleEditUser : undefined}
-                      onArchive={canArchiveUsers ? requestArchive : undefined}
+                      onEdit={canEditUser(user) ? handleEditUser : undefined}
+                      onArchive={canArchiveUser(user) ? requestArchive : undefined}
+                      onUnarchive={canArchiveUser(user) ? handleUnarchiveUser : undefined}
                     />
                   ))}
                 </div>
@@ -287,7 +327,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ currentPage, onNavigate, userRole
       )}
 
       {/* Edit User Modal */}
-      {editingUser && canEditUsers && (
+      {editingUser && canEditUser(editingUser) && (
         <EditUserModal
           user={editingUser}
           onClose={() => setEditingUser(null)}

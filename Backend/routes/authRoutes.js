@@ -13,8 +13,14 @@ import {
   getTenantsOnly,
   getAuthStats,
   getStaffAndTenants,
+  updateTenantByStaff,
+  updateUserByAdmin,
+  archiveUserByAdmin,
+  unarchiveUserByAdmin,
+  archiveTenantByAdmin,
+  unarchiveTenantByAdmin,
 } from '../controllers/authController.js';
-import { protect, adminOnly, staffOrAdmin } from '../middleware/auth.js';
+import { protect, adminOnly, staffOrAdmin, canManageTenants, canManageStaff } from '../middleware/auth.js';
 import {
   validateRegister,
   validateLogin,
@@ -60,5 +66,17 @@ router.get('/stats', protect, staffOrAdmin, getAuthStats);
 router.put('/updatedetails', protect, staffOrAdmin, validateUpdateDetails, updateDetails);
 router.put('/updatepassword', protect, staffOrAdmin, validateUpdatePassword, updatePassword);
 router.delete('/archive', protect, staffOrAdmin, archiveAccount);
+
+// ==================== ADMIN-ONLY ROUTES ====================
+// Admin-only routes for managing other users
+router.put('/admin/update-user/:userId', protect, canManageStaff, validateUpdateDetails, updateUserByAdmin);
+router.delete('/admin/archive-user/:userId', protect, canManageStaff, archiveUserByAdmin);
+router.patch('/admin/unarchive-user/:userId', protect, canManageStaff, unarchiveUserByAdmin);
+
+// ==================== STAFF/ADMIN ROUTES ====================
+// Staff can manage tenants, Admin can manage everything
+router.put('/staff/update-tenant/:tenantId', protect, canManageTenants, updateTenantByStaff);
+router.delete('/admin/archive-tenant/:tenantId', protect, canManageTenants, archiveTenantByAdmin);
+router.patch('/admin/unarchive-tenant/:tenantId', protect, canManageTenants, unarchiveTenantByAdmin);
 
 export default router;

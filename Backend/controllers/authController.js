@@ -267,6 +267,202 @@ export const archiveAccount = catchAsync(async (req, res, next) => {
   });
 });
 
+// @desc    Update tenant details (Staff/Admin only)
+// @route   PUT /api/auth/staff/update-tenant/:tenantId
+// @access  Private (Staff/Admin - Staff can only update tenants)
+export const updateTenantByStaff = catchAsync(async (req, res, next) => {
+  const { tenantId } = req.params;
+  const { firstName, lastName, phoneNumber, occupation, address, emergencyContact } = req.body;
+
+  const tenant = await Tenant.findById(tenantId);
+  
+  if (!tenant) {
+    return next(new AppError('Tenant not found', 404));
+  }
+
+  // Update only provided fields
+  const updateData = {};
+  if (firstName !== undefined) updateData.firstName = firstName;
+  if (lastName !== undefined) updateData.lastName = lastName;
+  if (phoneNumber !== undefined) updateData.phoneNumber = phoneNumber;
+  if (occupation !== undefined) updateData.occupation = occupation;
+  if (address !== undefined) updateData.address = address;
+  if (emergencyContact !== undefined) updateData.emergencyContact = emergencyContact;
+
+  const updatedTenant = await Tenant.findByIdAndUpdate(
+    tenantId,
+    updateData,
+    { new: true, runValidators: true }
+  );
+
+  res.status(200).json({
+    success: true,
+    message: 'Tenant details updated successfully',
+    data: { tenant: updatedTenant }
+  });
+});
+
+// @desc    Update another user's details (Admin only)
+// @route   PUT /api/auth/admin/update-user/:userId
+// @access  Private (Admin only)
+export const updateUserByAdmin = catchAsync(async (req, res, next) => {
+  const { userId } = req.params;
+  const { name, email } = req.body;
+
+  // Prevent updating yourself
+  if (userId === req.user.id) {
+    return next(new AppError('Cannot update your own account through this endpoint. Use /api/auth/updatedetails instead', 400));
+  }
+
+  const user = await User.findById(userId);
+  
+  if (!user) {
+    return next(new AppError('User not found', 404));
+  }
+
+  // Check if name already exists (if provided)
+  if (name && name !== user.name) {
+    const existingUser = await User.findOne({ name, _id: { $ne: userId } });
+    if (existingUser) {
+      return next(new AppError('User with this name already exists', 409));
+    }
+  }
+
+  // Check if email already exists (if provided)
+  if (email && email !== user.email) {
+    const existingUser = await User.findOne({ email, _id: { $ne: userId } });
+    if (existingUser) {
+      return next(new AppError('User with this email already exists', 409));
+    }
+  }
+
+  // Update only provided fields
+  const updateData = {};
+  if (name !== undefined) updateData.name = name;
+  if (email !== undefined) updateData.email = email;
+
+  const updatedUser = await User.findByIdAndUpdate(
+    userId,
+    updateData,
+    { new: true, runValidators: true }
+  );
+
+  res.status(200).json({
+    success: true,
+    message: 'User details updated successfully',
+    data: { user: updatedUser }
+  });
+});
+
+// @desc    Archive another user's account (Admin only)
+// @route   DELETE /api/auth/admin/archive-user/:userId
+// @access  Private (Admin only)
+export const archiveUserByAdmin = catchAsync(async (req, res, next) => {
+  const { userId } = req.params;
+  
+  // Prevent archiving yourself
+  if (userId === req.user.id) {
+    return next(new AppError('Cannot archive your own account through this endpoint. Use /api/auth/archive instead', 400));
+  }
+  
+  const user = await User.findById(userId);
+  
+  if (!user) {
+    return next(new AppError('User not found', 404));
+  }
+  
+  if (user.isArchived) {
+    return next(new AppError('User is already archived', 400));
+  }
+  
+  await User.findByIdAndUpdate(userId, { isArchived: true }, { new: true });
+  
+  res.status(200).json({
+    success: true,
+    message: 'User account archived successfully',
+  });
+});
+
+// @desc    Unarchive a user's account (Admin only)
+// @route   PATCH /api/auth/admin/unarchive-user/:userId
+// @access  Private (Admin only)
+export const unarchiveUserByAdmin = catchAsync(async (req, res, next) => {
+  const { userId } = req.params;
+  
+  const user = await User.findById(userId);
+  
+  if (!user) {
+    return next(new AppError('User not found', 404));
+  }
+  
+  if (!user.isArchived) {
+    return next(new AppError('User is not archived', 400));
+  }
+  
+  await User.findByIdAndUpdate(userId, { isArchived: false }, { new: true });
+  
+  res.status(200).json({
+    success: true,
+    message: 'User account unarchived successfully',
+  });
+});
+
+// @desc    Archive tenant account (Admin only)
+// @route   DELETE /api/auth/admin/archive-tenant/:tenantId
+// @access  Private (Admin only)
+export const archiveTenantByAdmin = catchAsync(async (req, res, next) => {
+  const { tenantId } = req.params;
+  
+  const tenant = await Tenant.findById(tenantId);
+  
+  if (!tenant) {
+    return next(new AppError('Tenant not found', 404));
+  }
+  
+  if (tenant.isArchived) {
+    return next(new AppError('Tenant is already archived', 400));
+  }
+  
+  await Tenant.findByIdAndUpdate(
+    tenantId, 
+    { isArchived: true, tenantStatus: 'inactive' }, 
+    { new: true }
+  );
+  
+  res.status(200).json({
+    success: true,
+    message: 'Tenant account archived successfully',
+  });
+});
+
+// @desc    Unarchive tenant account (Admin only)
+// @route   PATCH /api/auth/admin/unarchive-tenant/:tenantId
+// @access  Private (Admin only)
+export const unarchiveTenantByAdmin = catchAsync(async (req, res, next) => {
+  const { tenantId } = req.params;
+  
+  const tenant = await Tenant.findById(tenantId);
+  
+  if (!tenant) {
+    return next(new AppError('Tenant not found', 404));
+  }
+  
+  if (!tenant.isArchived) {
+    return next(new AppError('Tenant is not archived', 400));
+  }
+  
+  await Tenant.findByIdAndUpdate(
+    tenantId, 
+    { isArchived: false, tenantStatus: 'active' }, 
+    { new: true }
+  );
+  
+  res.status(200).json({
+    success: true,
+    message: 'Tenant account unarchived successfully',
+  });
+});
+
 // ==================== TENANT AUTHENTICATION ====================
 
 // @desc    Register tenant

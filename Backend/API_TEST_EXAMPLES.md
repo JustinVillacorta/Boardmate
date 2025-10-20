@@ -4,7 +4,7 @@ This file contains comprehensive examples for testing all API endpoints using va
 
 ## Base URL
 ```
-Local Development: http://localhost:5000/api
+Local Development: http://localhost:8000/api
 Production: https://your-domain.com/api
 ```
 
@@ -21,7 +21,7 @@ Authorization: Bearer <your-jwt-token>
 ### 1.1 Register User (Admin/Staff)
 ```bash
 # curl
-curl -X POST http://localhost:5000/api/auth/register \
+curl -X POST http://localhost:8000/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "name": "John Admin",
@@ -34,7 +34,7 @@ curl -X POST http://localhost:5000/api/auth/register \
 ```javascript
 // JavaScript fetch
 const registerUser = async () => {
-  const response = await fetch('http://localhost:5000/api/auth/register', {
+  const response = await fetch('http://localhost:8000/api/auth/register', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -54,7 +54,7 @@ const registerUser = async () => {
 ### 1.2 Login User (Admin/Staff)
 ```bash
 # curl
-curl -X POST http://localhost:5000/api/auth/login \
+curl -X POST http://localhost:8000/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "john.admin@boardmate.com",
@@ -65,7 +65,7 @@ curl -X POST http://localhost:5000/api/auth/login \
 ### 1.3 Register Tenant
 ```bash
 # curl
-curl -X POST http://localhost:5000/api/auth/tenant/register \
+curl -X POST http://localhost:8000/api/auth/tenant/register \
   -H "Content-Type: application/json" \
   -d '{
     "firstName": "Jane",
@@ -94,7 +94,7 @@ curl -X POST http://localhost:5000/api/auth/tenant/register \
 ### 1.4 Universal Login (Users & Tenants)
 ```bash
 # curl
-curl -X POST http://localhost:5000/api/auth/universal-login \
+curl -X POST http://localhost:8000/api/auth/universal-login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "jane.doe@example.com",
@@ -105,14 +105,14 @@ curl -X POST http://localhost:5000/api/auth/universal-login \
 ### 1.5 Get Current User Profile
 ```bash
 # curl (replace TOKEN with actual JWT token)
-curl -X GET http://localhost:5000/api/auth/me \
+curl -X GET http://localhost:8000/api/auth/me \
   -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE"
 ```
 
 ### 1.6 Update User Details
 ```bash
 # curl
-curl -X PUT http://localhost:5000/api/auth/updatedetails \
+curl -X PUT http://localhost:8000/api/auth/updatedetails \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE" \
   -d '{
@@ -124,7 +124,7 @@ curl -X PUT http://localhost:5000/api/auth/updatedetails \
 ### 1.7 Update Password
 ```bash
 # curl
-curl -X PUT http://localhost:5000/api/auth/updatepassword \
+curl -X PUT http://localhost:8000/api/auth/updatepassword \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE" \
   -d '{
@@ -137,7 +137,7 @@ curl -X PUT http://localhost:5000/api/auth/updatepassword \
 ### 1.8 Update Tenant Details (Tenant Self-Update)
 ```bash
 # curl - Tenant updating their own profile
-curl -X PUT http://localhost:5000/api/auth/tenant/updatedetails \
+curl -X PUT http://localhost:8000/api/auth/tenant/updatedetails \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_TENANT_TOKEN_HERE" \
   -d '{
@@ -162,7 +162,7 @@ curl -X PUT http://localhost:5000/api/auth/tenant/updatedetails \
 ### 1.9 Update Tenant Password (Tenant Self-Update)
 ```bash
 # curl - Tenant updating their own password
-curl -X PUT http://localhost:5000/api/auth/tenant/updatepassword \
+curl -X PUT http://localhost:8000/api/auth/tenant/updatepassword \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_TENANT_TOKEN_HERE" \
   -d '{
@@ -172,6 +172,107 @@ curl -X PUT http://localhost:5000/api/auth/tenant/updatepassword \
   }'
 ```
 
+### 1.10 Get Staff and Tenants List (Admin/Staff only)
+```bash
+# curl - Get all staff and tenants
+curl -X GET http://localhost:8000/api/auth/staff-and-tenants \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN_HERE"
+
+# curl - Get only staff users
+curl -X GET "http://localhost:8000/api/auth/staff-and-tenants?userType=staff" \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN_HERE"
+
+# curl - Get only tenants
+curl -X GET "http://localhost:8000/api/auth/staff-and-tenants?userType=tenant" \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN_HERE"
+
+# curl - Get with pagination
+curl -X GET "http://localhost:8000/api/auth/staff-and-tenants?page=1&limit=10" \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN_HERE"
+```
+
+### 1.11 Update User by Admin (Admin only)
+```bash
+# curl - Admin updating another user's details
+curl -X PUT http://localhost:8000/api/auth/admin/update-user/USER_ID_HERE \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN_HERE" \
+  -d '{
+    "name": "Updated Staff Name",
+    "email": "updated.staff@boardmate.com"
+  }'
+```
+
+### 1.12 Update Tenant by Staff/Admin (Staff/Admin only)
+```bash
+# curl - Staff/Admin updating tenant details
+curl -X PUT http://localhost:8000/api/auth/staff/update-tenant/TENANT_ID_HERE \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_STAFF_TOKEN_HERE" \
+  -d '{
+    "firstName": "Updated First Name",
+    "lastName": "Updated Last Name",
+    "phoneNumber": "+1234567891",
+    "occupation": "Updated Occupation",
+    "address": {
+      "street": "456 Updated Street",
+      "city": "Updated City",
+      "province": "Updated Province",
+      "zipCode": "54321"
+    },
+    "emergencyContact": {
+      "name": "Updated Emergency Contact",
+      "relationship": "Sister",
+      "phoneNumber": "+1987654321"
+    }
+  }'
+```
+
+### 1.13 Archive User by Admin (Admin only)
+```bash
+# curl - Admin archiving a staff user
+curl -X DELETE http://localhost:8000/api/auth/admin/archive-user/USER_ID_HERE \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN_HERE"
+```
+
+### 1.14 Unarchive User by Admin (Admin only)
+```bash
+# curl - Admin unarchiving a staff user
+curl -X PATCH http://localhost:8000/api/auth/admin/unarchive-user/USER_ID_HERE \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN_HERE"
+```
+
+### 1.15 Archive Tenant by Admin (Admin only)
+```bash
+# curl - Admin archiving a tenant
+curl -X DELETE http://localhost:8000/api/auth/admin/archive-tenant/TENANT_ID_HERE \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN_HERE"
+```
+
+### 1.16 Unarchive Tenant by Admin (Admin only)
+```bash
+# curl - Admin unarchiving a tenant
+curl -X PATCH http://localhost:8000/api/auth/admin/unarchive-tenant/TENANT_ID_HERE \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN_HERE"
+```
+
+### 1.17 Archive Own Account (Self-Archive)
+```bash
+# curl - User archiving their own account
+curl -X DELETE http://localhost:8000/api/auth/archive \
+  -H "Authorization: Bearer YOUR_USER_TOKEN_HERE"
+
+# curl - Tenant archiving their own account
+curl -X DELETE http://localhost:8000/api/auth/tenant/archive \
+  -H "Authorization: Bearer YOUR_TENANT_TOKEN_HERE"
+```
+
+### 1.18 Logout User
+```bash
+# curl - Logout (no token required)
+curl -X POST http://localhost:8000/api/auth/logout
+```
+
 ---
 
 ## 2. ROOM MANAGEMENT ENDPOINTS
@@ -179,7 +280,7 @@ curl -X PUT http://localhost:5000/api/auth/tenant/updatepassword \
 ### 2.1 Create Room (Admin/Staff only)
 ```bash
 # curl
-curl -X POST http://localhost:5000/api/rooms \
+curl -X POST http://localhost:8000/api/rooms \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_ADMIN_TOKEN_HERE" \
   -d '{
@@ -198,32 +299,32 @@ curl -X POST http://localhost:5000/api/rooms \
 ### 2.2 Get All Rooms with Filtering
 ```bash
 # curl - Get all rooms
-curl -X GET http://localhost:5000/api/rooms \
+curl -X GET http://localhost:8000/api/rooms \
   -H "Authorization: Bearer YOUR_TOKEN_HERE"
 
 # curl - Get rooms with filters
-curl -X GET "http://localhost:5000/api/rooms?roomType=double&status=available&maxRent=600&page=1&limit=10" \
+curl -X GET "http://localhost:8000/api/rooms?roomType=double&status=available&maxRent=600&page=1&limit=10" \
   -H "Authorization: Bearer YOUR_TOKEN_HERE"
 ```
 
 ### 2.3 Get Available Rooms
 ```bash
 # curl
-curl -X GET "http://localhost:5000/api/rooms/available?roomType=single&maxRent=500" \
+curl -X GET "http://localhost:8000/api/rooms/available?roomType=single&maxRent=500" \
   -H "Authorization: Bearer YOUR_TOKEN_HERE"
 ```
 
 ### 2.4 Get Single Room
 ```bash
 # curl (replace ROOM_ID with actual room ID)
-curl -X GET http://localhost:5000/api/rooms/ROOM_ID_HERE \
+curl -X GET http://localhost:8000/api/rooms/ROOM_ID_HERE \
   -H "Authorization: Bearer YOUR_TOKEN_HERE"
 ```
 
 ### 2.5 Update Room
 ```bash
 # curl
-curl -X PUT http://localhost:5000/api/rooms/ROOM_ID_HERE \
+curl -X PUT http://localhost:8000/api/rooms/ROOM_ID_HERE \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_ADMIN_TOKEN_HERE" \
   -d '{
@@ -236,7 +337,7 @@ curl -X PUT http://localhost:5000/api/rooms/ROOM_ID_HERE \
 ### 2.6 Assign Tenant to Room
 ```bash
 # curl
-curl -X POST http://localhost:5000/api/rooms/ROOM_ID_HERE/assign-tenant \
+curl -X POST http://localhost:8000/api/rooms/ROOM_ID_HERE/assign-tenant \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_ADMIN_TOKEN_HERE" \
   -d '{
@@ -251,14 +352,14 @@ curl -X POST http://localhost:5000/api/rooms/ROOM_ID_HERE/assign-tenant \
 ### 2.7 Remove Tenant from Room
 ```bash
 # curl
-curl -X DELETE http://localhost:5000/api/rooms/ROOM_ID_HERE/remove-tenant/TENANT_ID_HERE \
+curl -X DELETE http://localhost:8000/api/rooms/ROOM_ID_HERE/remove-tenant/TENANT_ID_HERE \
   -H "Authorization: Bearer YOUR_ADMIN_TOKEN_HERE"
 ```
 
 ### 2.8 Get Room Statistics
 ```bash
 # curl
-curl -X GET http://localhost:5000/api/rooms/stats \
+curl -X GET http://localhost:8000/api/rooms/stats \
   -H "Authorization: Bearer YOUR_ADMIN_TOKEN_HERE"
 ```
 
@@ -269,7 +370,7 @@ curl -X GET http://localhost:5000/api/rooms/stats \
 ### 3.1 Create Payment Record
 ```bash
 # curl
-curl -X POST http://localhost:5000/api/payments \
+curl -X POST http://localhost:8000/api/payments \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_ADMIN_TOKEN_HERE" \
   -d '{
@@ -293,25 +394,25 @@ curl -X POST http://localhost:5000/api/payments \
 ### 3.2 Get All Payments with Filtering
 ```bash
 # curl - Get all payments
-curl -X GET http://localhost:5000/api/payments \
+curl -X GET http://localhost:8000/api/payments \
   -H "Authorization: Bearer YOUR_ADMIN_TOKEN_HERE"
 
 # curl - Get payments with filters
-curl -X GET "http://localhost:5000/api/payments?tenant=TENANT_ID&status=pending&paymentType=rent&page=1&limit=10" \
+curl -X GET "http://localhost:8000/api/payments?tenant=TENANT_ID&status=pending&paymentType=rent&page=1&limit=10" \
   -H "Authorization: Bearer YOUR_ADMIN_TOKEN_HERE"
 ```
 
 ### 3.3 Get Payment by ID
 ```bash
 # curl
-curl -X GET http://localhost:5000/api/payments/PAYMENT_ID_HERE \
+curl -X GET http://localhost:8000/api/payments/PAYMENT_ID_HERE \
   -H "Authorization: Bearer YOUR_TOKEN_HERE"
 ```
 
 ### 3.4 Update Payment and Mark as Paid
 ```bash
 # curl - Update payment details and mark as paid
-curl -X PUT http://localhost:5000/api/payments/PAYMENT_ID_HERE \
+curl -X PUT http://localhost:8000/api/payments/PAYMENT_ID_HERE \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_ADMIN_TOKEN_HERE" \
   -d '{
@@ -326,7 +427,7 @@ curl -X PUT http://localhost:5000/api/payments/PAYMENT_ID_HERE \
 ### 3.5 Quick Mark Payment as Paid (Alternative Method)
 ```bash
 # curl - Quick mark as paid with minimal data
-curl -X PUT http://localhost:5000/api/payments/PAYMENT_ID_HERE/mark-paid \
+curl -X PUT http://localhost:8000/api/payments/PAYMENT_ID_HERE/mark-paid \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_ADMIN_TOKEN_HERE" \
   -d '{
@@ -339,7 +440,7 @@ curl -X PUT http://localhost:5000/api/payments/PAYMENT_ID_HERE/mark-paid \
 ### 3.6 Download Payment Receipt (PDF)
 ```bash
 # curl - Download PDF receipt
-curl -X GET http://localhost:5000/api/payments/PAYMENT_ID_HERE/receipt/pdf \
+curl -X GET http://localhost:8000/api/payments/PAYMENT_ID_HERE/receipt/pdf \
   -H "Authorization: Bearer YOUR_TOKEN_HERE" \
   --output receipt.pdf
 ```
@@ -347,14 +448,14 @@ curl -X GET http://localhost:5000/api/payments/PAYMENT_ID_HERE/receipt/pdf \
 ### 3.7 Get Payment Receipt (HTML)
 ```bash
 # curl - Get HTML receipt
-curl -X GET http://localhost:5000/api/payments/PAYMENT_ID_HERE/receipt/html \
+curl -X GET http://localhost:8000/api/payments/PAYMENT_ID_HERE/receipt/html \
   -H "Authorization: Bearer YOUR_TOKEN_HERE"
 ```
 
 ### 3.8 Get Payment Statistics
 ```bash
 # curl
-curl -X GET http://localhost:5000/api/payments/stats \
+curl -X GET http://localhost:8000/api/payments/stats \
   -H "Authorization: Bearer YOUR_ADMIN_TOKEN_HERE"
 ```
 
@@ -365,7 +466,7 @@ curl -X GET http://localhost:5000/api/payments/stats \
 ### 4.1 Create Report
 ```bash
 # curl - Tenant creating a report
-curl -X POST http://localhost:5000/api/reports \
+curl -X POST http://localhost:8000/api/reports \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_TENANT_TOKEN_HERE" \
   -d '{
@@ -376,7 +477,7 @@ curl -X POST http://localhost:5000/api/reports \
   }'
 
 # curl - Admin/Staff creating a report for a tenant
-curl -X POST http://localhost:5000/api/reports \
+curl -X POST http://localhost:8000/api/reports \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_ADMIN_TOKEN_HERE" \
   -d '{
@@ -391,29 +492,29 @@ curl -X POST http://localhost:5000/api/reports \
 ### 4.2 Get All Reports with Filtering
 ```bash
 # curl - Admin/Staff get all reports
-curl -X GET http://localhost:5000/api/reports \
+curl -X GET http://localhost:8000/api/reports \
   -H "Authorization: Bearer YOUR_ADMIN_TOKEN_HERE"
 
 # curl - Get reports with filters
-curl -X GET "http://localhost:5000/api/reports?status=pending&type=maintenance&page=1&limit=10" \
+curl -X GET "http://localhost:8000/api/reports?status=pending&type=maintenance&page=1&limit=10" \
   -H "Authorization: Bearer YOUR_ADMIN_TOKEN_HERE"
 
 # curl - Tenant get their own reports
-curl -X GET http://localhost:5000/api/reports \
+curl -X GET http://localhost:8000/api/reports \
   -H "Authorization: Bearer YOUR_TENANT_TOKEN_HERE"
 ```
 
 ### 4.3 Get Single Report
 ```bash
 # curl
-curl -X GET http://localhost:5000/api/reports/REPORT_ID_HERE \
+curl -X GET http://localhost:8000/api/reports/REPORT_ID_HERE \
   -H "Authorization: Bearer YOUR_TOKEN_HERE"
 ```
 
 ### 4.4 Update Report Status (Admin/Staff only)
 ```bash
 # curl - Mark as in-progress
-curl -X PUT http://localhost:5000/api/reports/REPORT_ID_HERE \
+curl -X PUT http://localhost:8000/api/reports/REPORT_ID_HERE \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_ADMIN_TOKEN_HERE" \
   -d '{
@@ -421,7 +522,7 @@ curl -X PUT http://localhost:5000/api/reports/REPORT_ID_HERE \
   }'
 
 # curl - Mark as resolved
-curl -X PUT http://localhost:5000/api/reports/REPORT_ID_HERE \
+curl -X PUT http://localhost:8000/api/reports/REPORT_ID_HERE \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_ADMIN_TOKEN_HERE" \
   -d '{
@@ -432,7 +533,7 @@ curl -X PUT http://localhost:5000/api/reports/REPORT_ID_HERE \
 ### 4.5 Delete Report (Admin only)
 ```bash
 # curl
-curl -X DELETE http://localhost:5000/api/reports/REPORT_ID_HERE \
+curl -X DELETE http://localhost:8000/api/reports/REPORT_ID_HERE \
   -H "Authorization: Bearer YOUR_ADMIN_TOKEN_HERE"
 ```
 
@@ -443,57 +544,57 @@ curl -X DELETE http://localhost:5000/api/reports/REPORT_ID_HERE \
 ### 5.1 Get User Notifications
 ```bash
 # curl - Get all notifications
-curl -X GET http://localhost:5000/api/notifications \
+curl -X GET http://localhost:8000/api/notifications \
   -H "Authorization: Bearer YOUR_TOKEN_HERE"
 
 # curl - Get unread notifications only
-curl -X GET "http://localhost:5000/api/notifications?includeRead=false" \
+curl -X GET "http://localhost:8000/api/notifications?includeRead=false" \
   -H "Authorization: Bearer YOUR_TOKEN_HERE"
 
 # curl - Get specific type of notifications
-curl -X GET "http://localhost:5000/api/notifications?type=payment_due&page=1&limit=5" \
+curl -X GET "http://localhost:8000/api/notifications?type=payment_due&page=1&limit=5" \
   -H "Authorization: Bearer YOUR_TOKEN_HERE"
 ```
 
 ### 5.2 Get Unread Notification Count
 ```bash
 # curl
-curl -X GET http://localhost:5000/api/notifications/unread-count \
+curl -X GET http://localhost:8000/api/notifications/unread-count \
   -H "Authorization: Bearer YOUR_TOKEN_HERE"
 ```
 
 ### 5.3 Get Single Notification
 ```bash
 # curl
-curl -X GET http://localhost:5000/api/notifications/NOTIFICATION_ID_HERE \
+curl -X GET http://localhost:8000/api/notifications/NOTIFICATION_ID_HERE \
   -H "Authorization: Bearer YOUR_TOKEN_HERE"
 ```
 
 ### 5.4 Mark Notification as Read
 ```bash
 # curl
-curl -X PUT http://localhost:5000/api/notifications/NOTIFICATION_ID_HERE/read \
+curl -X PUT http://localhost:8000/api/notifications/NOTIFICATION_ID_HERE/read \
   -H "Authorization: Bearer YOUR_TOKEN_HERE"
 ```
 
 ### 5.5 Mark All Notifications as Read
 ```bash
 # curl
-curl -X PUT http://localhost:5000/api/notifications/mark-all-read \
+curl -X PUT http://localhost:8000/api/notifications/mark-all-read \
   -H "Authorization: Bearer YOUR_TOKEN_HERE"
 ```
 
 ### 5.6 Delete Notification
 ```bash
 # curl
-curl -X DELETE http://localhost:5000/api/notifications/NOTIFICATION_ID_HERE \
+curl -X DELETE http://localhost:8000/api/notifications/NOTIFICATION_ID_HERE \
   -H "Authorization: Bearer YOUR_TOKEN_HERE"
 ```
 
 ### 5.7 Create System Announcement (Admin only)
 ```bash
 # curl
-curl -X POST http://localhost:5000/api/notifications/announcement \
+curl -X POST http://localhost:8000/api/notifications/announcement \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_ADMIN_TOKEN_HERE" \
   -d '{
@@ -506,11 +607,11 @@ curl -X POST http://localhost:5000/api/notifications/announcement \
 ### 5.8 Trigger Manual Notifications (Admin only - Testing)
 ```bash
 # curl - Trigger payment reminders
-curl -X POST http://localhost:5000/api/notifications/trigger/payment-reminders \
+curl -X POST http://localhost:8000/api/notifications/trigger/payment-reminders \
   -H "Authorization: Bearer YOUR_ADMIN_TOKEN_HERE"
 
 # curl - Trigger lease reminders
-curl -X POST http://localhost:5000/api/notifications/trigger/lease-reminders \
+curl -X POST http://localhost:8000/api/notifications/trigger/lease-reminders \
   -H "Authorization: Bearer YOUR_ADMIN_TOKEN_HERE"
 ```
 
@@ -521,7 +622,7 @@ curl -X POST http://localhost:5000/api/notifications/trigger/lease-reminders \
 ### 6.1 API Health Check
 ```bash
 # curl
-curl -X GET http://localhost:5000/api/health
+curl -X GET http://localhost:8000/api/health
 ```
 
 ---
@@ -539,7 +640,7 @@ Here's a sample Postman collection structure:
   "variable": [
     {
       "key": "baseUrl",
-      "value": "http://localhost:5000/api"
+      "value": "http://localhost:8000/api"
     },
     {
       "key": "adminToken",
@@ -588,28 +689,123 @@ Here's a sample Postman collection structure:
 ### Step 1: Authentication
 1. Register admin user
 2. Login admin user to get token
-3. Register tenant
-4. Login tenant to get token
+3. Register staff user
+4. Register tenant
+5. Login tenant to get token
 
-### Step 2: Room Management
+### Step 2: User Management (New Admin Endpoints)
+1. Get staff and tenants list
+2. Update user details (admin updating staff)
+3. Update tenant details (staff/admin updating tenant)
+4. Archive/unarchive users and tenants
+5. Test permission restrictions (staff cannot edit other staff)
+
+### Step 3: Room Management
 1. Create rooms
 2. Get available rooms
 3. Assign tenants to rooms
 
-### Step 3: Payment Management
+### Step 4: Payment Management
 1. Create payment records
 2. Mark payments as paid
 3. Download receipts
 
-### Step 4: Report Management
+### Step 5: Report Management
 1. Create reports (as tenant)
 2. Update report status (as admin)
 3. View reports
 
-### Step 5: Notifications
+### Step 6: Notifications
 1. Check notifications created automatically
 2. Create manual announcements
 3. Mark notifications as read
+
+## COMPREHENSIVE ADMIN ENDPOINT TESTING
+
+### Test Scenario 1: Admin User Management
+```bash
+# 1. Login as admin
+ADMIN_TOKEN=$(curl -s -X POST http://localhost:8000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email": "admin@boardmate.com", "password": "Admin123!"}' | \
+  jq -r '.data.token')
+
+# 2. Get staff and tenants list
+curl -X GET http://localhost:8000/api/auth/staff-and-tenants \
+  -H "Authorization: Bearer $ADMIN_TOKEN"
+
+# 3. Update a staff user's details
+curl -X PUT http://localhost:8000/api/auth/admin/update-user/STAFF_ID_HERE \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -d '{"name": "Updated Staff Name", "email": "updated@boardmate.com"}'
+
+# 4. Archive a staff user
+curl -X DELETE http://localhost:8000/api/auth/admin/archive-user/STAFF_ID_HERE \
+  -H "Authorization: Bearer $ADMIN_TOKEN"
+
+# 5. Unarchive the staff user
+curl -X PATCH http://localhost:8000/api/auth/admin/unarchive-user/STAFF_ID_HERE \
+  -H "Authorization: Bearer $ADMIN_TOKEN"
+```
+
+### Test Scenario 2: Staff Tenant Management
+```bash
+# 1. Login as staff
+STAFF_TOKEN=$(curl -s -X POST http://localhost:8000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email": "staff@boardmate.com", "password": "Staff123!"}' | \
+  jq -r '.data.token')
+
+# 2. Update tenant details (should work)
+curl -X PUT http://localhost:8000/api/auth/staff/update-tenant/TENANT_ID_HERE \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $STAFF_TOKEN" \
+  -d '{"firstName": "Updated", "lastName": "Tenant", "phoneNumber": "+1234567890"}'
+
+# 3. Try to update another staff (should fail with 403)
+curl -X PUT http://localhost:8000/api/auth/admin/update-user/OTHER_STAFF_ID_HERE \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $STAFF_TOKEN" \
+  -d '{"name": "Should Fail"}'
+
+# 4. Archive tenant (should work)
+curl -X DELETE http://localhost:8000/api/auth/admin/archive-tenant/TENANT_ID_HERE \
+  -H "Authorization: Bearer $STAFF_TOKEN"
+
+# 5. Try to archive another staff (should fail with 403)
+curl -X DELETE http://localhost:8000/api/auth/admin/archive-user/OTHER_STAFF_ID_HERE \
+  -H "Authorization: Bearer $STAFF_TOKEN"
+```
+
+### Test Scenario 3: Permission Validation
+```bash
+# Test that staff cannot access admin-only endpoints
+curl -X PUT http://localhost:8000/api/auth/admin/update-user/USER_ID_HERE \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $STAFF_TOKEN" \
+  -d '{"name": "Should Fail"}'
+# Expected: 403 Forbidden
+
+# Test that tenants cannot access staff/admin endpoints
+curl -X GET http://localhost:8000/api/auth/staff-and-tenants \
+  -H "Authorization: Bearer $TENANT_TOKEN"
+# Expected: 403 Forbidden
+
+# Test that archived users cannot login
+curl -X POST http://localhost:8000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email": "archived@boardmate.com", "password": "Password123!"}'
+# Expected: 401 Unauthorized
+```
+
+### Test Scenario 4: Self-Archive Prevention
+```bash
+# Test that admin cannot archive themselves through admin endpoint
+curl -X DELETE http://localhost:8000/api/auth/admin/archive-user/ADMIN_OWN_ID \
+  -H "Authorization: Bearer $ADMIN_TOKEN"
+# Expected: 400 Bad Request with message about using self-archive endpoint
+```
 
 ---
 
@@ -667,7 +863,7 @@ Here's a sample Postman collection structure:
 Create a `.env.test` file:
 ```env
 NODE_ENV=test
-PORT=5001
+PORT=8001
 MONGODB_URI=mongodb://localhost:27017/boardmate_test
 JWT_SECRET=test_jwt_secret_key_for_testing_only
 JWT_EXPIRE=1d
@@ -682,7 +878,7 @@ CLIENT_URL=http://localhost:3000
 ### JavaScript Test Script Example
 ```javascript
 // test-api.js
-const baseUrl = 'http://localhost:5000/api';
+const baseUrl = 'http://localhost:8000/api';
 let adminToken = '';
 let tenantToken = '';
 
