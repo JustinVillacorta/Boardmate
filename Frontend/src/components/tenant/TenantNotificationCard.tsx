@@ -10,10 +10,10 @@ interface TenantNotificationCardProps {
     type: 'payment' | 'maintenance' | 'building';
     isUnread: boolean;
   };
-  onMarkRead?: (id: string) => void;
+  onOpen?: (id: string) => void;
 }
 
-const TenantNotificationCard: React.FC<TenantNotificationCardProps> = ({ notification, onMarkRead }) => {
+const TenantNotificationCard: React.FC<TenantNotificationCardProps> = ({ notification, onOpen }) => {
   const getIcon = (type: string) => {
     switch (type) {
       case 'payment':
@@ -71,7 +71,13 @@ const TenantNotificationCard: React.FC<TenantNotificationCardProps> = ({ notific
   const tag = getTag(notification.type);
 
   return (
-    <div className={`bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow ${getBorderColor(notification.type)}`}>
+    <div
+      onClick={() => onOpen && onOpen(notification.id)}
+      className={`bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow ${getBorderColor(notification.type)} cursor-pointer`}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { onOpen && onOpen(notification.id); } }}
+    >
       <div className="flex items-center gap-4">
         {/* Icon */}
         <div className={`p-2 rounded-lg ${getIconColor(notification.type)} bg-white`}> 
@@ -98,17 +104,7 @@ const TenantNotificationCard: React.FC<TenantNotificationCardProps> = ({ notific
               </div>
             </div>
 
-            {/* Right action column */}
-            <div className="ml-4 flex-shrink-0 flex items-center">
-              {notification.isUnread && onMarkRead ? (
-                <button
-                  onClick={() => onMarkRead(notification.id)}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700"
-                >
-                  Mark as Read
-                </button>
-              ) : null}
-            </div>
+            {/* Right action column removed; entire card is clickable to open/mark-read */}
           </div>
         </div>
       </div>

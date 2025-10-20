@@ -10,7 +10,7 @@ interface RoomData {
   rent: string;
   capacity: number;
   occupancy: string;
-  status: 'available' | 'occupied' | 'maintenance';
+  status: 'available' | 'occupied' | 'maintenance' | 'unavailable';
   description?: string;
   tenants?: Array<{
     id: string;

@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Sidebar from "../../components/layout/Sidebar";
 import TopNavbar from "../../components/layout/TopNavbar";
 import TenantNotificationCard from "../../components/tenant/TenantNotificationCard";
+import { notificationService } from '../../services/notificationService';
 
 interface NotificationsProps {
   currentPage?: string;
@@ -11,33 +12,9 @@ interface NotificationsProps {
 const Notifications: React.FC<NotificationsProps> = ({ currentPage, onNavigate }) => {
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Hardcoded notifications (moved to state so we can update read status)
-  const [notifications, setNotifications] = useState(() => [
-    {
-      id: '1',
-      title: 'Payment Due Soon',
-      description: 'Your rent payment is due in 3 days.',
-      timestamp: '2 hours ago',
-      type: 'payment' as const,
-      isUnread: true
-    },
-    {
-      id: '2',
-      title: 'Maintenance Complete',
-      description: 'Your faucet repair has been completed.',
-      timestamp: '14 hours ago',
-      type: 'maintenance' as const,
-      isUnread: true
-    },
-    {
-      id: '3',
-      title: 'Building Notice',
-      description: 'Scheduled maintenance in common areas this weekend.',
-      timestamp: '1 day ago',
-      type: 'building' as const,
-      isUnread: false
-    }
-  ]);
+  const [notifications, setNotifications] = useState<Array<any>>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Tabs: All, Read, Unread
   const [activeTab, setActiveTab] = React.useState<'All' | 'Read' | 'Unread'>('All');
@@ -56,7 +33,90 @@ const Notifications: React.FC<NotificationsProps> = ({ currentPage, onNavigate }
   const unreadCount = notifications.filter(n => n.isUnread).length;
 
   const markAllRead = () => {
+    // optimistic update
     setNotifications(prev => prev.map(n => ({ ...n, isUnread: false })));
+    notificationService.markAllAsRead().catch(() => {
+      // on error, refetch
+      fetchNotifications();
+    });
+  };
+
+  const fetchNotifications = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await notificationService.getNotifications({ page: 1, limit: 50, includeRead: true });
+      // backend payload may be nested under data.notifications
+      const raw = Array.isArray(res?.data?.notifications) ? res.data.notifications : (Array.isArray(res.notifications) ? res.notifications : (Array.isArray(res.data) ? res.data : []));
+      const mapped = (raw || []).map((n: any) => ({
+        id: n._id || n.id,
+        title: n.title,
+        description: n.message || n.excerpt || '',
+        timestamp: n.createdAt ? new Date(n.createdAt).toLocaleString() : '',
+        type: (n.type === 'payment_due' ? 'payment' : (n.type === 'maintenance' ? 'maintenance' : (n.type === 'announcement' ? 'building' : 'building'))),
+        isUnread: n.status !== 'read',
+        meta: n.metadata || n.meta || {}
+      }));
+      setNotifications(mapped);
+    } catch (err: any) {
+      setError(err?.message || 'Failed to load notifications');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const markRead = async (id: string) => {
+    // optimistic
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, isUnread: false } : n));
+    try {
+      await notificationService.markAsRead(id);
+    } catch (err) {
+      // revert
+      fetchNotifications();
+    }
+  };
+
+  const handleOpenNotification = async (id: string) => {
+    const n = notifications.find(x => x.id === id);
+    if (!n) return;
+
+    // Mark read if unread
+    if (n.isUnread) {
+      await markRead(id);
+    }
+
+    // Navigate based on metadata
+    try {
+      const meta = n.meta || {};
+      if (meta.reportId || meta.report) {
+        const reportId = meta.reportId || meta.report;
+        localStorage.setItem('selectedReportId', String(reportId));
+        onNavigate && onNavigate('reports');
+        return;
+      }
+
+      if (meta.roomId || meta.room) {
+        const roomId = meta.roomId || meta.room;
+        localStorage.setItem('selectedRoomId', String(roomId));
+        onNavigate && onNavigate('rooms');
+        return;
+      }
+
+      if (n.type === 'payment' || n.type === 'payment_due' || meta.type === 'payment_due') {
+        onNavigate && onNavigate('payment');
+        return;
+      }
+
+      // default
+      onNavigate && onNavigate('notifications');
+    } catch (err) {
+      console.error('Failed to navigate from notification', err);
+    }
   };
 
   return (
@@ -117,9 +177,7 @@ const Notifications: React.FC<NotificationsProps> = ({ currentPage, onNavigate }
                 <TenantNotificationCard
                   key={notification.id}
                   notification={notification}
-                  onMarkRead={(id: string) => {
-                    setNotifications(prev => prev.map(n => n.id === id ? { ...n, isUnread: false } : n));
-                  }}
+                  onOpen={handleOpenNotification}
                 />
               ))
             ) : (

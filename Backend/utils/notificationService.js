@@ -197,26 +197,38 @@ class NotificationService {
   // Create system announcement
   static async createSystemAnnouncement(title, message, userIds = null, expiresAt = null) {
     try {
-      let targetUsers;
+      let targets = [];
 
       if (userIds && userIds.length > 0) {
-        targetUsers = userIds;
+        targets = userIds.map(id => ({ id, model: 'User' }));
       } else {
-        // Send to all users (both staff and tenants with user accounts)
-        const staffUsers = await User.find({ isArchived: false }).select('_id');
-        const tenantUsers = await Tenant.find({ 
-          user: { $exists: true, $ne: null },
-          isArchived: false 
-        }).populate('user').select('user');
-
-        targetUsers = [
-          ...staffUsers.map(user => user._id),
-          ...tenantUsers.map(tenant => tenant.user._id).filter(Boolean)
-        ];
+        // Include all active user accounts (admins/staff/users)
+        const users = await User.find({ isArchived: false }).select('_id');
+        for (const u of users) {
+          targets.push({ id: u._id, model: 'User' });
+        }
+        const tenants = await Tenant.find({ isArchived: false }).select('_id user');
+        for (const t of tenants) {
+          if (t.user) {
+            targets.push({ id: t.user, model: 'User' });
+          } else {
+            targets.push({ id: t._id, model: 'Tenant' });
+          }
+        }
       }
 
-      const notifications = targetUsers.map(userId => ({
-        user: userId,
+      const seen = new Set();
+      const uniqueTargets = [];
+      for (const t of targets) {
+        const key = `${String(t.model)}::${String(t.id)}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        uniqueTargets.push(t);
+      }
+
+      const notifications = uniqueTargets.map(t => ({
+        user: t.id,
+        userModel: t.model,
         title: title,
         message: message,
         type: 'announcement',
@@ -232,7 +244,7 @@ class NotificationService {
         )
       );
 
-      console.log(`Created system announcement for ${targetUsers.length} users`);
+      console.log(`Created system announcement for ${uniqueTargets.length} targets`);
     } catch (error) {
       console.error('Error creating system announcement:', error);
     }
