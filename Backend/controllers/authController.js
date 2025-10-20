@@ -580,14 +580,38 @@ export const updateTenantDetails = catchAsync(async (req, res, next) => {
     emergencyContact,
   } = req.body;
 
-  // Build update object with only provided fields
+  // Fetch current tenant so we can safely merge partial nested updates
+  const currentTenant = await Tenant.findById(req.user.id);
+  if (!currentTenant) {
+    return next(new AppError('Tenant not found', 404));
+  }
+
+  // Build update object with only provided fields (use !== undefined so empty strings can be sent intentionally)
   const fieldsToUpdate = {};
-  if (firstName) fieldsToUpdate.firstName = firstName;
-  if (lastName) fieldsToUpdate.lastName = lastName;
-  if (phoneNumber) fieldsToUpdate.phoneNumber = phoneNumber;
-  if (occupation) fieldsToUpdate.occupation = occupation;
-  if (address) fieldsToUpdate.address = address;
-  if (emergencyContact) fieldsToUpdate.emergencyContact = emergencyContact;
+  if (firstName !== undefined) fieldsToUpdate.firstName = firstName;
+  if (lastName !== undefined) fieldsToUpdate.lastName = lastName;
+  if (phoneNumber !== undefined) fieldsToUpdate.phoneNumber = phoneNumber;
+  if (occupation !== undefined) fieldsToUpdate.occupation = occupation;
+
+  // Address: support partial updates (merge) and explicit null to clear
+  if (address !== undefined) {
+    if (address === null) {
+      fieldsToUpdate.address = null;
+    } else if (typeof address === 'object') {
+      const existingAddress = currentTenant.address || {};
+      fieldsToUpdate.address = { ...existingAddress, ...address };
+    }
+  }
+
+  // Emergency contact: merge partial updates, or allow explicit null to clear
+  if (emergencyContact !== undefined) {
+    if (emergencyContact === null) {
+      fieldsToUpdate.emergencyContact = null;
+    } else if (typeof emergencyContact === 'object') {
+      const existingEmergency = currentTenant.emergencyContact || {};
+      fieldsToUpdate.emergencyContact = { ...existingEmergency, ...emergencyContact };
+    }
+  }
 
   const tenant = await Tenant.findByIdAndUpdate(
     req.user.id,
