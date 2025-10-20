@@ -25,7 +25,7 @@ interface UserData {
   roomNumber?: string;
   monthlyRent?: string;
   securityDeposit?: string;
-  idType?: string;
+  idType: string;
   idNumber?: string;
   
   // Emergency Contact
@@ -37,6 +37,7 @@ interface UserData {
   role: 'Staff' | 'Tenant';
   isActive: boolean;
 }
+
 
 interface CreateUserModalProps {
   onClose: () => void;
@@ -94,6 +95,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onCreate, is
   });
   
   const [errors, setErrors] = useState<Partial<UserData>>({});
+  const [generalError, setGeneralError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -134,7 +136,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onCreate, is
 
     // Tenant specific validation
     if (formData.role === 'Tenant') {
-      // Date of birth validation (must be 18+)
+      // Date of birth validation (must be 16+)
       if (!formData.dateOfBirth.trim()) {
         newErrors.dateOfBirth = 'Date of birth is required';
       } else {
@@ -144,11 +146,11 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onCreate, is
         const monthDiff = today.getMonth() - dob.getMonth();
         
         if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
-          if (age < 18) {
-            newErrors.dateOfBirth = 'Tenant must be at least 18 years old';
+          if (age < 16) {
+            newErrors.dateOfBirth = 'Tenant must be at least 16 years old';
           }
-        } else if (age < 18) {
-          newErrors.dateOfBirth = 'Tenant must be at least 18 years old';
+        } else if (age < 16) {
+          newErrors.dateOfBirth = 'Tenant must be at least 16 years old';
         }
       }
 
@@ -233,13 +235,11 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onCreate, is
       
       // Call the original onCreate callback for UI updates
       await onCreate(formData);
+      setGeneralError(null);
     } catch (error: any) {
       console.error('Error creating user:', error);
       // Set a general error message
-      setErrors({ 
-        ...errors, 
-        general: error.message || 'Failed to create user account' 
-      });
+      setGeneralError(error.message || 'Failed to create user account');
     } finally {
       setIsSubmitting(false);
     }
@@ -298,6 +298,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onCreate, is
     setErrors({});
     setShowPassword(false);
     setShowConfirmPassword(false);
+    setGeneralError(null);
   };
 
   return (
@@ -323,9 +324,9 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onCreate, is
           <form onSubmit={handleSubmit} className="p-6 space-y-6">
             
             {/* General Error Message */}
-            {errors.general && (
+            {generalError && (
               <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg">
-                {errors.general}
+                {generalError}
               </div>
             )}
             
@@ -591,10 +592,11 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onCreate, is
                     {/* Date of Birth */}
                     <div>
                       <label className="text-sm font-medium text-gray-700 mb-2 block">Date of Birth</label>
-                      <input
+                        <input
                         type="date"
                         value={formData.dateOfBirth}
                         onChange={(e) => handleChange('dateOfBirth', e.target.value)}
+                        max={new Date(new Date().setFullYear(new Date().getFullYear() - 16)).toISOString().split('T')[0]}
                         className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
                           errors.dateOfBirth ? 'border-red-500' : 'border-gray-300'
                         }`}

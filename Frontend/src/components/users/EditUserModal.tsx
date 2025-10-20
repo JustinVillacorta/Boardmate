@@ -21,12 +21,32 @@ interface EditUserModalProps {
   onUpdate: () => void; // Callback to refresh the user list
 }
 
+interface FormData {
+  name: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  phoneNumber: string;
+  occupation: string;
+  address: {
+    street: string;
+    city: string;
+    province: string;
+    zipCode: string;
+  };
+  emergencyContact: {
+    name: string;
+    relationship: string;
+    phoneNumber: string;
+  };
+}
+
 const EditUserModal: React.FC<EditUserModalProps> = ({ user, onClose, onUpdate }) => {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     // Staff fields
     name: user.name,
     email: user.email,
-    
+
     // Tenant fields
     firstName: '',
     lastName: '',
@@ -164,26 +184,22 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ user, onClose, onUpdate }
   const handleChange = (field: string, value: string) => {
     if (field.includes('.')) {
       const [parent, child] = field.split('.');
-      setFormData(prev => ({
-        ...prev,
-        [parent]: {
-          ...prev[parent as keyof typeof prev],
-          [child]: value
-        }
-      }));
+      setFormData(prev => {
+        const copy: any = { ...prev };
+        copy[parent] = { ...((copy[parent] as any) || {}), [child]: value };
+        return copy as FormData;
+      });
     } else {
-      setFormData(prev => ({
-        ...prev,
-        [field]: value
-      }));
+      setFormData(prev => ({ ...prev, [field]: value } as FormData));
     }
-    
+
     // Clear error when user starts typing
     if (errors[field]) {
-      setErrors(prev => ({
-        ...prev,
-        [field]: undefined
-      }));
+      setErrors(prev => {
+        const copy = { ...prev };
+        delete (copy as Record<string, string>)[field];
+        return copy;
+      });
     }
   };
 

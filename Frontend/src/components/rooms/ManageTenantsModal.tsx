@@ -12,6 +12,12 @@ interface RoomData {
   occupancy: string;
   status: 'available' | 'occupied' | 'maintenance';
   description?: string;
+  tenants?: Array<{
+    id: string;
+    name: string;
+    email?: string;
+    phoneNumber?: string;
+  }>;
 }
 
 interface Props {
@@ -40,15 +46,12 @@ const ManageTenantsModal: React.FC<Props> = ({ room, onClose, onAddTenant }) => 
       setError(null);
       const response = await roomManagementService.getAvailableTenants();
       console.log('Available tenants response:', response);
-      // The API returns data.records, not data.tenants
-      // Filter to only show tenants without rooms assigned
-      const allTenants = response.data.records || [];
+  const dataAny: any = response.data;
+  const allTenants: any[] = dataAny.records || dataAny.tenants || [];
       console.log('All tenants from API:', allTenants.length);
-      const availableTenants = allTenants.filter(tenant => 
-        !tenant.room && !tenant.isArchived
-      );
-      console.log('Filtered available tenants:', availableTenants.length, availableTenants);
-      setAvailableTenants(availableTenants);
+      const filtered = allTenants.filter((tenant: any) => !tenant.room && !tenant.isArchived);
+      console.log('Filtered available tenants:', filtered.length, filtered);
+      setAvailableTenants(filtered);
     } catch (err: any) {
       console.error('Error fetching tenants:', err);
       setError(err.message || 'Failed to fetch available tenants');
@@ -223,12 +226,12 @@ const ManageTenantsModal: React.FC<Props> = ({ room, onClose, onAddTenant }) => 
             </button>
           </div>
 
-          {/* Select Tenants floating screen (nested overlay within modal) */}
+          {/* Select Tenants floating screen (overlay fixed to viewport so it isn't clipped) */}
           {isSelectOpen && (
-            <div className="absolute inset-0 z-50 flex items-center justify-center">
-              <div className="absolute inset-0 bg-black/40" onClick={() => setIsSelectOpen(false)} />
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+              <div className="fixed inset-0 bg-black/40" onClick={() => setIsSelectOpen(false)} />
 
-              <div className="relative w-full max-w-2xl bg-white rounded-lg shadow-lg flex flex-col max-h-[95vh] z-10">
+              <div className="relative w-full max-w-2xl bg-white rounded-lg shadow-lg flex flex-col max-h-[95vh] z-[10000] overflow-hidden">
                 <div className="flex items-start justify-between p-4 border-b">
                   <div>
                     <h3 className="text-lg font-semibold">Select Tenants</h3>
@@ -239,7 +242,7 @@ const ManageTenantsModal: React.FC<Props> = ({ room, onClose, onAddTenant }) => 
                   </button>
                 </div>
 
-                <div className="p-4 flex-1 flex flex-col">
+                <div className="p-4 flex-1 flex flex-col overflow-y-auto">
                   {loading ? (
                     <div className="flex items-center justify-center py-8">
                       <div className="text-gray-500">Loading available tenants...</div>
@@ -256,15 +259,17 @@ const ManageTenantsModal: React.FC<Props> = ({ room, onClose, onAddTenant }) => 
                     </div>
                   ) : (
                     <>
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="text-sm text-gray-600">Selected: {selectedIds.length} / {available}</div>
-                        <button
-                          onClick={fetchAvailableTenants}
-                          className="text-xs text-blue-600 hover:text-blue-800 px-2 py-1 rounded hover:bg-blue-50"
-                        >
-                          Refresh
-                        </button>
-                      </div>
+                                <div className="flex items-center justify-between mb-2">
+                                  <div className="text-sm text-gray-600">Selected: {selectedIds.length} / {available}</div>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); fetchAvailableTenants(); }}
+                                    disabled={loading}
+                                    className="text-xs text-blue-600 hover:text-blue-800 px-2 py-1 rounded hover:bg-blue-50 disabled:opacity-50"
+                                  >
+                                    {loading ? 'Refreshing...' : 'Refresh'}
+                                  </button>
+                                </div>
                       <div className="space-y-2 overflow-y-auto scroll-smooth h-96 border border-gray-200 rounded-lg p-2" style={{ scrollbarWidth: 'thin' }}>
                         {availableTenants && availableTenants.length > 0 ? availableTenants.map(tenant => {
                           const isSelected = selectedIds.includes(tenant._id);
@@ -299,12 +304,12 @@ const ManageTenantsModal: React.FC<Props> = ({ room, onClose, onAddTenant }) => 
                   )}
                 </div>
 
-                <div className="p-3 border-t flex items-center justify-end gap-3">
-                  <button onClick={() => { setIsSelectOpen(false); setSelectedIds([]); }} className="px-3 py-2 bg-white border rounded-md">Cancel</button>
-                  <button disabled={selectedIds.length === 0} onClick={confirmSelection} className={`px-4 py-2 rounded-md text-white ${selectedIds.length === 0 ? 'bg-gray-300' : 'bg-blue-600'}`}>
-                    Add {selectedIds.length > 0 ? `(${selectedIds.length})` : ''}
-                  </button>
-                </div>
+                      <div className="p-3 border-t flex items-center justify-end gap-3">
+                        <button type="button" onClick={() => { setIsSelectOpen(false); setSelectedIds([]); }} className="px-3 py-2 bg-white border rounded-md">Cancel</button>
+                        <button type="button" disabled={selectedIds.length === 0} onClick={confirmSelection} className={`px-4 py-2 rounded-md text-white ${selectedIds.length === 0 ? 'bg-gray-300' : 'bg-blue-600'}`}>
+                          Add {selectedIds.length > 0 ? `(${selectedIds.length})` : ''}
+                        </button>
+                      </div>
               </div>
             </div>
           )}
