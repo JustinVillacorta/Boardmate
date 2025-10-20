@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { UserPlus } from 'lucide-react';
+import { userManagementService } from '../../services/userManagementService';
 
 interface TenantData {
   id: string;
@@ -14,16 +15,55 @@ interface RecentTenancyChangesProps {
 }
 
 const RecentTenancyChanges: React.FC<RecentTenancyChangesProps> = ({ className = '' }) => {
-  // Hardcoded static data for recent tenants
-  const recentTenants: TenantData[] = [
-    { id: '1', name: 'John Smith', room: '123', startDate: '2025-09-13', status: 'Active' },
-    { id: '2', name: 'John Wick', room: '321', startDate: '2025-09-14', status: 'Active' },
-    { id: '3', name: 'John Cena', room: '231', startDate: '2025-09-15', status: 'Active' },
-    { id: '4', name: 'John John', room: '456', startDate: '2025-09-16', status: 'Active' },
-    { id: '5', name: 'Jane Doe', room: '789', startDate: '2025-09-17', status: 'Active' }
-  ];
-
-  const occupancyPercentage = 80; // Hardcoded occupancy rate
+  const [recentTenants, setRecentTenants] = useState<TenantData[]>([]);
+  const [occupancyPercentage, setOccupancyPercentage] = useState<number>(0);
+  const [loading, setLoading] = useState<boolean>(true);
+  
+  useEffect(() => {
+    let isMounted = true;
+    (async () => {
+      try {
+        // Fetch recent tenants sorted by updatedAt
+        const response = await userManagementService.getStaffAndTenants({
+          userType: 'tenant',
+          limit: 5,
+          sortBy: 'updatedAt',
+          sortOrder: 'desc'
+        });
+        
+        if (isMounted && response.data?.records) {
+          const mapped: TenantData[] = response.data.records.map((u: any) => ({
+            id: u._id,
+            name: u.fullName || `${u.firstName} ${u.lastName}`,
+            room: u.room?.roomNumber || 'N/A',
+            startDate: u.leaseStartDate 
+              ? new Date(u.leaseStartDate).toLocaleDateString() 
+              : 'N/A',
+            status: u.tenantStatus === 'active' ? 'Active' : 'Inactive'
+          }));
+          setRecentTenants(mapped);
+          
+          // Calculate occupancy from tenant data
+          const tenantsWithRooms = mapped.filter(t => t.room !== 'N/A').length;
+          const totalTenants = mapped.length;
+          const percentage = totalTenants > 0 ? Math.round((tenantsWithRooms / totalTenants) * 100) : 0;
+          setOccupancyPercentage(percentage);
+        }
+      } catch (e) {
+        console.error('RecentTenancyChanges: Failed to fetch recent tenancy changes:', e);
+        // Set empty state on error
+        if (isMounted) {
+          setRecentTenants([]);
+          setOccupancyPercentage(0);
+        }
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    })();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   return (
     <div className={`bg-white rounded-lg shadow-sm border border-gray-200 ${className}`}>
@@ -71,8 +111,13 @@ const RecentTenancyChanges: React.FC<RecentTenancyChangesProps> = ({ className =
 
       {/* Tenant List */}
       <div className="p-4 lg:p-6">
-        <div className="space-y-4">
-          {recentTenants.map((tenant) => (
+        {loading ? (
+          <div className="text-gray-500 text-sm">Loading recent changes...</div>
+        ) : recentTenants.length === 0 ? (
+          <div className="text-gray-500 text-sm">No recent tenant activity</div>
+        ) : (
+          <div className="space-y-4">
+            {recentTenants.map((tenant) => (
             <div key={tenant.id} className="flex items-center gap-3 sm:gap-4 p-3 rounded-lg hover:bg-gray-50 transition-colors">
               {/* Avatar */}
               <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -102,7 +147,8 @@ const RecentTenancyChanges: React.FC<RecentTenancyChangesProps> = ({ className =
               </div>
             </div>
           ))}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
