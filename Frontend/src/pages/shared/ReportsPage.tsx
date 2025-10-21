@@ -69,9 +69,12 @@ const ReportsPage: React.FC<ReportsPageProps> = ({ currentPage, onNavigate, user
       }));
 
       setReports(mapped);
-  // if there's a selectedReportId in localStorage, set it so the UI can highlight/scroll
+  // if there's a selectedReportId in localStorage, set it so the UI can highlight/scroll, then remove it
   const stored = localStorage.getItem('selectedReportId');
-  if (stored) setSelectedReportId(stored);
+  if (stored) {
+    setSelectedReportId(stored);
+    localStorage.removeItem('selectedReportId');
+  }
     } catch (err: any) {
       setError(err?.message || 'Failed to load reports');
     } finally {
