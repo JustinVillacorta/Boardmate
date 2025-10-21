@@ -176,4 +176,43 @@ export const authService = {
     const userData = userStorage.get();
     return userData?.user || userData?.tenant || null;
   },
+  
+  /**
+   * Request password reset (sends OTP to email) for user or tenant
+   */
+  async requestPasswordReset(email: string): Promise<void> {
+    try {
+      const response = await api.post('/auth/forgot-password', { email });
+      if (!response.data?.success) throw new Error(response.data?.message || 'Request failed');
+    } catch (err: any) {
+      if (err.response?.data?.message) throw new Error(err.response.data.message);
+      throw err;
+    }
+  },
+
+  /**
+   * Verify OTP for password reset
+   */
+  async verifyOTP(email: string, otp: string): Promise<void> {
+    try {
+      const response = await api.post('/auth/verify-otp', { email, otp });
+      if (!response.data?.success) throw new Error(response.data?.message || 'Verification failed');
+    } catch (err: any) {
+      if (err.response?.data?.message) throw new Error(err.response.data.message);
+      throw err;
+    }
+  },
+
+  /**
+   * Reset password with OTP for user or tenant
+   */
+  async resetPasswordWithOTP(payload: { email: string; otp: string; newPassword: string; confirmPassword: string }): Promise<void> {
+    try {
+      const response = await api.post('/auth/reset-password', payload);
+      if (!response.data?.success) throw new Error(response.data?.message || 'Reset failed');
+    } catch (err: any) {
+      if (err.response?.data?.message) throw new Error(err.response.data.message);
+      throw err;
+    }
+  },
 };

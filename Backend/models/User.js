@@ -34,14 +34,6 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
-  resetPasswordOTP: {
-    type: String,
-    select: false,
-  },
-  resetPasswordOTPExpires: {
-    type: Date,
-    select: false,
-  },
 }, { 
   timestamps: true,
   toJSON: { virtuals: true },

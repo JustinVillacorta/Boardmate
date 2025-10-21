@@ -1,9 +1,14 @@
+import dotenv from 'dotenv';
+
+// Load environment variables as early as possible so other modules (which may
+// initialize transports or read env at import time) have access to them.
+dotenv.config();
+
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
-import dotenv from 'dotenv';
 
 // Import routes
 import authRoutes from './routes/authRoutes.js';

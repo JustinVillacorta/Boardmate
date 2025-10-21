@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { authService } from '../../services/authService';
 import { UserRole } from '../../types';
+import ForgotPasswordModal from './ForgotPasswordModal';
 
 interface LoginFormProps {
   onLogin?: (userRole: UserRole) => void;
@@ -51,12 +52,17 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
     }
   };
 
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const openForgot = () => setForgotOpen(true);
+  const closeForgot = () => setForgotOpen(false);
+
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <>
+      <form onSubmit={handleSubmit} className="space-y-6">
       {/* Error Message */}
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg">
@@ -132,10 +138,12 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
 
       {/* Forgot Password Link */}
       <div className="flex items-center justify-end">
-        <a href="#forgot-password" className="text-sm text-blue-600 hover:text-blue-500 transition-colors">
+        <button type="button" onClick={openForgot} className="text-sm text-blue-600 hover:text-blue-500 transition-colors">
           Forgot Password?
-        </a>
+        </button>
       </div>
+
+      
 
       {/* Login Button */}
       <button
@@ -151,7 +159,11 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
         )}
         {isLoading ? 'Signing in...' : 'Log in'}
       </button>
-    </form>
+      </form>
+
+      {/* Render modal outside the login form to avoid nested form issues */}
+      <ForgotPasswordModal open={forgotOpen} onClose={closeForgot} />
+    </>
   );
 };
 
