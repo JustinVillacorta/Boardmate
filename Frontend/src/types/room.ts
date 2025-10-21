@@ -146,6 +146,7 @@ export interface RoomDisplayData {
   name: string;
   type: string;
   rent: string;
+  rentNumber?: number;
   capacity: number;
   occupancy: string;
   status: 'available' | 'occupied' | 'maintenance' | 'unavailable';
@@ -161,4 +162,5 @@ export interface RoomDisplayData {
     phoneNumber?: string;
     status: string;
   }>;
+  updatedAt?: string;
 }
