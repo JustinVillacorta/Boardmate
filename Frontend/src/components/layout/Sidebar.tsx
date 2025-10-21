@@ -40,8 +40,8 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage = 'dashboard', onNavigate
     }
   })();
   
-  // Mock user data - replace with actual auth context
-  const user = {
+  // Get actual user data from localStorage if available
+  let user = {
     username: currentUserRole === 'staff' ? "staff" : currentUserRole === 'tenant' ? "tenant" : "admin",
     role: currentUserRole === 'staff' ? "Staff" : currentUserRole === 'tenant' ? "Tenant" : "Admin",
     tenant: {
@@ -49,6 +49,31 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage = 'dashboard', onNavigate
       lastName: "User"
     }
   };
+  try {
+    const userDataStr = localStorage.getItem('userData');
+    if (userDataStr) {
+      const userData = JSON.parse(userDataStr);
+      if (userData.tenant && userData.role === 'tenant') {
+        user = {
+          username: userData.tenant.email || userData.tenant.firstName || 'tenant',
+          role: 'Tenant',
+          tenant: {
+            firstName: userData.tenant.firstName || '',
+            lastName: userData.tenant.lastName || ''
+          }
+        };
+      } else if (userData.user) {
+        user = {
+          username: userData.user.email || userData.user.firstName || 'user',
+          role: userData.user.role.charAt(0).toUpperCase() + userData.user.role.slice(1),
+          tenant: {
+            firstName: userData.user.firstName || '',
+            lastName: userData.user.lastName || ''
+          }
+        };
+      }
+    }
+  } catch {}
 
   const handleLogout = async () => {
     try {

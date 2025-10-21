@@ -50,7 +50,10 @@ const TenantReports: React.FC<ReportsProps> = ({ currentPage, onNavigate }) => {
       setReports(mapped);
 
       const stored = localStorage.getItem('selectedReportId');
-      if (stored) setSelectedReportId(stored);
+      if (stored) {
+        setSelectedReportId(stored);
+        localStorage.removeItem('selectedReportId');
+      }
     } catch (err: any) {
       setError(err?.message || 'Failed to load reports');
     } finally {

@@ -34,38 +34,96 @@ export const createPayment = catchAsync(async (req, res, next) => {
     lateFee
   } = req.body;
 
-  // Verify tenant exists
-  const tenantExists = await Tenant.findById(tenant);
-  if (!tenantExists) {
-    return next(new AppError('Tenant not found', 404));
-  }
-
   // Verify room exists
-  const roomExists = await Room.findById(room);
+  const roomExists = await Room.findById(room).populate('tenants');
   if (!roomExists) {
     return next(new AppError('Room not found', 404));
   }
 
-  // Auto defaults for amount when not provided: rent -> monthlyRent, deposit -> securityDeposit
-  if ((amount === undefined || amount === null) && paymentType) {
-    if (paymentType === 'rent') {
-      const defaultRent = tenantExists.monthlyRent ?? (await Room.findById(room))?.monthlyRent;
-      if (defaultRent !== undefined) amount = defaultRent;
-    } else if (paymentType === 'deposit') {
-      const defaultDeposit = tenantExists.securityDeposit ?? (await Room.findById(room))?.securityDeposit;
-      if (defaultDeposit !== undefined) amount = defaultDeposit;
+  // If tenant is specified, verify tenant exists and belongs to the room
+  if (tenant) {
+    const tenantExists = await Tenant.findById(tenant);
+    if (!tenantExists) {
+      return next(new AppError('Tenant not found', 404));
+    }
+    if (!roomExists.tenants.map(t => t.toString()).includes(tenant.toString())) {
+      return next(new AppError('Tenant does not belong to this room', 400));
     }
   }
 
-  // Guard required amount
+  // If tenant is not specified, divide payment among all active tenants in the room
+  if (!tenant) {
+    // Get all active tenants for the room
+    const activeTenants = await Tenant.find({
+      _id: { $in: roomExists.tenants },
+      isArchived: false,
+      tenantStatus: 'active'
+    });
+    if (!activeTenants.length) {
+      return next(new AppError('No active tenants found for this room', 400));
+    }
+    // If paymentType is 'rent' and amount is not provided, use room's monthlyRent
+    let totalAmount = amount;
+    if ((amount === undefined || amount === null) && paymentType === 'rent') {
+      totalAmount = roomExists.monthlyRent;
+    }
+    // If still no amount, error
+    if (totalAmount === undefined || totalAmount === null) {
+      return next(new AppError('Amount is required (or room must have monthlyRent)', 400));
+    }
+    // Divide totalAmount equally
+    const share = Math.round((totalAmount / activeTenants.length) * 100) / 100;
+    const payments = [];
+    for (const t of activeTenants) {
+      const payment = await Payment.create({
+        tenant: t._id,
+        room,
+        amount: share,
+        paymentType,
+        paymentMethod,
+        paymentDate: paymentDate || (status === 'paid' ? new Date() : undefined),
+        dueDate,
+        status: status === 'due' ? 'pending' : (status || 'pending'),
+        periodCovered,
+        transactionReference,
+        description,
+        notes,
+        recordedBy: req.user.id,
+        lateFee: lateFee || { amount: 0, isLatePayment: false }
+      });
+      await payment.populate([
+        { path: 'tenant', select: 'firstName lastName email phoneNumber' },
+        { path: 'room', select: 'roomNumber roomType monthlyRent' },
+        { path: 'recordedBy', select: 'name email role' }
+      ]);
+      if (payment.status === 'pending') {
+        await NotificationService.createPaymentDueNotification(payment);
+      }
+      payments.push(payment);
+    }
+    return res.status(201).json({
+      success: true,
+      message: `Payment records created for ${activeTenants.length} tenants`,
+      data: { payments }
+    });
+  }
+
+  // If tenant is specified, proceed as before
+  // Auto defaults for amount when not provided: rent -> monthlyRent, deposit -> securityDeposit
+  const tenantExists = await Tenant.findById(tenant);
+  if ((amount === undefined || amount === null) && paymentType) {
+    if (paymentType === 'rent') {
+      const defaultRent = tenantExists.monthlyRent ?? roomExists.monthlyRent;
+      if (defaultRent !== undefined) amount = defaultRent;
+    } else if (paymentType === 'deposit') {
+      const defaultDeposit = tenantExists.securityDeposit ?? roomExists.securityDeposit;
+      if (defaultDeposit !== undefined) amount = defaultDeposit;
+    }
+  }
   if (amount === undefined || amount === null) {
     return next(new AppError('Amount is required', 400));
   }
-
-  // Normalize status from potential "due" to "pending"
   const normalizedStatus = status === 'due' ? 'pending' : (status || 'pending');
-
-  // Create payment
   const payment = await Payment.create({
     tenant,
     room,
@@ -82,25 +140,18 @@ export const createPayment = catchAsync(async (req, res, next) => {
     recordedBy: req.user.id,
     lateFee: lateFee || { amount: 0, isLatePayment: false }
   });
-
-  // Populate the payment data
   await payment.populate([
     { path: 'tenant', select: 'firstName lastName email phoneNumber' },
     { path: 'room', select: 'roomNumber roomType monthlyRent' },
     { path: 'recordedBy', select: 'name email role' }
   ]);
-
-  // Create payment due notification if payment is pending and due soon
   if (payment.status === 'pending') {
     await NotificationService.createPaymentDueNotification(payment);
   }
-
   res.status(201).json({
     success: true,
     message: 'Payment record created successfully',
-    data: {
-      payment
-    }
+    data: { payment }
   });
 });
 

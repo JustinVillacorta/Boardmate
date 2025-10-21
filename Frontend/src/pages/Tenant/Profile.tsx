@@ -44,60 +44,67 @@ const Profile: React.FC<ProfileProps> = ({ currentPage, onNavigate }) => {
   });
 
   useEffect(() => {
-    const loadProfile = async () => {
-      // Try local storage first
-      let userData: any = authService.getUserData();
-
-      if (!userData) {
+    // Only refetch when currentPage is 'profile' (or on mount)
+    if (currentPage === undefined || currentPage === 'profile') {
+      const loadProfile = async () => {
+        // Always fetch latest user/tenant data from backend
         const refreshed = await authService.getCurrentUser();
-        userData = refreshed?.userData || null;
-      }
+        const userData = refreshed?.userData || null;
 
-      if (userData && (userData as any).firstName) {
-        // tenant object
-        const tenant = userData as any;
-        setContactForm({
-          fullName: `${tenant.firstName} ${tenant.lastName}`.trim(),
-          email: tenant.email || '',
-          phone: tenant.phoneNumber || '',
-          emergencyContact: tenant.emergencyContact?.phoneNumber || ''
-        });
+        if (userData && (userData as any).firstName) {
+          // tenant object
+          const tenant = userData as any;
+          setContactForm({
+            fullName: `${tenant.firstName} ${tenant.lastName}`.trim(),
+            email: tenant.email || '',
+            phone: tenant.phoneNumber || '',
+            emergencyContact: tenant.emergencyContact?.phoneNumber || ''
+          });
 
-        // Determine room details. tenant.room may be populated object or just an id string
-        let roomNumber = '';
-        let roomType = '';
+          // Determine room details. tenant.room may be populated object or just an id string
+          let roomNumber = '';
+          let roomType = '';
 
-        try {
-          if (tenant.room) {
-            if (typeof tenant.room === 'string') {
-              // fetch room document
-              const roomRes = await api.get(`/rooms/${tenant.room}`);
-              const room = roomRes.data?.data?.room || roomRes.data?.data || roomRes.data;
-              roomNumber = room?.roomNumber || tenant.room;
-              roomType = room?.roomType || '';
-            } else if (typeof tenant.room === 'object') {
-              roomNumber = tenant.room.roomNumber || '';
-              roomType = tenant.room.roomType || '';
+          try {
+            if (tenant.room) {
+              if (typeof tenant.room === 'string') {
+                // fetch room document
+                const roomRes = await api.get(`/rooms/${tenant.room}`);
+                const room = roomRes.data?.data?.room || roomRes.data?.data || roomRes.data;
+                roomNumber = room?.roomNumber || tenant.room;
+                roomType = room?.roomType || '';
+              } else if (typeof tenant.room === 'object') {
+                roomNumber = tenant.room.roomNumber || '';
+                roomType = tenant.room.roomType || '';
+              }
+            }
+          } catch (err) {
+            // If room fetch fails, fall back to whatever is available
+            roomNumber = tenant.room?.roomNumber || String(tenant.room || '');
+          }
+
+          // Calculate per-tenant rent if room.tenants is available
+          let perTenantRent = tenant.monthlyRent || 0;
+          if (tenant.room && typeof tenant.room === 'object' && Array.isArray(tenant.room.tenants)) {
+            const activeTenants = tenant.room.tenants.filter((t: any) => t.tenantStatus === 'active');
+            const numActive = activeTenants.length || 1;
+            if (tenant.room.monthlyRent) {
+              perTenantRent = tenant.room.monthlyRent / numActive;
             }
           }
-        } catch (err) {
-          // If room fetch fails, fall back to whatever is available
-          roomNumber = tenant.room?.roomNumber || String(tenant.room || '');
+          setTenancyInfo({
+            roomNumber,
+            roomType,
+            monthlyRent: perTenantRent,
+            leaseStartDate: tenant.leaseStartDate ? new Date(tenant.leaseStartDate).toLocaleDateString() : '',
+            accountStatus: tenant.tenantStatus ? tenant.tenantStatus.charAt(0).toUpperCase() + tenant.tenantStatus.slice(1) : '',
+            securityDeposit: tenant.securityDeposit || 0
+          });
         }
-
-        setTenancyInfo({
-          roomNumber,
-          roomType,
-          monthlyRent: tenant.monthlyRent || 0,
-          leaseStartDate: tenant.leaseStartDate ? new Date(tenant.leaseStartDate).toLocaleDateString() : '',
-          accountStatus: tenant.tenantStatus ? tenant.tenantStatus.charAt(0).toUpperCase() + tenant.tenantStatus.slice(1) : '',
-          securityDeposit: tenant.securityDeposit || 0
-        });
-      }
-    };
-
-    loadProfile();
-  }, []);
+      };
+      loadProfile();
+    }
+  }, [currentPage]);
 
   const handleContactInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -289,7 +296,7 @@ const Profile: React.FC<ProfileProps> = ({ currentPage, onNavigate }) => {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Monthly Rent
+                      Monthly Rent <span className="text-xs text-gray-500">(Your Share)</span>
                     </label>
                     <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-900">
                       ₱{tenancyInfo.monthlyRent.toLocaleString()}

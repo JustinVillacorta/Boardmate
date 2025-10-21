@@ -131,7 +131,11 @@ export const getMe = catchAsync(async (req, res, next) => {
   let user;
   
   if (req.userType === 'tenant') {
-    user = await Tenant.findById(req.user.id).populate('room', 'roomNumber roomType monthlyRent');
+    user = await Tenant.findById(req.user.id).populate({
+      path: 'room',
+      select: 'roomNumber roomType monthlyRent tenants',
+      populate: { path: 'tenants', select: 'tenantStatus' }
+    });
   } else {
     user = await User.findById(req.user.id);
   }

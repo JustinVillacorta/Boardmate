@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Sidebar from "../../components/layout/Sidebar";
 import TopNavbar from "../../components/layout/TopNavbar";
 import TenantInfoCards from "../../components/tenant/TenantInfoCards";
@@ -17,26 +17,25 @@ const Dashboard: React.FC<DashboardProps> = ({ currentPage, onNavigate, onLogout
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let isMounted = true;
-    (async () => {
-      try {
-        const result = await tenantDashboardService.fetchTenantDashboard();
-        if (isMounted) {
-          setData(result);
-        }
-      } catch (e: any) {
-        if (isMounted) {
-          setError(e?.message || "Failed to load dashboard data");
-        }
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    })();
-    return () => {
-      isMounted = false;
-    };
+  const fetchDashboardData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await tenantDashboardService.fetchTenantDashboard();
+      setData(result);
+    } catch (e: any) {
+      setError(e?.message || "Failed to load dashboard data");
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    // Refetch dashboard data when currentPage changes to 'dashboard'
+    if (currentPage === 'dashboard') {
+      fetchDashboardData();
+    }
+  }, [currentPage, fetchDashboardData]);
 
   const handleViewPaymentHistory = () => {
     if (onNavigate) {
