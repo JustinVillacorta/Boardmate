@@ -1,22 +1,16 @@
 import React, { useEffect, useState } from "react";
-import { Search, Bell } from "lucide-react";
+import { Bell } from "lucide-react";
 import { notificationService } from '../../services/notificationService';
-import { userManagementService } from '../../services/userManagementService';
-import { getRooms } from '../../services/roomManagementService';
-import { reportService } from '../../services/reportService';
 
 interface TopNavbarProps {
   title?: string;
   subtitle?: string;
   currentPage?: string;
-  // Called when the user submits a search (presses Enter or clicks search)
-  onSearch?: (query: string) => void;
   // Called when the notifications panel is opened
   // When the notifications panel opens or a notification is clicked,
   // we call this with an optional notification payload.
   onNotificationOpen?: (notification?: any) => void;
-  // Allow pages to hide the search or notifications when needed
-  showSearch?: boolean;
+  // Allow pages to hide notifications when needed
   showNotifications?: boolean;
 }
 
@@ -24,9 +18,7 @@ const TopNavbar: React.FC<TopNavbarProps> = ({
   title, 
   subtitle,
   currentPage,
-  onSearch,
   onNotificationOpen,
-  showSearch,
   showNotifications,
 }) => {
   // Get page-specific title and subtitle based on currentPage
@@ -73,10 +65,7 @@ const TopNavbar: React.FC<TopNavbarProps> = ({
     subtitle: subtitle || derived.subtitle,
   };
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [suggestions, setSuggestions] = useState<any[]>([]);
-  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
-  const [showMobileSearch, setShowMobileSearch] = useState(false);
+  // ...existing code...
   const [notifications, setNotifications] = useState<Array<any>>([]);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
 
@@ -116,46 +105,7 @@ const TopNavbar: React.FC<TopNavbarProps> = ({
     return () => { mounted = false; };
   }, []);
 
-  // simple debounce helper
-  const debounce = (fn: (...args: any[]) => void, delay = 300) => {
-    let t: any;
-    return (...args: any[]) => {
-      clearTimeout(t);
-      t = setTimeout(() => fn(...args), delay);
-    };
-  };
-
-  // Query suggestions from a few endpoints. Keep it lightweight and limited.
-  const fetchSuggestions = async (q: string) => {
-    const trimmed = (q || '').trim();
-    if (!trimmed) {
-      setSuggestions([]);
-      setSuggestionsOpen(false);
-      return;
-    }
-    try {
-      const [usersRes, roomsRes, reportsRes] = await Promise.all([
-        userManagementService.getStaffAndTenants({ page: 1, limit: 4, search: trimmed }).then(r => r.data.records).catch(() => []),
-        getRooms({ page: 1, limit: 4, search: trimmed }).then(r => r.data.rooms).catch(() => []),
-        reportService.getReports({ page: 1, limit: 4, search: trimmed }).then(r => r.data.reports).catch(() => []),
-      ]);
-
-      const mapped = [
-        ...(usersRes || []).map((u: any) => ({ id: u._id || u.id, kind: 'user', title: u.fullName || `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email, subtitle: u.email, raw: u })),
-        ...(roomsRes || []).map((room: any) => ({ id: room._id || room.id, kind: 'room', title: room.roomNumber || room.name, subtitle: room.roomType || room.type, raw: room })),
-        ...(reportsRes || []).map((rep: any) => ({ id: rep._id || rep.id, kind: 'report', title: rep.title || rep.subject || `Report ${rep._id || rep.id}`, subtitle: rep.status || rep.type, raw: rep })),
-      ].slice(0, 6);
-
-      setSuggestions(mapped);
-      setSuggestionsOpen(mapped.length > 0);
-    } catch (e) {
-      setSuggestions([]);
-      setSuggestionsOpen(false);
-    }
-  };
-
-  // debounced version stored once
-  const debouncedFetch = React.useMemo(() => debounce(fetchSuggestions, 300), []);
+  // ...existing code...
 
   return (
     <header className="bg-blue-50 shadow-sm border-b border-gray-200 px-4 lg:px-6 py-4 lg:py-9 relative">
@@ -172,77 +122,7 @@ const TopNavbar: React.FC<TopNavbarProps> = ({
 
         {/* Right - Responsive */}
         <div className="flex items-center space-x-2 lg:space-x-4">
-          {/* Search Bar - Hidden on mobile, shown on tablet+ */}
-          {showSearch !== false && (
-            <>
-              <div className="hidden md:block relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => { setSearchQuery(e.target.value); debouncedFetch(e.target.value); }}
-                  onFocus={() => { if (suggestions.length > 0) setSuggestionsOpen(true); }}
-                  onBlur={() => { setTimeout(() => setSuggestionsOpen(false), 180); }}
-                  onKeyDown={(e) => { if (e.key === 'Enter') onSearch && onSearch(searchQuery); }}
-                  placeholder="Search for anything..."
-                  className="pl-10 pr-4 py-2 w-64 lg:w-80 xl:w-96 border border-gray-300 rounded-lg shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-                {suggestionsOpen && suggestions.length > 0 && (
-                  <div className="absolute left-0 mt-2 w-full bg-white rounded-lg shadow-lg border border-gray-200 z-40">
-                    <ul>
-                      {suggestions.map((s, i) => (
-                        <li key={s.id || i} className="px-3 py-2 hover:bg-gray-50 cursor-pointer" onMouseDown={() => { onSearch && onSearch(s.title); setSearchQuery(s.title); setSuggestionsOpen(false); }}>
-                          <div className="flex items-center justify-between">
-                            <div className="min-w-0">
-                              <div className="text-sm font-medium text-gray-900 truncate">{s.title}</div>
-                              {s.subtitle && <div className="text-xs text-gray-500 truncate">{s.subtitle}</div>}
-                            </div>
-                            <div className="ml-3 text-xs text-gray-400">{s.kind}</div>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-
-              {/* Mobile Search Toggle: opens a small input below icons */}
-              <div className="md:hidden relative">
-                <button
-                  type="button"
-                  className="p-2 text-gray-500 hover:text-gray-700 rounded-lg"
-                  onClick={() => setShowMobileSearch((s) => !s)}
-                  aria-label="Open search"
-                >
-                  <Search className="w-5 h-5" />
-                </button>
-                {showMobileSearch && (
-                  <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-40 p-2">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                      <input
-                        type="text"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        onKeyDown={(e) => { if (e.key === 'Enter') { onSearch && onSearch(searchQuery); setShowMobileSearch(false); } }}
-                        placeholder="Search..."
-                        className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                    <div className="mt-2 text-right">
-                      <button
-                          type="button"
-                        onClick={() => { onSearch && onSearch(searchQuery); setShowMobileSearch(false); }}
-                        className="px-3 py-1 bg-blue-600 text-white rounded text-sm"
-                      >
-                        Search
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </>
-          )}
+          {/* Search removed as requested */}
 
           {/* Notifications */}
           {showNotifications !== false && (

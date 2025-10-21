@@ -96,7 +96,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ currentPage, on
           currentPage={currentPage}
           title="Payment" 
           subtitle={userRole === 'staff' ? "Manage tenant payments and dues" : "Manage your account and preferences"} 
-          onSearch={(q) => { /* payment history search */ }}
+          // onSearch removed
           onNotificationOpen={() => onNavigate && onNavigate('notifications')}
         />
 

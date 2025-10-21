@@ -64,7 +64,7 @@ const PaymentPage: React.FC<PaymentPageProps> = ({ currentPage, onNavigate, user
           currentPage={currentPage}
           title="Payment" 
           subtitle={userRole === 'staff' ? "Manage tenant payments and dues" : "Manage your account and preferences"} 
-          onSearch={(q) => setQuery(q)}
+          // onSearch removed
           onNotificationOpen={() => onNavigate && onNavigate('notifications')}
         />
 

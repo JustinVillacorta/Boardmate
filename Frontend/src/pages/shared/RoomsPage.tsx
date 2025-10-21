@@ -147,7 +147,7 @@ const RoomsPage: React.FC<RoomsPageProps> = ({ currentPage, onNavigate, userRole
       <Sidebar currentPage={currentPage} onNavigate={onNavigate} userRole={userRole} />
 
       <div className="flex-1 flex flex-col min-w-0 lg:pl-64">
-  <TopNavbar currentPage={currentPage} title="Rooms" subtitle="Manage room inventory and occupancy" onSearch={(q) => setSearch(q)} onNotificationOpen={() => onNavigate && onNavigate('notifications')} />
+  <TopNavbar currentPage={currentPage} title="Rooms" subtitle="Manage room inventory and occupancy" onNotificationOpen={() => onNavigate && onNavigate('notifications')} />
 
         <main className="flex-1 p-4 lg:p-6 overflow-auto">
 
