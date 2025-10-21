@@ -135,6 +135,14 @@ const tenantSchema = new mongoose.Schema({
   verificationToken: String,
   passwordResetToken: String,
   passwordResetExpires: Date,
+  resetPasswordOTP: {
+    type: String,
+    select: false,
+  },
+  resetPasswordOTPExpires: {
+    type: Date,
+    select: false,
+  },
 }, { 
   timestamps: true,
   toJSON: { virtuals: true },

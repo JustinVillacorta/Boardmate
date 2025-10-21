@@ -1,3 +1,5 @@
+import crypto from 'crypto';
+import { sendEmail } from '../utils/emailService.js';
 import jwt from 'jsonwebtoken';
 import { validationResult } from 'express-validator';
 import User from '../models/User.js';
@@ -1111,6 +1113,97 @@ export const getTenantsOnly = catchAsync(async (req, res, next) => {
       }
     }
   });
+});
+
+// ======= UNIFIED FORGOT PASSWORD (OTP) FLOW FOR USERS & TENANTS =======
+
+// @desc    Request password reset (send OTP) for user or tenant
+// @route   POST /api/auth/forgot-password
+// @access  Public
+export const forgotPassword = catchAsync(async (req, res, next) => {
+  const { email } = req.body;
+  if (!email) return next(new AppError('Email is required', 400));
+
+  // Try User first, then Tenant
+  let account = await User.findOne({ email });
+  let accountType = 'user';
+  if (!account) {
+    account = await Tenant.findOne({ email });
+    accountType = 'tenant';
+  }
+  if (!account) return next(new AppError('No user or tenant found with that email', 404));
+
+  // Generate 6-digit OTP
+  const otp = (Math.floor(100000 + Math.random() * 900000)).toString();
+  account.resetPasswordOTP = otp;
+  account.resetPasswordOTPExpires = Date.now() + 10 * 60 * 1000; // 10 min
+  await account.save();
+
+  // Send OTP email
+  await sendEmail({
+    to: account.email,
+    subject: `Boardmate ${accountType === 'tenant' ? 'Tenant ' : ''}Password Reset OTP`,
+    text: `Your OTP for password reset is: ${otp}. It expires in 10 minutes.`,
+    html: `<p>Your OTP for password reset is: <b>${otp}</b>. It expires in 10 minutes.</p>`
+  });
+
+  res.status(200).json({ success: true, message: 'OTP sent to email' });
+});
+
+// @desc    Verify OTP for user or tenant
+// @route   POST /api/auth/verify-otp
+// @access  Public
+export const verifyOTP = catchAsync(async (req, res, next) => {
+  const { email, otp } = req.body;
+  if (!email || !otp) return next(new AppError('Email and OTP are required', 400));
+
+  // Try User first, then Tenant
+  let account = await User.findOne({ email }).select('+resetPasswordOTP +resetPasswordOTPExpires');
+  if (!account) {
+    account = await Tenant.findOne({ email }).select('+resetPasswordOTP +resetPasswordOTPExpires');
+  }
+  if (!account || !account.resetPasswordOTP || !account.resetPasswordOTPExpires)
+    return next(new AppError('OTP not requested or expired', 400));
+
+  if (account.resetPasswordOTP !== otp)
+    return next(new AppError('Invalid OTP', 400));
+
+  if (account.resetPasswordOTPExpires < Date.now())
+    return next(new AppError('OTP expired', 400));
+
+  res.status(200).json({ success: true, message: 'OTP verified' });
+});
+
+// @desc    Reset password with OTP for user or tenant
+// @route   POST /api/auth/reset-password
+// @access  Public
+export const resetPasswordWithOTP = catchAsync(async (req, res, next) => {
+  const { email, otp, newPassword, confirmPassword } = req.body;
+  if (!email || !otp || !newPassword || !confirmPassword)
+    return next(new AppError('All fields are required', 400));
+  if (newPassword !== confirmPassword)
+    return next(new AppError('Passwords do not match', 400));
+
+  // Try User first, then Tenant
+  let account = await User.findOne({ email }).select('+resetPasswordOTP +resetPasswordOTPExpires +password');
+  if (!account) {
+    account = await Tenant.findOne({ email }).select('+resetPasswordOTP +resetPasswordOTPExpires +password');
+  }
+  if (!account || !account.resetPasswordOTP || !account.resetPasswordOTPExpires)
+    return next(new AppError('OTP not requested or expired', 400));
+
+  if (account.resetPasswordOTP !== otp)
+    return next(new AppError('Invalid OTP', 400));
+
+  if (account.resetPasswordOTPExpires < Date.now())
+    return next(new AppError('OTP expired', 400));
+
+  account.password = newPassword;
+  account.resetPasswordOTP = undefined;
+  account.resetPasswordOTPExpires = undefined;
+  await account.save();
+
+  res.status(200).json({ success: true, message: 'Password reset successful' });
 });
 
 // @desc    Get authentication statistics

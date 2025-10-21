@@ -19,6 +19,9 @@ import {
   unarchiveUserByAdmin,
   archiveTenantByAdmin,
   unarchiveTenantByAdmin,
+  forgotPassword, 
+  verifyOTP, 
+  resetPasswordWithOTP
 } from '../controllers/authController.js';
 import { protect, adminOnly, staffOrAdmin, canManageTenants, canManageStaff } from '../middleware/auth.js';
 import {
@@ -78,5 +81,10 @@ router.patch('/admin/unarchive-user/:userId', protect, canManageStaff, unarchive
 router.put('/staff/update-tenant/:tenantId', protect, canManageTenants, updateTenantByStaff);
 router.delete('/admin/archive-tenant/:tenantId', protect, canManageTenants, archiveTenantByAdmin);
 router.patch('/admin/unarchive-tenant/:tenantId', protect, canManageTenants, unarchiveTenantByAdmin);
+
+// Forgot password (OTP) routes
+router.post('/forgot-password', forgotPassword);
+router.post('/verify-otp', verifyOTP);
+router.post('/reset-password', resetPasswordWithOTP);
 
 export default router;

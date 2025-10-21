@@ -1,3 +1,4 @@
+
 # Boardmate API Test Examples
 
 This file contains comprehensive examples for testing all API endpoints using various tools like Postman, curl, or JavaScript fetch.
@@ -273,6 +274,38 @@ curl -X DELETE http://localhost:8000/api/auth/tenant/archive \
 curl -X POST http://localhost:8000/api/auth/logout
 ```
 
+### 1.19 Forgot Password (OTP) Flow
+
+#### 1.19.1 Request Password Reset (Send OTP)
+```bash
+curl -X POST http://localhost:8000/api/auth/forgot-password \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "john.admin@boardmate.com"
+  }'
+```
+
+#### 1.19.2 Verify OTP
+```bash
+curl -X POST http://localhost:8000/api/auth/verify-otp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "john.admin@boardmate.com",
+    "otp": "123456"
+  }'
+```
+
+#### 1.19.3 Reset Password with OTP
+```bash
+curl -X POST http://localhost:8000/api/auth/reset-password \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "john.admin@boardmate.com",
+    "otp": "123456",
+    "newPassword": "NewAdmin123!",
+    "confirmPassword": "NewAdmin123!"
+  }'
+```
 ---
 
 ## 2. ROOM MANAGEMENT ENDPOINTS
