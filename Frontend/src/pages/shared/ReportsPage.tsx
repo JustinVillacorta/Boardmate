@@ -27,7 +27,15 @@ const ReportsPage: React.FC<ReportsPageProps> = ({ currentPage, onNavigate, user
     try {
       const params: any = { page: 1, limit: 50 };
       if (query) params.search = query;
-      if (activeTab && activeTab !== 'All') params.status = activeTab.toLowerCase();
+      if (activeTab && activeTab !== 'All') {
+        // Map UI tab to backend status value
+        let statusParam = activeTab.toLowerCase();
+        if (activeTab === 'In Progress') statusParam = 'in-progress';
+        if (activeTab === 'Resolved') statusParam = 'resolved';
+        if (activeTab === 'Rejected') statusParam = 'rejected';
+        if (activeTab === 'Pending') statusParam = 'pending';
+        params.status = statusParam;
+      }
 
       const res = await reportService.getReports(params);
       // Map backend status values (e.g., 'in-progress') to UI labels ('In Progress')
@@ -71,8 +79,12 @@ const ReportsPage: React.FC<ReportsPageProps> = ({ currentPage, onNavigate, user
     }
   };
 
+  // Normalize status for robust filtering (e.g., 'In Progress' tab matches 'in-progress', 'in progress', etc)
+  const normalizeStatus = (s: string) => s.replace(/[-_ ]/g, '').toLowerCase();
   const filtered = reports.filter(r => {
-    if (activeTab !== 'All' && activeTab !== r.status && !(activeTab === 'In Progress' && r.status === 'In Progress')) return false;
+    if (activeTab !== 'All') {
+      if (normalizeStatus(activeTab) !== normalizeStatus(r.status || '')) return false;
+    }
     if (!query) return true;
     const q = query.toLowerCase();
     return (r.title + ' ' + (r.description || '') + ' ' + (r.reporter || '')).toLowerCase().includes(q);
