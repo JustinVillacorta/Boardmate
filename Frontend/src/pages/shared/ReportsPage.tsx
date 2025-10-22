@@ -4,6 +4,7 @@ import TopNavbar from '../../components/layout/TopNavbar';
 import SummaryCard from '../../components/reports/SummaryCard';
 import { AlertCircle, CheckCircle2, Play, Clock } from 'lucide-react';
 import ReportCard from '../../components/reports/ReportCard';
+import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import { ReportItem } from '../../types/report';
 import { reportService } from '../../services/reportService';
 
@@ -122,6 +123,28 @@ const ReportsPage: React.FC<ReportsPageProps> = ({ currentPage, onNavigate, user
     }
   };
 
+  // Confirmation dialog state for any requested status change
+  const [confirmOpen, setConfirmOpen] = React.useState(false);
+  const [pendingChange, setPendingChange] = React.useState<null | { id: string; status: ReportItem['status']; title?: string; locked?: boolean }>(null);
+
+  const openConfirmFor = (id: string, status: ReportItem['status'], title?: string, locked: boolean = false) => {
+    setPendingChange({ id, status, title, locked });
+    setConfirmOpen(true);
+  };
+
+  const handleConfirm = async () => {
+    if (!pendingChange) return;
+    const { id, status } = pendingChange;
+    setConfirmOpen(false);
+    setPendingChange(null);
+    await handleStatusChange(id, status);
+  };
+
+  const handleCancel = () => {
+    setConfirmOpen(false);
+    setPendingChange(null);
+  };
+
   // Role-based functionality
   const canCreateReports = userRole === 'admin'; // Only admin can create reports
   const canModifyReports = userRole === 'admin' || userRole === 'staff'; // Admin and staff can modify reports
@@ -163,9 +186,7 @@ const ReportsPage: React.FC<ReportsPageProps> = ({ currentPage, onNavigate, user
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
                   <h1 className="text-2xl font-semibold">Reports</h1>
-                  <p className="text-sm text-gray-500">
-                    {userRole === 'staff' ? 'View reports and maintenance requests' : 'Generate and view reports'}
-                  </p>
+                  <p className="text-sm text-gray-500">Showing {filtered.length} reports</p>
                 </div>
                 <div className="w-full md:w-1/2">
                   <input
@@ -209,43 +230,66 @@ const ReportsPage: React.FC<ReportsPageProps> = ({ currentPage, onNavigate, user
               />
             </div>
 
-            <div className="bg-white rounded-xl shadow p-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-3">
-                <div className="flex items-center space-x-3 overflow-x-auto">
-                  {(['All', 'Resolved', 'In Progress', 'Pending', 'Rejected'] as const).map(t => (
-                    <button
-                      key={t}
-                      onClick={() => setActiveTab(t as any)}
-                      className={`px-3 py-2 rounded-md ${activeTab === t ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50'}`}
-                    >
-                      {t} {t === 'All' && `(${reports.length})`}
-                    </button>
-                  ))}
+            {/* Tabs and summary - floating like Notifications */}
+            <div className="mb-6">
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex-1 pr-6">
+                  <div className="mt-4">
+                    <div className="inline-flex items-center gap-3 overflow-x-auto bg-white rounded-md px-3 py-2 shadow-sm">
+                      {(['All', 'Resolved', 'In Progress', 'Pending', 'Rejected'] as const).map(t => (
+                        <button
+                          key={t}
+                          onClick={() => setActiveTab(t as any)}
+                          className={`px-3 py-2 rounded-md ${activeTab === t ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50'}`}
+                        >
+                          {t} {t === 'All' && `(${reports.length})`}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
-                <div className="text-sm text-gray-500">Showing {filtered.length} reports</div>
+                <div className="flex items-center justify-end min-w-0">
+                  {/* subtitle now shows count in header */}
+                </div>
               </div>
+            </div>
 
-                <div className="space-y-4">
-                  {loading && <div className="py-8 text-center text-gray-500">Loading reports...</div>}
-                  {error && <div className="py-4 text-center text-red-500">{error}</div>}
+            {/* Report list - floating cards (each ReportCard is a floating card) */}
+            <div className="space-y-4">
+              {loading && <div className="py-8 text-center text-gray-500">Loading reports...</div>}
+              {error && <div className="py-4 text-center text-red-500">{error}</div>}
 
-                  {!loading && !error && filtered.length === 0 && (
-                    <div className="py-8 text-center text-gray-500">No reports found.</div>
-                  )}
+              {!loading && !error && filtered.length === 0 && (
+                <div className="py-8 text-center text-gray-500">No reports found.</div>
+              )}
 
-                  {!loading && !error && filtered.map(r => (
-                    <ReportCard 
-                      key={r.id}
-                      report={r}
-                      selected={r.id === selectedReportId}
-                      onChangeStatus={canModifyReports ? handleStatusChange : undefined}
-                    />
-                  ))}
-                </div>
+              {!loading && !error && filtered.map(r => (
+                <ReportCard 
+                  key={r.id}
+                  report={r}
+                  selected={r.id === selectedReportId}
+                  userRole={userRole}
+                  // prefer request/change separation: ReportCard will call onRequestChange when user interacts
+                  onRequestChange={canModifyReports ? (id, status, title, locked) => openConfirmFor(id, status, title, !!locked) : undefined}
+                  onChangeStatus={canModifyReports ? handleStatusChange : undefined}
+                />
+              ))}
             </div>
           </div>
         </main>
       </div>
+      
+      <ConfirmDialog
+        isOpen={confirmOpen}
+        title={pendingChange && pendingChange.locked ? 'Reopen Report' : 'Change Status'}
+        message={pendingChange ? (pendingChange.locked ? `Do you want to reopen "${pendingChange.title || ''}"? (Its status will change to Pending)` : `Do you want to change the status of "${pendingChange.title || ''}" to "${pendingChange.status}"?`) : ''}
+        confirmLabel={pendingChange ? (pendingChange.locked ? 'Reopen' : `Change to ${pendingChange.status}`) : undefined}
+        cancelLabel="Cancel"
+        confirmStatus={pendingChange ? pendingChange.status : undefined}
+        confirmVariant={pendingChange && pendingChange.locked ? 'reopen' : undefined}
+        onConfirm={handleConfirm}
+        onCancel={handleCancel}
+      />
     </div>
   );
 };
