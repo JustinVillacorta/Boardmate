@@ -73,11 +73,11 @@ Boardmate/
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Node.js (v16 or higher)
-- MongoDB
-- npm or yarn
+- **Node.js** (v16 or higher)
+- **MongoDB** (v4.4 or higher)
+- **npm** or **yarn**
 
-### Installation
+### Quick Setup
 
 1. **Clone the repository**
    ```bash
@@ -89,20 +89,21 @@ Boardmate/
    ```bash
    cd Backend
    npm install
-   # Configure environment variables
-   npm start
+   # See Backend/README.md for detailed setup instructions
    ```
 
 3. **Frontend Setup**
    ```bash
    cd Frontend
    npm install
-   npm run dev
+   # See Frontend/README.md for detailed setup instructions
    ```
 
-4. **Access the application**
-   - Frontend: `http://localhost:5173`
-   - Backend API: `http://localhost:3000`
+4. **Access the Application**
+   - **Frontend**: `http://localhost:5173`
+   - **Backend API**: `http://localhost:3000`
+
+> 📖 **For detailed setup instructions, environment configuration, and troubleshooting, see the individual README files in the `Backend/` and `Frontend/` directories.**
 
 ## 📋 Key Features by Role
 

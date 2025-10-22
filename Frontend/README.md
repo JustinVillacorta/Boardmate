@@ -1,71 +1,109 @@
 # Boardmate Frontend
 
-A modern, responsive React + TypeScript frontend for the Boardmate boarding house management system.
+**React + TypeScript Frontend for Boardmate Boarding House Management System**
+
+A modern, responsive web application built with React, TypeScript, and Tailwind CSS that provides an intuitive interface for managing boarding house operations. The frontend offers role-based dashboards for administrators, staff, and tenants with comprehensive functionality for room management, payment processing, and communication.
 
 ## 🎯 Project Overview
 
-This frontend is designed to work with your existing MERN stack backend and provides a clean, professional interface for managing boarding house operations.
+This frontend provides a complete user interface that seamlessly integrates with the Boardmate backend API, offering three distinct user experiences based on roles: Administrator, Staff, and Tenant dashboards.
 
 ## 🏗️ Architecture
 
-### **Recommended Architecture: Component-Based with Feature Modules**
+### **Current Implementation: Role-Based Component Architecture**
 
 ```
 src/
 ├── components/           # Reusable UI components
-│   ├── ui/              # Basic UI components (Button, Input, Modal, etc.)
-│   ├── forms/           # Form-specific components
-│   ├── layout/          # Layout components (Header, Sidebar, etc.)
-│   └── common/          # Common shared components
-├── pages/               # Page-level components
-│   ├── auth/            # Authentication pages
-│   ├── dashboard/       # Dashboard pages
-│   ├── rooms/           # Room management pages
-│   ├── tenants/         # Tenant management pages
-│   ├── payments/        # Payment management pages
-│   └── reports/         # Reports pages
-├── hooks/               # Custom React hooks
+│   ├── auth/            # Authentication components (LoginForm)
+│   ├── dashboard/       # Dashboard components (Charts, MetricCards, etc.)
+│   ├── layout/          # Layout components (Sidebar, TopNavbar)
+│   ├── notifications/   # Notification components
+│   ├── payments/        # Payment management components
+│   ├── reports/         # Report components
+│   ├── rooms/           # Room management components
+│   ├── tenant/          # Tenant-specific components
+│   ├── users/           # User management components
+│   └── ui/              # Basic UI components (Button, Input, etc.)
+├── pages/               # Page-level components by role
+│   ├── Admin/           # Administrator pages
+│   ├── Staff/           # Staff pages
+│   ├── Tenant/          # Tenant pages
+│   └── shared/          # Shared pages across roles
 ├── services/            # API services and HTTP clients
-├── context/             # React Context for state management
 ├── types/               # TypeScript type definitions
 ├── utils/               # Utility functions
-├── styles/              # Global styles and CSS modules
-└── assets/              # Static assets (images, icons, etc.)
+├── styles/              # Global styles and Tailwind CSS
+└── config/              # Configuration files
 ```
 
-This architecture aligns perfectly with your backend structure:
-- **Frontend routes** mirror your **backend API routes**
-- **Component structure** matches your **controller/model organization**
-- **Type definitions** correspond to your **backend models**
+### **Role-Based Dashboard System**
+- **Admin Dashboard**: Full system control, user management, analytics
+- **Staff Dashboard**: Room/tenant management, payment processing
+- **Tenant Dashboard**: Personal profile, payments, maintenance requests
 
 ## 🚀 Quick Start
 
-### Option 1: Static HTML Version (Ready to Use)
-Open `login.html` in your browser to see the immediate result. This version includes:
-- ✅ Responsive design matching your screenshot
-- ✅ Purple gradient background with decorative elements
-- ✅ Professional login form with icons
-- ✅ Password visibility toggle
-- ✅ Loading states and animations
-- ✅ Mobile-responsive design
+### Prerequisites
+- **Node.js** (v16 or higher) - [Download here](https://nodejs.org/)
+- **npm** or **yarn** (comes with Node.js)
+- **Backend API** running on `http://localhost:3000` (see Backend README)
 
-### Option 2: React + TypeScript Setup
+### Installation & Setup
 
-1. **Install Dependencies**
+1. **Navigate to Frontend Directory**
    ```bash
    cd Frontend
+   ```
+
+2. **Install Dependencies**
+   ```bash
    npm install
    ```
 
-2. **Start Development Server**
+3. **Start Development Server**
    ```bash
-   npm start
+   npm run dev
    ```
 
-3. **Build for Production**
+4. **Access the Application**
+   - **Development**: `http://localhost:5173`
+   - **Backend API**: `http://localhost:3000`
+
+### 🔧 Development Commands
+
+```bash
+npm run dev          # Start development server with hot reload
+npm run build        # Build for production
+npm run preview      # Preview production build locally
+npm run lint         # Run ESLint for code quality
+npm run type-check   # Run TypeScript compiler check
+```
+
+### 🐛 Troubleshooting
+
+#### Common Setup Issues
+
+1. **Backend Connection Failed**
+   - Ensure backend is running on `http://localhost:3000`
+   - Check backend health: `curl http://localhost:3000/api/health`
+   - Verify CORS settings in backend `.env`
+
+2. **Port Already in Use**
+   - Vite will automatically find the next available port
+   - Or specify a port: `npm run dev -- --port 3001`
+
+3. **Build Errors**
    ```bash
-   npm run build
+   # Clear cache and reinstall
+   rm -rf node_modules package-lock.json
+   npm install
    ```
+
+4. **TypeScript Errors**
+   - Run type check: `npm run type-check`
+   - Check `tsconfig.json` configuration
+   - Ensure all dependencies are properly typed
 
 ## 📱 Responsive Design Features
 
@@ -91,116 +129,160 @@ Open `login.html` in your browser to see the immediate result. This version incl
 - **Focus states** for accessibility
 - **Loading states** for better UX
 
+## 🛠️ Technology Stack
+
+### Core Technologies
+- **React 18**: Modern React with hooks and functional components
+- **TypeScript**: Type-safe development with full type coverage
+- **Vite**: Fast build tool and development server
+- **Tailwind CSS**: Utility-first CSS framework for rapid UI development
+
+### Key Dependencies
+- **React Router**: Client-side routing and navigation
+- **Axios**: HTTP client for API communication
+- **React Hook Form**: Form handling and validation
+- **React Query**: Server state management and caching
+
+### Development Tools
+- **ESLint**: Code linting and quality assurance
+- **Prettier**: Code formatting
+- **PostCSS**: CSS processing
+- **TypeScript**: Static type checking
+
 ## 🔗 Backend Integration
 
-The frontend is structured to easily integrate with your existing backend:
+The frontend seamlessly integrates with the Boardmate backend API through dedicated service layers:
 
-### API Endpoints Mapping
+### Service Architecture
 ```typescript
-// Authentication
-POST /api/auth/login          → LoginForm component
-POST /api/auth/register       → RegisterForm component
-GET  /api/auth/me            → useAuth hook
-
-// Rooms Management
-GET  /api/rooms              → RoomsList component
-POST /api/rooms              → CreateRoom component
-PUT  /api/rooms/:id          → EditRoom component
-
-// Tenants Management
-GET  /api/tenant             → TenantsList component
-POST /api/tenant/register    → TenantRegistration component
-
-// Payments
-GET  /api/payments           → PaymentsList component
-POST /api/payments           → PaymentForm component
-
-// Reports
-GET  /api/reports            → ReportsPage component
+// API Service Layer
+src/services/
+├── authService.ts           # Authentication API calls
+├── dashboardService.ts      # Dashboard data fetching
+├── notificationService.ts   # Notification management
+├── paymentService.ts        # Payment processing
+├── roomManagementService.ts # Room CRUD operations
+├── tenantDashboardService.ts # Tenant-specific data
+└── userManagementService.ts # User management
 ```
 
-### State Management
+### API Endpoints Integration
 ```typescript
-// Context structure aligning with your backend models
-interface AppState {
-  auth: {
-    user: User | Tenant | null;
-    isAuthenticated: boolean;
-    role: 'admin' | 'staff' | 'tenant';
-  };
-  rooms: Room[];
-  tenants: Tenant[];
-  payments: Payment[];
-  notifications: Notification[];
-}
+// Authentication Services
+POST /api/auth/login          → authService.login()
+POST /api/auth/register       → authService.register()
+GET  /api/auth/me            → authService.getCurrentUser()
+
+// Room Management
+GET  /api/rooms              → roomManagementService.getRooms()
+POST /api/rooms              → roomManagementService.createRoom()
+PUT  /api/rooms/:id          → roomManagementService.updateRoom()
+
+// Payment Processing
+GET  /api/payments           → paymentService.getPayments()
+POST /api/payments           → paymentService.createPayment()
+PUT  /api/payments/:id       → paymentService.updatePayment()
+
+// Notifications
+GET  /api/notifications      → notificationService.getNotifications()
+POST /api/notifications      → notificationService.createNotification()
 ```
 
-## 🛠️ Next Steps for Full Implementation
-
-1. **Set up proper TypeScript environment**
-   ```bash
-   npm install @types/react @types/react-dom
-   ```
-
-2. **Add state management**
-   - React Context for simple state
-   - Redux Toolkit for complex state
-   - React Query for server state
-
-3. **Add routing**
-   ```bash
-   npm install react-router-dom @types/react-router-dom
-   ```
-
-4. **Add form validation**
-   ```bash
-   npm install react-hook-form @hookform/resolvers yup
-   ```
-
-5. **Add HTTP client**
-   ```bash
-   npm install axios
-   ```
-
-6. **Add UI component library** (optional)
-   ```bash
-   npm install @headlessui/react @heroicons/react
-   ```
-
-## 📂 File Structure Explanation
-
-- **`components/ui/`**: Reusable components like Button, Input, Modal
-- **`pages/`**: Full page components corresponding to routes
-- **`types/`**: TypeScript interfaces matching your backend models
-- **`styles/`**: Global CSS and component-specific styles
-- **`services/`**: API calls and HTTP configuration
+### Type Safety
+```typescript
+// Type definitions matching backend models
+src/types/
+├── index.ts                 # Main type exports
+├── notification.ts          # Notification types
+├── payment.ts              # Payment types
+├── report.ts               # Report types
+└── room.ts                 # Room types
+```
 
 ## 🔄 Development Workflow
 
-1. **Create components** that match your backend functionality
-2. **Define TypeScript types** based on your backend models
-3. **Build pages** by composing smaller components
-4. **Add API integration** using your existing backend endpoints
+### Component Development
+1. **Create reusable components** in `src/components/`
+2. **Build page components** in `src/pages/` by role
+3. **Define TypeScript types** in `src/types/` matching backend models
+4. **Add API integration** using service layer in `src/services/`
 5. **Test responsive design** across different screen sizes
 
-## 📋 Features Implemented
+### Code Organization
+- **`components/`**: Reusable UI components organized by feature
+- **`pages/`**: Full page components organized by user role
+- **`services/`**: API calls and HTTP configuration
+- **`types/`**: TypeScript interfaces matching backend models
+- **`styles/`**: Global CSS and Tailwind configuration
+- **`utils/`**: Utility functions and helpers
 
-### Login Page ✅
-- Responsive split-screen design
-- Purple gradient background matching your design
-- Email and password fields with icons
-- Password visibility toggle
-- Loading states
-- Mobile-responsive layout
+## 🚀 Available Scripts
 
-### Ready for Implementation
-- Dashboard with stats cards
-- Room management (CRUD operations)
-- Tenant management
-- Payment tracking
-- Notification system
-- Reports generation
-- User profile management
+```bash
+# Development
+npm run dev          # Start development server
+npm run build        # Build for production
+npm run preview      # Preview production build
+npm run lint         # Run ESLint
+npm run type-check   # Run TypeScript compiler
+
+# Dependencies
+npm install          # Install all dependencies
+npm update           # Update dependencies
+```
+
+## ✨ Features Implemented
+
+### 🔐 Authentication System
+- **LoginForm**: Secure login with email/password validation
+- **Role-based routing**: Automatic redirection based on user role
+- **JWT token management**: Secure authentication state
+
+### 📊 Dashboard Components
+- **Charts**: Data visualization for analytics
+- **MetricCards**: Key performance indicators
+- **DashboardHeader**: Navigation and user info
+- **QuickActions**: Common task shortcuts
+- **RecentTenancyChanges**: Activity feed
+
+### 🏠 Room Management
+- **RoomCard**: Visual room display with tenant info
+- **CreateRoomModal**: Add new rooms with full details
+- **EditRoomModal**: Update room information
+- **ManageTenantsModal**: Assign/remove tenants from rooms
+
+### 👥 User Management
+- **UserCard**: User profile display
+- **CreateUserModal**: Add new admin/staff accounts
+- **EditUserModal**: Update user information
+
+### 💰 Payment System
+- **PaymentCard**: Payment history and status display
+- **CreatePaymentForm**: Record new payments
+- **MarkAsPaidForm**: Update payment status
+- **TenantPaymentSummary**: Payment overview for tenants
+
+### 📢 Notification System
+- **NotificationCard**: Individual notification display
+- **CreateAnnouncementForm**: Send announcements to tenants
+- **NotificationsSummaryCard**: Notification overview
+- **TenantNotificationCard**: Tenant-specific notifications
+
+### 📋 Reports & Maintenance
+- **ReportCard**: Maintenance request display
+- **SummaryCard**: Report statistics
+- **SubmitMaintenanceForm**: Tenant maintenance request submission
+
+### 🎨 UI Components
+- **Button**: Reusable button component
+- **Input**: Form input component
+- **ConfirmDialog**: Confirmation modals
+- **DownloadDialog**: File download interface
+
+### 📱 Responsive Design
+- **Mobile-first approach**: Optimized for all screen sizes
+- **Tailwind CSS**: Utility-first styling
+- **Modern UI**: Clean, professional interface
 
 ## 🎯 Why This Architecture?
 

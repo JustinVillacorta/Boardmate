@@ -1,6 +1,8 @@
 # Boardmate Backend API
 
-Backend server for Boardmate - A comprehensive boarding house management system built with MERN stack.
+**Node.js Express Server for Boardmate - A comprehensive boarding house management system**
+
+A robust RESTful API built with Node.js, Express.js, and MongoDB that powers the Boardmate boarding house management system. This backend provides complete functionality for managing rooms, tenants, payments, notifications, and reports with role-based access control.
 
 ## Features
 
@@ -188,34 +190,97 @@ Backend/
 └── server.js                    # Main server file
 ```
 
-## Installation
+## 🚀 Installation & Setup
 
-1. Navigate to the Backend directory:
+### Prerequisites
+- **Node.js** (v16 or higher) - [Download here](https://nodejs.org/)
+- **MongoDB** (v4.4 or higher) - [Download here](https://www.mongodb.com/try/download/community)
+- **npm** (comes with Node.js)
+
+### Step-by-Step Setup
+
+1. **Navigate to Backend Directory**
+   ```bash
+   cd Backend
+   ```
+
+2. **Install Dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Set Up Environment Variables**
+   Create a `.env` file in the Backend directory:
+   ```env
+   NODE_ENV=development
+   PORT=3000
+   MONGODB_URI=mongodb://localhost:27017/boardmate
+   JWT_SECRET=your_super_secret_jwt_key_change_this_in_production
+   JWT_EXPIRE=30d
+   BCRYPT_SALT_ROUNDS=12
+   CLIENT_URL=http://localhost:5173
+   ```
+
+4. **Start MongoDB**
+   ```bash
+   # On macOS with Homebrew
+   brew services start mongodb-community
+   
+   # On Windows
+   net start MongoDB
+   
+   # On Linux
+   sudo systemctl start mongod
+   ```
+
+5. **Start Development Server**
+   ```bash
+   npm run dev
+   ```
+
+6. **Verify Installation**
+   - Server should start on `http://localhost:3000`
+   - Health check: `http://localhost:3000/api/health`
+   - API documentation available at `/api` endpoints
+
+### 🔧 Available Scripts
+
 ```bash
-cd Backend
+npm start            # Start production server
+npm run dev          # Start development server with nodemon
+npm test             # Run tests (if configured)
+npm run lint         # Run ESLint
 ```
 
-2. Install dependencies:
-```bash
-npm install
-```
+### 🐛 Troubleshooting
 
-3. Set up environment variables:
-Create a `.env` file in the Backend directory and configure:
-```env
-NODE_ENV=development
-PORT=5000
-MONGODB_URI=mongodb://localhost:27017/boardmate
-JWT_SECRET=your_super_secret_jwt_key_change_this_in_production
-JWT_EXPIRE=30d
-BCRYPT_SALT_ROUNDS=12
-CLIENT_URL=http://localhost:3000
-```
+#### Common Setup Issues
 
-4. Start the development server:
-```bash
-npm run dev
-```
+1. **MongoDB Connection Failed**
+   ```bash
+   # Check if MongoDB is running
+   brew services list | grep mongo
+   
+   # Start MongoDB if not running
+   brew services start mongodb-community
+   ```
+
+2. **Port Already in Use**
+   - Change `PORT` in `.env` file to another port (e.g., 3001)
+   - Kill process using the port: `lsof -ti:3000 | xargs kill -9`
+
+3. **Module Not Found Errors**
+   ```bash
+   # Clear npm cache and reinstall
+   npm cache clean --force
+   rm -rf node_modules package-lock.json
+   npm install
+   ```
+
+4. **JWT Secret Issues**
+   - Ensure `JWT_SECRET` is set in `.env`
+   - Use a strong, random secret key
+   - Never commit `.env` file to version control
 
 ## API Endpoints
 
