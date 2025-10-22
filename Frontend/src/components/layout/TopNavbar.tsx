@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Bell } from "lucide-react";
 import { notificationService } from '../../services/notificationService';
+import { normalizeUserFromLocalStorage } from '../../utils/userUtils';
+import RoleBadge from '../ui/RoleBadge';
 
 interface TopNavbarProps {
   title?: string;
@@ -227,6 +229,25 @@ const TopNavbar: React.FC<TopNavbarProps> = ({
               )}
             </div>
           )}
+          {/* User profile (moved from sidebar) */}
+          <div className="flex items-center gap-3 ml-2">
+            {(() => {
+              const user = normalizeUserFromLocalStorage();
+              return (
+                <div className="flex items-center gap-3">
+                  <div className="flex flex-col min-w-0">
+                    <div className="text-sm font-medium text-gray-800 truncate max-w-[12rem]">{user.displayName}</div>
+                    <div className="mt-1">
+                      <RoleBadge role={user.roleLabel} />
+                    </div>
+                  </div>
+                  <div className="w-9 h-9 lg:w-10 lg:h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-medium text-sm flex-shrink-0">
+                    {user.initials}
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
         </div>
       </div>
     </header>

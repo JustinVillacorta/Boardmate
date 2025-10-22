@@ -31,49 +31,100 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage = 'dashboard', onNavigate
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   
-  // Get user role from localStorage if not provided
-  const currentUserRole = userRole || (() => {
+  // Compute current user role and data robustly from props or localStorage
+  const currentUserRole: 'admin' | 'staff' | 'tenant' = (() => {
+    if (userRole) return userRole;
     try {
-      return (localStorage.getItem('userRole') as 'admin' | 'staff' | 'tenant') || 'admin';
+      const r = localStorage.getItem('userRole');
+      if (r === 'admin' || r === 'staff' || r === 'tenant') return r;
+    } catch (e) {}
+    return 'admin';
+  })();
+
+  // Normalize different userData shapes stored in localStorage into a single `currentUser` object
+  const currentUser = (() => {
+    // Default fallback
+    const fallback = {
+      displayName: currentUserRole === 'tenant' ? 'Tenant' : currentUserRole === 'staff' ? 'Staff' : 'Admin',
+      roleLabel: currentUserRole === 'tenant' ? 'Tenant' : currentUserRole === 'staff' ? 'Staff' : 'Admin',
+      initials: (() => {
+        const base = currentUserRole === 'tenant' ? 'T' : currentUserRole === 'staff' ? 'S' : 'A';
+        return base;
+      })(),
+    };
+
+    try {
+      const raw = localStorage.getItem('userData');
+      if (!raw) return fallback;
+      const parsed = JSON.parse(raw);
+
+      // helper: try many keys and formats
+      const capitalize = (s: string) => s.replace(/(^|[\s._-])+([a-z])/g, (_, p1, p2) => (p1 ? ' ' : '') + p2.toUpperCase()).trim();
+      const prettifyUsername = (u: string) => {
+        if (!u) return '';
+        // if username contains separators, split and capitalize
+        if (/[._\- ]/.test(u)) return u.split(/[._\- ]+/).map(part => part.charAt(0).toUpperCase() + part.slice(1)).join(' ');
+        // if contains digits or @, strip domain
+        if (u.includes('@')) u = u.split('@')[0];
+        // fallback: capitalize first char
+        return u.charAt(0).toUpperCase() + u.slice(1);
+      };
+
+      const readNameFrom = (o: any) => {
+        if (!o) return null;
+        const first = o.firstName || o.first_name || o.firstname || o.givenName || o.given_name || '';
+        const last = o.lastName || o.last_name || o.lastname || o.familyName || o.family_name || '';
+        const full = o.name || o.fullName || o.full_name || o.displayName || o.display_name || o.name_display || '';
+        const username = o.username || o.userName || o.login || o.email?.split('@')[0] || o.handle || '';
+        const email = o.email || '';
+        const preferFull = (full || '').trim();
+        const preferFirstLast = (first || last) ? `${first} ${last}`.trim() : '';
+        const preferUsername = username ? prettifyUsername(username) : '';
+        const preferEmailLocal = email ? email.split('@')[0] : '';
+        const displayName = preferFull || preferFirstLast || preferUsername || preferEmailLocal || null;
+        if (!displayName) return null;
+        // initials: take first letters of up to two words
+        const words = displayName.split(/\s+/).filter(Boolean);
+        const initials = (words.length === 1)
+          ? words[0].charAt(0).toUpperCase()
+          : (words[0].charAt(0) + (words[1].charAt(0) || '')).toUpperCase();
+        return { displayName: capitalize(displayName), initials };
+      };
+
+      // Try tenant
+      const tenantCandidate = readNameFrom(parsed?.tenant);
+      if (tenantCandidate) return { displayName: tenantCandidate.displayName, roleLabel: 'Tenant', initials: tenantCandidate.initials };
+
+      // Try user (admin/staff). If there's a single 'name' field prefer it (common backend shape)
+      if (parsed?.user?.name && !(parsed?.user?.firstName || parsed?.user?.lastName)) {
+        const rawName = parsed.user.name as string;
+        const pretty = (rawName || '').replace(/[._\-]+/g, ' ').trim();
+        const displayName = pretty ? (pretty.charAt(0).toUpperCase() + pretty.slice(1)) : null;
+        if (displayName) {
+          const words = displayName.split(/\s+/).filter(Boolean);
+          const initials = words.length === 1 ? words[0].charAt(0).toUpperCase() : (words[0].charAt(0) + (words[1].charAt(0) || '')).toUpperCase();
+          const rawRole = (parsed?.user?.role || parsed?.role || currentUserRole) as string;
+          const roleLabel = rawRole ? (rawRole.charAt(0).toUpperCase() + rawRole.slice(1)) : fallback.roleLabel;
+          return { displayName, roleLabel, initials };
+        }
+      }
+
+      const userCandidate = readNameFrom(parsed?.user);
+      if (userCandidate) {
+        const rawRole = (parsed?.user?.role || parsed?.role || currentUserRole) as string;
+        const roleLabel = rawRole ? (rawRole.charAt(0).toUpperCase() + rawRole.slice(1)) : fallback.roleLabel;
+        return { displayName: userCandidate.displayName, roleLabel, initials: userCandidate.initials };
+      }
+
+      // Try top-level object
+      const topCandidate = readNameFrom(parsed);
+      if (topCandidate) return { displayName: topCandidate.displayName, roleLabel: fallback.roleLabel, initials: topCandidate.initials };
+
+      return fallback;
     } catch (e) {
-      return 'admin';
+      return fallback;
     }
   })();
-  
-  // Get actual user data from localStorage if available
-  let user = {
-    username: currentUserRole === 'staff' ? "staff" : currentUserRole === 'tenant' ? "tenant" : "admin",
-    role: currentUserRole === 'staff' ? "Staff" : currentUserRole === 'tenant' ? "Tenant" : "Admin",
-    tenant: {
-      firstName: currentUserRole === 'staff' ? "Staff" : currentUserRole === 'tenant' ? "Pikachu" : "Admin",
-      lastName: "User"
-    }
-  };
-  try {
-    const userDataStr = localStorage.getItem('userData');
-    if (userDataStr) {
-      const userData = JSON.parse(userDataStr);
-      if (userData.tenant && userData.role === 'tenant') {
-        user = {
-          username: userData.tenant.email || userData.tenant.firstName || 'tenant',
-          role: 'Tenant',
-          tenant: {
-            firstName: userData.tenant.firstName || '',
-            lastName: userData.tenant.lastName || ''
-          }
-        };
-      } else if (userData.user) {
-        user = {
-          username: userData.user.email || userData.user.firstName || 'user',
-          role: userData.user.role.charAt(0).toUpperCase() + userData.user.role.slice(1),
-          tenant: {
-            firstName: userData.user.firstName || '',
-            lastName: userData.user.lastName || ''
-          }
-        };
-      }
-    }
-  } catch {}
 
   const handleLogout = async () => {
     try {
@@ -150,23 +201,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage = 'dashboard', onNavigate
           </span>
         </div>
 
-        {/* User Profile */}
-          <div className="mt-4 flex items-center gap-2">
-            <div className="w-8 h-8 lg:w-10 lg:h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-medium text-sm">
-              {user?.username ? user.username.charAt(0).toUpperCase() + (user.username.charAt(1) || '').toUpperCase() : 'U'}
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-3">
-                <p className="text-sm font-medium text-gray-800">{user?.tenant ? `${user.tenant.firstName} ${user.tenant.lastName}` : user?.username || 'User'}</p>
-                <div className="flex items-center gap-2 text-xs text-gray-700 bg-gray-200 px-2 py-1 rounded-full">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" className="w-3 h-3 text-red-600 flex-shrink-0" fill="currentColor" aria-hidden>
-                    <path d="M5.338 1.59a61 61 0 0 0-2.837.856.48.48 0 0 0-.328.39c-.554 4.157.726 7.19 2.253 9.188a10.7 10.7 0 0 0 2.287 2.233c.346.244.652.42.893.533q.18.085.293.118a1 1 0 0 0 .101.025 1 1 0 0 0 .1-.025q.114-.034.294-.118c.24-.113.547-.29.893-.533a10.7 10.7 0 0 0 2.287-2.233c1.527-1.997 2.807-5.031 2.253-9.188a.48.48 0 0 0-.328-.39c-.651-.213-1.75-.56-2.837-.855C9.552 1.29 8.531 1.067 8 1.067c-.53 0-1.552.223-2.662.524zM5.072.56C6.157.265 7.31 0 8 0s1.843.265 2.928.56c1.11.3 2.229.655 2.887.87a1.54 1.54 0 0 1 1.044 1.262c.596 4.477-.787 7.795-2.465 9.99a11.8 11.8 0 0 1-2.517 2.453 7 7 0 0 1-1.048.625c-.28.132-.581.24-.829.24s-.548-.108-.829-.24a7 7 0 0 1-1.048-.625 11.8 11.8 0 0 1-2.517-2.453C1.928 10.487.545 7.169 1.141 2.692A1.54 1.54 0 0 1 2.185 1.43 63 63 0 0 1 5.072.56" />
-                  </svg>
-                  <span className="font-semibold">{user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'User'}</span>
-                </div>
-              </div>
-            </div>
-          </div>
+        {/* User Profile moved to TopNavbar */}
       </div>
       
       {/* Navigation */}
