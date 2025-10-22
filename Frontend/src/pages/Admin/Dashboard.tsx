@@ -53,7 +53,7 @@ const Dashboard: React.FC<DashboardProps> = ({ currentPage, onNavigate, onLogout
       {/* Main Content - Responsive */}
       <div className="flex-1 flex flex-col min-w-0 lg:pl-64">
   {/* Top Navigation */}
-  <TopNavbar currentPage={currentPage} onSearch={(q) => { /* admin dashboard search handler could be added here */ }} onNotificationOpen={() => onNavigate && onNavigate('notifications')} />
+  <TopNavbar currentPage={currentPage} onNotificationOpen={() => onNavigate && onNavigate('notifications')} />
 
         {/* Dashboard Content */}
         <main className="flex-1 p-4 lg:p-6 overflow-auto space-y-4 lg:space-y-6">

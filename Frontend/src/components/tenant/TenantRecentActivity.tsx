@@ -65,21 +65,32 @@ const TenantRecentActivity: React.FC<TenantRecentActivityProps> = ({
       };
     });
 
-    // Map reports to activity items
+    // Map reports to activity items, normalizing status as in the reports page
     const reportActivities: ActivityItem[] = reports.slice(0, 5).map(r => {
-      const statusMap: Record<string, string> = {
-        'pending': 'Pending',
-        'in_progress': 'In Progress',
-        'resolved': 'Completed',
-        'closed': 'Completed'
-      };
-
+      // Normalize status to match ReportCard and reports page
+      let normalizedStatus = 'Pending';
+      if (r.status) {
+        switch (r.status.toLowerCase()) {
+          case 'in-progress':
+          case 'in_progress':
+            normalizedStatus = 'In Progress';
+            break;
+          case 'resolved':
+            normalizedStatus = 'Resolved';
+            break;
+          case 'rejected':
+            normalizedStatus = 'Rejected';
+            break;
+          default:
+            normalizedStatus = 'Pending';
+        }
+      }
       return {
         id: r._id,
         title: `${r.type || 'Maintenance'} Report`,
         description: r.description || 'No description provided',
         timestamp: r.updatedAt || r.createdAt,
-        status: statusMap[r.status] || 'Pending',
+        status: normalizedStatus,
         icon: Wrench
       };
     });

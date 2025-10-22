@@ -23,6 +23,7 @@ const transformRoomToDisplay = (room: Room): RoomDisplayData => {
     name: room.roomNumber,
     type: room.roomType.charAt(0).toUpperCase() + room.roomType.slice(1),
     rent: `₱${room.monthlyRent.toLocaleString()}`,
+    rentNumber: Number(room.monthlyRent || 0),
     capacity: room.capacity,
     occupancy: `${room.occupancy.current}/${room.capacity}`,
     status: room.status,
@@ -37,7 +38,8 @@ const transformRoomToDisplay = (room: Room): RoomDisplayData => {
       email: tenant.email,
       phoneNumber: tenant.phoneNumber,
       status: tenant.tenantStatus
-    }))
+    })),
+    updatedAt: room.updatedAt
   };
 };
 

@@ -27,7 +27,15 @@ const ReportsPage: React.FC<ReportsPageProps> = ({ currentPage, onNavigate, user
     try {
       const params: any = { page: 1, limit: 50 };
       if (query) params.search = query;
-      if (activeTab && activeTab !== 'All') params.status = activeTab.toLowerCase();
+      if (activeTab && activeTab !== 'All') {
+        // Map UI tab to backend status value
+        let statusParam = activeTab.toLowerCase();
+        if (activeTab === 'In Progress') statusParam = 'in-progress';
+        if (activeTab === 'Resolved') statusParam = 'resolved';
+        if (activeTab === 'Rejected') statusParam = 'rejected';
+        if (activeTab === 'Pending') statusParam = 'pending';
+        params.status = statusParam;
+      }
 
       const res = await reportService.getReports(params);
       // Map backend status values (e.g., 'in-progress') to UI labels ('In Progress')
@@ -61,9 +69,12 @@ const ReportsPage: React.FC<ReportsPageProps> = ({ currentPage, onNavigate, user
       }));
 
       setReports(mapped);
-  // if there's a selectedReportId in localStorage, set it so the UI can highlight/scroll
+  // if there's a selectedReportId in localStorage, set it so the UI can highlight/scroll, then remove it
   const stored = localStorage.getItem('selectedReportId');
-  if (stored) setSelectedReportId(stored);
+  if (stored) {
+    setSelectedReportId(stored);
+    localStorage.removeItem('selectedReportId');
+  }
     } catch (err: any) {
       setError(err?.message || 'Failed to load reports');
     } finally {
@@ -71,8 +82,12 @@ const ReportsPage: React.FC<ReportsPageProps> = ({ currentPage, onNavigate, user
     }
   };
 
+  // Normalize status for robust filtering (e.g., 'In Progress' tab matches 'in-progress', 'in progress', etc)
+  const normalizeStatus = (s: string) => s.replace(/[-_ ]/g, '').toLowerCase();
   const filtered = reports.filter(r => {
-    if (activeTab !== 'All' && activeTab !== r.status && !(activeTab === 'In Progress' && r.status === 'In Progress')) return false;
+    if (activeTab !== 'All') {
+      if (normalizeStatus(activeTab) !== normalizeStatus(r.status || '')) return false;
+    }
     if (!query) return true;
     const q = query.toLowerCase();
     return (r.title + ' ' + (r.description || '') + ' ' + (r.reporter || '')).toLowerCase().includes(q);
@@ -140,7 +155,7 @@ const ReportsPage: React.FC<ReportsPageProps> = ({ currentPage, onNavigate, user
       <Sidebar currentPage={currentPage} onNavigate={onNavigate} userRole={userRole} />
 
       <div className="flex-1 flex flex-col min-w-0 lg:pl-64">
-  <TopNavbar currentPage={currentPage} title="Reports" subtitle="Generate and view reports" onSearch={(q) => setQuery(q)} onNotificationOpen={() => onNavigate && onNavigate('notifications')} />
+  <TopNavbar currentPage={currentPage} title="Reports" subtitle="Generate and view reports" onNotificationOpen={() => onNavigate && onNavigate('notifications')} />
 
         <main className="flex-1 p-4 lg:p-6 overflow-auto">
           <div className="max-w-full">

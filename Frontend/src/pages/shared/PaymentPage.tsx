@@ -24,6 +24,8 @@ const PaymentPage: React.FC<PaymentPageProps> = ({ currentPage, onNavigate, user
   const [query, setQuery] = React.useState('');
   const [tenants, setTenants] = React.useState<TenantRow[]>([]);
   const [loading, setLoading] = React.useState(false);
+  const [isSortOpen, setIsSortOpen] = React.useState(false);
+  const [sortOption, setSortOption] = React.useState<'tenantAZ'|'tenantZA'|'roomAZ'|'roomZA'>('tenantAZ');
 
   React.useEffect(() => {
     const load = async () => {
@@ -53,6 +55,18 @@ const PaymentPage: React.FC<PaymentPageProps> = ({ currentPage, onNavigate, user
     r.name.toLowerCase().includes(query.toLowerCase()) ||
     r.email.toLowerCase().includes(query.toLowerCase())
   );
+
+  // Apply client-side sorting based on selected option
+  const sorted = [...filtered].sort((a, b) => {
+    const tenantCompare = a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+    const roomCompare = a.roomNumber.localeCompare(b.roomNumber, undefined, { numeric: true, sensitivity: 'base' });
+
+    if (sortOption === 'tenantAZ') return tenantCompare || a.id.localeCompare(b.id);
+    if (sortOption === 'tenantZA') return -tenantCompare || a.id.localeCompare(b.id);
+    if (sortOption === 'roomAZ') return roomCompare || tenantCompare || a.id.localeCompare(b.id);
+    if (sortOption === 'roomZA') return -roomCompare || tenantCompare || a.id.localeCompare(b.id);
+    return 0;
+  });
   
   return (
     <>
@@ -64,7 +78,7 @@ const PaymentPage: React.FC<PaymentPageProps> = ({ currentPage, onNavigate, user
           currentPage={currentPage}
           title="Payment" 
           subtitle={userRole === 'staff' ? "Manage tenant payments and dues" : "Manage your account and preferences"} 
-          onSearch={(q) => setQuery(q)}
+          // onSearch removed
           onNotificationOpen={() => onNavigate && onNavigate('notifications')}
         />
 
@@ -94,13 +108,19 @@ const PaymentPage: React.FC<PaymentPageProps> = ({ currentPage, onNavigate, user
                         className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                       />
                     </div>
+                    <button
+                      onClick={() => setIsSortOpen(true)}
+                      className="inline-flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm hover:bg-gray-50 ml-2"
+                    >
+                      Sort
+                    </button>
                   </div>
                 </div>
               </div>
 
               <div className="p-4 lg:p-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {filtered.map(row => (
+                  {sorted.map(row => (
                     <div key={row.id} onClick={() => {
                       try {
                         sessionStorage.setItem('selectedPaymentRoom', JSON.stringify({ tenantId: row.id, roomId: row.roomId, tenant: row.name, room: row.roomNumber }));
@@ -123,6 +143,37 @@ const PaymentPage: React.FC<PaymentPageProps> = ({ currentPage, onNavigate, user
         </main>
       </div>
     </div>
+    {/* Sort Floating Panel */}
+    {isSortOpen && (
+      <div className="fixed inset-0 z-50">
+        <div className="absolute inset-0" onClick={() => setIsSortOpen(false)} />
+        <div className="absolute right-6 top-24 w-72 bg-white border border-gray-200 p-4 rounded-lg shadow-xl">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-lg font-medium">Sort Payments</h3>
+            <button onClick={() => setIsSortOpen(false)} className="text-gray-500 text-xl leading-none">×</button>
+          </div>
+
+          <div className="space-y-3">
+            <label className="flex items-center gap-2">
+              <input type="radio" name="paymentSort" value="tenantAZ" checked={sortOption === 'tenantAZ'} onChange={() => setSortOption('tenantAZ')} />
+              <span className="text-sm">Tenant (A → Z)</span>
+            </label>
+            <label className="flex items-center gap-2">
+              <input type="radio" name="paymentSort" value="tenantZA" checked={sortOption === 'tenantZA'} onChange={() => setSortOption('tenantZA')} />
+              <span className="text-sm">Tenant (Z → A)</span>
+            </label>
+            <label className="flex items-center gap-2">
+              <input type="radio" name="paymentSort" value="roomAZ" checked={sortOption === 'roomAZ'} onChange={() => setSortOption('roomAZ')} />
+              <span className="text-sm">Room (A → Z)</span>
+            </label>
+            <label className="flex items-center gap-2">
+              <input type="radio" name="paymentSort" value="roomZA" checked={sortOption === 'roomZA'} onChange={() => setSortOption('roomZA')} />
+              <span className="text-sm">Room (Z → A)</span>
+            </label>
+          </div>
+        </div>
+      </div>
+    )}
     {/* Tenant selection navigates to dedicated history page */}
     </>
   );

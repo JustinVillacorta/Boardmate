@@ -239,7 +239,7 @@ const Payments: React.FC<PaymentsProps> = ({ currentPage, onNavigate }) => {
       {/* Main Content - Responsive */}
       <div className="flex-1 flex flex-col min-w-0 lg:pl-64">
   {/* Top Navigation */}
-  <TopNavbar currentPage={currentPage} onSearch={(q) => { /* tenant payments search */ }} onNotificationOpen={() => onNavigate && onNavigate('notifications')} />
+  <TopNavbar currentPage={currentPage} onNotificationOpen={() => onNavigate && onNavigate('notifications')} />
 
         {/* Payments Content */}
         <main className="flex-1 p-4 lg:p-6 overflow-auto">
@@ -321,7 +321,7 @@ const Payments: React.FC<PaymentsProps> = ({ currentPage, onNavigate }) => {
 
               {/* Payment History Table */}
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-                <div className="overflow-x-auto">
+                <div>
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                       <tr>

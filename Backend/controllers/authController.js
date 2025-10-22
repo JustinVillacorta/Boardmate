@@ -1,7 +1,10 @@
+import crypto from 'crypto';
+import { sendEmail } from '../utils/emailService.js';
 import jwt from 'jsonwebtoken';
 import { validationResult } from 'express-validator';
 import User from '../models/User.js';
 import Tenant from '../models/Tenant.js';
+import PasswordOTP from '../models/PasswordOTP.js';
 import { AppError } from '../utils/AppError.js';
 import { catchAsync } from '../utils/catchAsync.js';
 
@@ -131,7 +134,11 @@ export const getMe = catchAsync(async (req, res, next) => {
   let user;
   
   if (req.userType === 'tenant') {
-    user = await Tenant.findById(req.user.id).populate('room', 'roomNumber roomType monthlyRent');
+    user = await Tenant.findById(req.user.id).populate({
+      path: 'room',
+      select: 'roomNumber roomType monthlyRent tenants',
+      populate: { path: 'tenants', select: 'tenantStatus' }
+    });
   } else {
     user = await User.findById(req.user.id);
   }
@@ -1107,6 +1114,100 @@ export const getTenantsOnly = catchAsync(async (req, res, next) => {
       }
     }
   });
+});
+
+// ======= UNIFIED FORGOT PASSWORD (OTP) FLOW FOR USERS & TENANTS =======
+
+// @desc    Request password reset (send OTP) for user or tenant
+// @route   POST /api/auth/forgot-password
+// @access  Public
+export const forgotPassword = catchAsync(async (req, res, next) => {
+  const { email } = req.body;
+  if (!email) return next(new AppError('Email is required', 400));
+
+  // Try User first, then Tenant
+  let account = await User.findOne({ email });
+  let accountType = 'user';
+  if (!account) {
+    account = await Tenant.findOne({ email });
+    accountType = 'tenant';
+  }
+  if (!account) return next(new AppError('No user or tenant found with that email', 404));
+
+  // Generate 6-digit OTP and store hashed copy in PasswordOTP collection
+  const otp = (Math.floor(100000 + Math.random() * 900000)).toString();
+  const ttlMinutes = parseInt(process.env.OTP_TTL_MINUTES) || 10;
+  const ttlMs = ttlMinutes * 60 * 1000;
+  await PasswordOTP.createOTP(account.email, otp, ttlMs, accountType);
+
+  // Optionally clear any legacy per-account OTP fields (do not rely on them)
+  if (account.resetPasswordOTP !== undefined) {
+    account.resetPasswordOTP = undefined;
+    account.resetPasswordOTPExpires = undefined;
+    await account.save();
+  }
+
+  // Send OTP email
+  await sendEmail({
+    to: account.email,
+    subject: `Boardmate ${accountType === 'tenant' ? 'Tenant ' : ''}Password Reset OTP`,
+    text: `Your OTP for password reset is: ${otp}. It expires in ${ttlMinutes} minutes.`,
+    html: `<p>Your OTP for password reset is: <b>${otp}</b>. It expires in ${ttlMinutes} minutes.</p>`
+  });
+
+  res.status(200).json({ success: true, message: 'OTP sent to email' });
+});
+
+// @desc    Verify OTP for user or tenant
+// @route   POST /api/auth/verify-otp
+// @access  Public
+export const verifyOTP = catchAsync(async (req, res, next) => {
+  const { email, otp } = req.body;
+  if (!email || !otp) return next(new AppError('Email and OTP are required', 400));
+
+  // Verify against PasswordOTP collection
+  const doc = await PasswordOTP.verifyOTP(email, otp);
+  if (!doc) return next(new AppError('Invalid or expired OTP', 400));
+
+  res.status(200).json({ success: true, message: 'OTP verified' });
+});
+
+// @desc    Reset password with OTP for user or tenant
+// @route   POST /api/auth/reset-password
+// @access  Public
+export const resetPasswordWithOTP = catchAsync(async (req, res, next) => {
+  const { email, otp, newPassword, confirmPassword } = req.body;
+  if (!email || !otp || !newPassword || !confirmPassword)
+    return next(new AppError('All fields are required', 400));
+  if (newPassword !== confirmPassword)
+    return next(new AppError('Passwords do not match', 400));
+
+  // Verify OTP document
+  const doc = await PasswordOTP.verifyOTP(email, otp);
+  if (!doc) return next(new AppError('Invalid or expired OTP', 400));
+
+  // Find the account (user or tenant)
+  let account = await User.findOne({ email }).select('+password');
+  let accountType = 'user';
+  if (!account) {
+    account = await Tenant.findOne({ email }).select('+password');
+    accountType = 'tenant';
+  }
+  if (!account) return next(new AppError('No user or tenant found with that email', 404));
+
+  // Update password
+  account.password = newPassword;
+  // Clear any legacy OTP fields
+  if (account.resetPasswordOTP !== undefined) {
+    account.resetPasswordOTP = undefined;
+    account.resetPasswordOTPExpires = undefined;
+  }
+  await account.save();
+
+  // Mark OTP as used so it cannot be reused
+  await doc.markUsed();
+
+  res.status(200).json({ success: true, message: 'Password reset successful' });
 });
 
 // @desc    Get authentication statistics

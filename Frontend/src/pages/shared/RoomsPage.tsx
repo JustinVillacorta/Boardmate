@@ -33,7 +33,10 @@ interface RoomsPageProps {
 
 const RoomsPage: React.FC<RoomsPageProps> = ({ currentPage, onNavigate, userRole = 'admin' }) => {
   const [search, setSearch] = useState('');
+  const [isSortOpen, setIsSortOpen] = useState(false);
+  const [sortOption, setSortOption] = useState<'roomNumberAZ' | 'roomNumberZA' | 'rentLowHigh' | 'rentHighLow' | 'capacityHighLow' | 'capacityLowHigh' | 'updatedNewOld' | 'updatedOldNew'>('roomNumberAZ');
   const [rooms, setRooms] = useState<RoomDisplayData[]>([]);
+  const [selectedAvailability, setSelectedAvailability] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<RoomFilters>({
@@ -52,8 +55,9 @@ const RoomsPage: React.FC<RoomsPageProps> = ({ currentPage, onNavigate, userRole
         search: search || undefined
       };
       
-      const response = await roomManagementService.getRooms(searchFilters);
-      const transformedRooms = response.data.rooms.map(roomManagementService.transformRoom);
+  const response = await roomManagementService.getRooms(searchFilters);
+  // RoomsResponse shape: { success, data: { rooms, pagination } }
+  const transformedRooms = response.data.rooms.map(roomManagementService.transformRoom);
       setRooms(transformedRooms);
     } catch (err: any) {
       console.error('Error fetching rooms:', err);
@@ -69,10 +73,69 @@ const RoomsPage: React.FC<RoomsPageProps> = ({ currentPage, onNavigate, userRole
   }, [filters, search]);
 
   const filtered = rooms.filter(r =>
-    r.name.toLowerCase().includes(search.toLowerCase()) ||
+    (r.name.toLowerCase().includes(search.toLowerCase()) ||
     r.type.toLowerCase().includes(search.toLowerCase()) ||
-    (r.description || '').toLowerCase().includes(search.toLowerCase())
+    (r.description || '').toLowerCase().includes(search.toLowerCase())) &&
+    (selectedAvailability.length === 0 || (selectedAvailability.includes('Vacant') && r.status === 'available') || (selectedAvailability.includes('Occupied') && r.status === 'occupied'))
   );
+
+  // Apply sorting based on selected option
+  const sorted = [...filtered].sort((a, b) => {
+    // Helper: normalize room number for ties
+    const roomNumberCompare = (x: RoomDisplayData, y: RoomDisplayData) => x.name.localeCompare(y.name, undefined, { numeric: true, sensitivity: 'base' });
+
+    // availability is now a filter via chips (selectedAvailability)
+
+    if (sortOption === 'roomNumberZA') {
+      // Z → A
+      return roomNumberCompare(b, a);
+    }
+
+    if (sortOption === 'roomNumberAZ') {
+      // A → Z
+      return roomNumberCompare(a, b);
+    }
+
+    if (sortOption === 'rentHighLow') {
+      const ra = (a.rentNumber ?? 0);
+      const rb = (b.rentNumber ?? 0);
+      if (ra !== rb) return rb - ra;
+      return roomNumberCompare(a, b);
+    }
+
+    if (sortOption === 'rentLowHigh') {
+      const ra = (a.rentNumber ?? 0);
+      const rb = (b.rentNumber ?? 0);
+      if (ra !== rb) return ra - rb;
+      return roomNumberCompare(a, b);
+    }
+
+    if (sortOption === 'capacityLowHigh') {
+      if (a.capacity !== b.capacity) return a.capacity - b.capacity;
+      return roomNumberCompare(a, b);
+    }
+
+    if (sortOption === 'capacityHighLow') {
+      if (a.capacity !== b.capacity) return b.capacity - a.capacity;
+      return roomNumberCompare(a, b);
+    }
+
+    if (sortOption === 'updatedOldNew') {
+      const da = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+      const db = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+      if (da !== db) return da - db;
+      return roomNumberCompare(a, b);
+    }
+
+    if (sortOption === 'updatedNewOld') {
+      const da = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+      const db = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+      if (da !== db) return db - da;
+      return roomNumberCompare(a, b);
+    }
+
+    return 0;
+  });
 
   const handleDelete = async (id: string) => {
     try {
@@ -147,7 +210,7 @@ const RoomsPage: React.FC<RoomsPageProps> = ({ currentPage, onNavigate, userRole
       <Sidebar currentPage={currentPage} onNavigate={onNavigate} userRole={userRole} />
 
       <div className="flex-1 flex flex-col min-w-0 lg:pl-64">
-  <TopNavbar currentPage={currentPage} title="Rooms" subtitle="Manage room inventory and occupancy" onSearch={(q) => setSearch(q)} onNotificationOpen={() => onNavigate && onNavigate('notifications')} />
+  <TopNavbar currentPage={currentPage} title="Rooms" subtitle="Manage room inventory and occupancy" onNotificationOpen={() => onNavigate && onNavigate('notifications')} />
 
         <main className="flex-1 p-4 lg:p-6 overflow-auto">
 
@@ -177,6 +240,12 @@ const RoomsPage: React.FC<RoomsPageProps> = ({ currentPage, onNavigate, userRole
                     />
                   </div>
 
+                  <button
+                    onClick={() => setIsSortOpen(true)}
+                    className="inline-flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm hover:bg-gray-50"
+                  >
+                    Sort
+                  </button>
                   {canCreateRooms && (
                     <div className="flex items-center gap-2">
                       <button onClick={() => setIsCreateOpen(true)} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2">
@@ -214,9 +283,9 @@ const RoomsPage: React.FC<RoomsPageProps> = ({ currentPage, onNavigate, userRole
                     </button>
                   </div>
                 </div>
-              ) : filtered.length > 0 ? (
+              ) : sorted.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4 lg:gap-6">
-                  {filtered.map(room => (
+                  {sorted.map(room => (
                     <RoomCard 
                       key={room.id} 
                       room={room} 
@@ -261,6 +330,74 @@ const RoomsPage: React.FC<RoomsPageProps> = ({ currentPage, onNavigate, userRole
         onConfirm={confirmDelete}
         onCancel={cancelDelete}
       />
+      {/* Sort Floating Panel */}
+      {isSortOpen && (
+        <div className="fixed inset-0 z-50">
+          <div className="absolute inset-0" onClick={() => setIsSortOpen(false)} />
+          <div className="absolute right-6 top-20 w-80 bg-white border border-gray-200 p-4 rounded-lg shadow-xl">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-lg font-medium">Sort Rooms</h3>
+              <button onClick={() => setIsSortOpen(false)} className="text-gray-500 text-xl leading-none">×</button>
+            </div>
+
+            <div className="space-y-3">
+              {/* Room number directions */}
+              <label className="flex items-center gap-2">
+                <input type="radio" name="roomSort" value="roomNumberAZ" checked={sortOption === 'roomNumberAZ'} onChange={() => setSortOption('roomNumberAZ')} />
+                <span className="text-sm">Room number (A → Z)</span>
+              </label>
+              <label className="flex items-center gap-2">
+                <input type="radio" name="roomSort" value="roomNumberZA" checked={sortOption === 'roomNumberZA'} onChange={() => setSortOption('roomNumberZA')} />
+                <span className="text-sm">Room number (Z → A)</span>
+              </label>
+
+              {/* Monthly rent directions */}
+              <label className="flex items-center gap-2">
+                <input type="radio" name="roomSort" value="rentLowHigh" checked={sortOption === 'rentLowHigh'} onChange={() => setSortOption('rentLowHigh')} />
+                <span className="text-sm">Monthly rent (Low → High)</span>
+              </label>
+              <label className="flex items-center gap-2">
+                <input type="radio" name="roomSort" value="rentHighLow" checked={sortOption === 'rentHighLow'} onChange={() => setSortOption('rentHighLow')} />
+                <span className="text-sm">Monthly rent (High → Low)</span>
+              </label>
+
+              {/* Capacity directions */}
+              <label className="flex items-center gap-2">
+                <input type="radio" name="roomSort" value="capacityLowHigh" checked={sortOption === 'capacityLowHigh'} onChange={() => setSortOption('capacityLowHigh')} />
+                <span className="text-sm">Capacity (Low → High)</span>
+              </label>
+              <label className="flex items-center gap-2">
+                <input type="radio" name="roomSort" value="capacityHighLow" checked={sortOption === 'capacityHighLow'} onChange={() => setSortOption('capacityHighLow')} />
+                <span className="text-sm">Capacity (High → Low)</span>
+              </label>
+
+              {/* Updated directions */}
+              <label className="flex items-center gap-2">
+                <input type="radio" name="roomSort" value="updatedNewOld" checked={sortOption === 'updatedNewOld'} onChange={() => setSortOption('updatedNewOld')} />
+                <span className="text-sm">Last updated (New → Old)</span>
+              </label>
+              <label className="flex items-center gap-2">
+                <input type="radio" name="roomSort" value="updatedOldNew" checked={sortOption === 'updatedOldNew'} onChange={() => setSortOption('updatedOldNew')} />
+                <span className="text-sm">Last updated (Old → New)</span>
+              </label>
+            </div>
+
+            {/* Availability chips like Roles (moved below radios) */}
+            <div className="mt-4">
+              <h4 className="text-sm font-medium mb-2">Availability</h4>
+              <div className="flex flex-wrap gap-2">
+                {['Vacant','Occupied'].map(av => (
+                  <button
+                    key={av}
+                    onClick={() => setSelectedAvailability(prev => prev.includes(av) ? prev.filter(x => x !== av) : [...prev, av])}
+                    className={`text-sm px-3 py-1 rounded-full border ${selectedAvailability.includes(av) ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-200'}`}
+                  >{av}</button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

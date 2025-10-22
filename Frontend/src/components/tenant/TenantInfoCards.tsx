@@ -1,13 +1,12 @@
+
+
 import React from 'react';
 import { Home, DollarSign, Calendar, CheckCircle } from 'lucide-react';
 
 interface TenantInfoCardsProps {
   tenant: {
     tenantStatus: 'active' | 'inactive' | 'pending';
-    room?: {
-      roomNumber: string;
-      roomType: string;
-    };
+    room?: any; // Accept any to allow tenants array and monthlyRent
     monthlyRent: number;
   };
   nextPaymentDue: {
@@ -17,7 +16,9 @@ interface TenantInfoCardsProps {
   };
 }
 
+
 const TenantInfoCards: React.FC<TenantInfoCardsProps> = ({ tenant, nextPaymentDue }) => {
+
   const formatPaymentDueDate = () => {
     if (nextPaymentDue.status === 'overdue') {
       return 'Overdue';
@@ -32,12 +33,6 @@ const TenantInfoCards: React.FC<TenantInfoCardsProps> = ({ tenant, nextPaymentDu
     return 'N/A';
   };
 
-  const getPaymentDueColor = () => {
-    if (nextPaymentDue.status === 'overdue') return 'text-red-600';
-    if (nextPaymentDue.status === 'paid') return 'text-green-600';
-    return 'text-yellow-600';
-  };
-
   const getAccountStatusDisplay = () => {
     return tenant.tenantStatus.charAt(0).toUpperCase() + tenant.tenantStatus.slice(1);
   };
@@ -47,6 +42,18 @@ const TenantInfoCards: React.FC<TenantInfoCardsProps> = ({ tenant, nextPaymentDu
     if (tenant.tenantStatus === 'inactive') return 'text-red-600 bg-red-100';
     return 'text-yellow-600 bg-yellow-100';
   };
+
+
+  // Calculate per-tenant rent if room info and tenants are available
+  let perTenantRent: number | null = null;
+  let numActive = 1;
+  if (tenant.room && typeof tenant.room.monthlyRent === 'number' && Array.isArray(tenant.room.tenants)) {
+    const activeTenants = tenant.room.tenants.filter((t: any) => t.tenantStatus === 'active');
+    numActive = activeTenants.length || 1;
+    perTenantRent = tenant.room.monthlyRent / numActive;
+  } else if (typeof tenant.monthlyRent === 'number') {
+    perTenantRent = tenant.monthlyRent;
+  }
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
@@ -78,9 +85,14 @@ const TenantInfoCards: React.FC<TenantInfoCardsProps> = ({ tenant, nextPaymentDu
         <div>
           <h3 className="text-sm font-medium text-gray-500 mb-1">Monthly Rent</h3>
           <p className="text-2xl font-bold text-green-600 mb-1">
-            ₱{tenant.monthlyRent?.toLocaleString() || '0'}
+            {perTenantRent !== null
+              ? `₱${perTenantRent.toLocaleString(undefined, { maximumFractionDigits: 2 })}`
+              : `₱${tenant.monthlyRent?.toLocaleString() || '0'}`}
           </p>
-          <p className="text-sm text-gray-600">Per Month</p>
+          <p className="text-sm text-gray-600">
+            Per Month (Your Share)
+            {tenant.room && Array.isArray(tenant.room.tenants) && tenant.room.tenants.length > 1 }
+          </p>
         </div>
       </div>
 
@@ -101,7 +113,11 @@ const TenantInfoCards: React.FC<TenantInfoCardsProps> = ({ tenant, nextPaymentDu
         </div>
         <div>
           <h3 className="text-sm font-medium text-gray-500 mb-1">Next Payment Due</h3>
-          <p className={`text-2xl font-bold mb-1 ${getPaymentDueColor()}`}>
+          <p className={`text-2xl font-bold mb-1 ${(() => {
+            if (nextPaymentDue.status === 'overdue') return 'text-red-600';
+            if (nextPaymentDue.status === 'paid') return 'text-green-600';
+            return 'text-yellow-600';
+          })()}`}>
             {formatPaymentDueDate()}
           </p>
           <p className="text-sm text-gray-600">

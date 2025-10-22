@@ -47,8 +47,8 @@ const RoomCard: React.FC<RoomProps> = ({ room, onDelete, onEdit, onManageTenants
           <h3 className="text-lg font-semibold text-gray-900">{room.name}</h3>
           <p className="text-sm text-gray-500">{room.type}</p>
         </div>
-        <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium ${statusColor(room.status)}`}>
-          {room.status}
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-white border border-gray-200 text-gray-700">
+          {room.status === 'available' ? 'Vacant' : room.status === 'occupied' ? 'Occupied' : room.status === 'maintenance' ? 'Maintenance' : 'Unavailable'}
         </div>
       </div>
 

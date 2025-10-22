@@ -13,12 +13,15 @@ interface UserData {
   name: string;
   email: string;
   role: 'Staff' | 'Tenant' | 'Admin';
-  status: 'Active' | 'Inactive';
+  rawRole?: string | null; // original backend role string (e.g. 'manager')
+  status: 'Active' | 'Inactive' | 'Invited' | 'Suspended' | 'Archived';
   startDate: string;
   roomNumber?: string;
   roomType?: string;
   monthlyRent?: number;
   avatar?: string;
+  createdAt?: string | null;
+  lastLogin?: string | null;
 }
 
 interface UsersPageProps {
@@ -31,7 +34,12 @@ const UsersPage: React.FC<UsersPageProps> = ({ currentPage, onNavigate, userRole
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserData | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
+  const [isSortOpen, setIsSortOpen] = useState(false);
+  const [sortOption, setSortOption] = useState<'nameAsc' | 'nameDesc' | 'createdNewOld' | 'createdOldNew' | 'lastLoginNewOld'>('createdNewOld');
   const [users, setUsers] = useState<UserData[]>([]);
+  const isStaffUser = String(userRole).toLowerCase() === 'staff'; // Staff can only create tenants
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -57,10 +65,10 @@ const UsersPage: React.FC<UsersPageProps> = ({ currentPage, onNavigate, userRole
           ? record.name || 'Unknown Staff'
           : record.fullName || `${record.firstName || ''} ${record.lastName || ''}`.trim() || 'Unknown Tenant',
         email: record.email,
-        role: record.type === 'staff' 
-          ? (record.role === 'admin' ? 'Admin' : 'Staff')
-          : 'Tenant',
-        status: record.isArchived ? 'Inactive' : 'Active',
+        // preserve backend role in rawRole; map role for UI components
+        rawRole: (record as any).role || null,
+        role: record.type === 'staff' ? (record.role === 'admin' ? 'Admin' : 'Staff') : 'Tenant',
+        status: record.isArchived ? 'Archived' : 'Active',
         startDate: new Date(record.createdAt).toLocaleDateString('en-US', { 
           month: 'short', 
           day: 'numeric', 
@@ -72,6 +80,9 @@ const UsersPage: React.FC<UsersPageProps> = ({ currentPage, onNavigate, userRole
         avatar: record.type === 'staff' 
           ? record.name?.charAt(0) || 'S'
           : record.firstName?.charAt(0) || record.lastName?.charAt(0) || 'T'
+        ,
+        createdAt: record.createdAt || null,
+        lastLogin: (record as any).lastLoginAt || null
       }));
       
       setUsers(transformedUsers);
@@ -83,11 +94,45 @@ const UsersPage: React.FC<UsersPageProps> = ({ currentPage, onNavigate, userRole
     }
   };
 
-  const filteredUsers = users.filter(user =>
-    user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.role.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // filter by search and then apply selected sort option
+  const filteredUsers = users
+    .filter(user => {
+      const q = searchQuery.toLowerCase();
+      const matchesSearch = !q || user.name.toLowerCase().includes(q) || user.email.toLowerCase().includes(q) || user.role.toLowerCase().includes(q);
+      const matchesRole = selectedRoles.length === 0 || selectedRoles.includes(user.role);
+      const matchesStatus = selectedStatuses.length === 0 || selectedStatuses.includes(user.status);
+      return matchesSearch && matchesRole && matchesStatus;
+    })
+    .sort((a, b) => {
+      // Name A→Z
+      if (sortOption === 'nameAsc') {
+        return a.name.localeCompare(b.name);
+      }
+      // Name Z→A
+      if (sortOption === 'nameDesc') {
+        return b.name.localeCompare(a.name);
+      }
+      // Created new→old
+      if (sortOption === 'createdNewOld') {
+        const da = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const db = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return db - da;
+      }
+      // Created old→new
+      if (sortOption === 'createdOldNew') {
+        const da = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const db = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return da - db;
+      }
+      // Last login new→old
+      if (sortOption === 'lastLoginNewOld') {
+        const la = a.lastLogin ? new Date(a.lastLogin).getTime() : 0;
+        const lb = b.lastLogin ? new Date(b.lastLogin).getTime() : 0;
+        return lb - la;
+      }
+
+      return 0;
+    });
 
   const handleCreateUser = async (userData: any) => {
     // User creation is handled by the CreateUserModal via registerService
@@ -188,7 +233,6 @@ const UsersPage: React.FC<UsersPageProps> = ({ currentPage, onNavigate, userRole
     if (userRole === 'staff' && user.role === 'Tenant') return true; // Staff can archive tenants
     return false; // Staff cannot archive other staff
   };
-  const isStaffUser = userRole === 'staff'; // Staff can only create tenants
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -202,7 +246,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ currentPage, onNavigate, userRole
           currentPage={currentPage}
           title="Users" 
           subtitle={userRole === 'staff' ? "Manage tenant accounts" : "Manage system users and permissions"}
-          onSearch={(q) => setSearchQuery(q)}
+          // onSearch removed
           onNotificationOpen={() => onNavigate && onNavigate('notifications')}
         />
 
@@ -236,10 +280,18 @@ const UsersPage: React.FC<UsersPageProps> = ({ currentPage, onNavigate, userRole
                       type="text"
                       placeholder="Search for anything..."
                       value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onChange={(e) => setSearchQuery((e.target as HTMLInputElement).value)}
                       className="w-full sm:w-64 pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                     />
                   </div>
+
+                  {/* Sort Button */}
+                  <button
+                    onClick={() => setIsSortOpen(true)}
+                    className="inline-flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm hover:bg-gray-50"
+                  >
+                    Sort
+                  </button>
                   
                   {/* Create User Button */}
                   {canCreateUsers && (
@@ -282,15 +334,31 @@ const UsersPage: React.FC<UsersPageProps> = ({ currentPage, onNavigate, userRole
                 </div>
               ) : filteredUsers.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4 lg:gap-6">
-                  {filteredUsers.map((user) => (
-                    <UserCard
-                      key={user.id}
-                      user={user}
-                      onEdit={canEditUser(user) ? handleEditUser : undefined}
-                      onArchive={canArchiveUser(user) ? requestArchive : undefined}
-                      onUnarchive={canArchiveUser(user) ? handleUnarchiveUser : undefined}
-                    />
-                  ))}
+                  {filteredUsers.map((user) => {
+                    // map user to the shape expected by UserCard (narrow status type)
+                    const cardUser = {
+                      id: user.id,
+                      name: user.name,
+                      email: user.email,
+                      role: user.role as 'Staff' | 'Tenant' | 'Admin',
+                      status: (user.status === 'Active' ? 'Active' : 'Inactive') as 'Active' | 'Inactive',
+                      startDate: user.startDate,
+                      roomNumber: user.roomNumber,
+                      roomType: user.roomType,
+                      monthlyRent: user.monthlyRent,
+                      avatar: user.avatar
+                    };
+
+                    return (
+                      <UserCard
+                        key={user.id}
+                        user={cardUser}
+                        onEdit={canEditUser(user) ? handleEditUser : undefined}
+                        onArchive={canArchiveUser(user) ? requestArchive : undefined}
+                        onUnarchive={canArchiveUser(user) ? handleUnarchiveUser : undefined}
+                      />
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="text-center py-12">
@@ -332,7 +400,18 @@ const UsersPage: React.FC<UsersPageProps> = ({ currentPage, onNavigate, userRole
       {/* Edit User Modal */}
       {editingUser && canEditUser(editingUser) && (
         <EditUserModal
-          user={editingUser}
+          user={{
+            id: editingUser.id,
+            name: editingUser.name,
+            email: editingUser.email,
+            role: editingUser.role as 'Staff' | 'Tenant' | 'Admin',
+            status: editingUser.status === 'Active' ? 'Active' : 'Inactive',
+            startDate: editingUser.startDate,
+            roomNumber: editingUser.roomNumber,
+            roomType: editingUser.roomType,
+            monthlyRent: editingUser.monthlyRent,
+            avatar: editingUser.avatar
+          }}
           onClose={() => setEditingUser(null)}
           onUpdate={handleUpdateUser}
         />
@@ -354,6 +433,59 @@ const UsersPage: React.FC<UsersPageProps> = ({ currentPage, onNavigate, userRole
           onConfirm={confirmArchive}
           onCancel={cancelArchive}
         />
+      )}
+
+      {/* Sort Floating Panel */}
+      {isSortOpen && (
+        <div className="fixed inset-0 z-50">
+          {/* click outside to close */}
+          <div className="absolute inset-0" onClick={() => setIsSortOpen(false)} />
+          <div className="absolute right-6 top-20 w-80 bg-white border border-gray-200 p-4 rounded-lg shadow-xl">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-lg font-medium">Sort Users</h3>
+              <button onClick={() => setIsSortOpen(false)} className="text-gray-500 text-xl leading-none">×</button>
+            </div>
+
+            <div className="space-y-3">
+              <label className="flex items-center gap-2">
+                <input type="radio" name="sort" value="nameAsc" checked={sortOption === 'nameAsc'} onChange={() => setSortOption('nameAsc')} />
+                <span className="text-sm">Name (A → Z)</span>
+              </label>
+              <label className="flex items-center gap-2">
+                <input type="radio" name="sort" value="nameDesc" checked={sortOption === 'nameDesc'} onChange={() => setSortOption('nameDesc')} />
+                <span className="text-sm">Name (Z → A)</span>
+              </label>
+              <label className="flex items-center gap-2">
+                <input type="radio" name="sort" value="createdNewOld" checked={sortOption === 'createdNewOld'} onChange={() => setSortOption('createdNewOld')} />
+                <span className="text-sm">Created (new → old)</span>
+              </label>
+              <label className="flex items-center gap-2">
+                <input type="radio" name="sort" value="createdOldNew" checked={sortOption === 'createdOldNew'} onChange={() => setSortOption('createdOldNew')} />
+                <span className="text-sm">Created (old → new)</span>
+              </label>
+              <label className="flex items-center gap-2">
+                <input type="radio" name="sort" value="lastLoginNewOld" checked={sortOption === 'lastLoginNewOld'} onChange={() => setSortOption('lastLoginNewOld')} />
+                <span className="text-sm">Last login (new → old)</span>
+              </label>
+            
+            {/* Role filters (only for admin view) - only show Staff and Tenant */}
+            {!isStaffUser && (
+              <div className="mt-4">
+                <h4 className="text-sm font-medium mb-2">Roles</h4>
+                <div className="flex flex-wrap gap-2">
+                  {['Staff','Tenant'].map(r => (
+                    <button
+                      key={r}
+                      onClick={() => setSelectedRoles(prev => prev.includes(r) ? prev.filter(x => x !== r) : [...prev, r])}
+                      className={`text-sm px-3 py-1 rounded-full border ${selectedRoles.includes(r) ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-200'}`}
+                    >{r}</button>
+                  ))}
+                </div>
+              </div>
+            )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
