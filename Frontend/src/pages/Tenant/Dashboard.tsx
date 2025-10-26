@@ -55,6 +55,12 @@ const Dashboard: React.FC<DashboardProps> = ({ currentPage, onNavigate, onLogout
     }
   };
 
+  const handleViewAnnouncements = () => {
+    if (onNavigate) {
+      onNavigate('announcements');
+    }
+  };
+
   return (
     <div className="flex min-h-screen bg-gray-50">
       {/* Sidebar */}
@@ -91,6 +97,7 @@ const Dashboard: React.FC<DashboardProps> = ({ currentPage, onNavigate, onLogout
                 onViewPaymentHistory={handleViewPaymentHistory}
                 onSubmitMaintenanceRequest={handleSubmitMaintenanceRequest}
                 onUpdateProfile={handleUpdateProfile}
+                onViewAnnouncements={handleViewAnnouncements}
               />
               
               {/* Recent Activity */}

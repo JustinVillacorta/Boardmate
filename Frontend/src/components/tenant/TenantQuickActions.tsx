@@ -1,16 +1,18 @@
 import React from 'react';
-import { DollarSign, Wrench, User } from 'lucide-react';
+import { DollarSign, Wrench, User, Megaphone } from 'lucide-react';
 
 interface TenantQuickActionsProps {
   onViewPaymentHistory: () => void;
   onSubmitMaintenanceRequest: () => void;
   onUpdateProfile: () => void;
+  onViewAnnouncements: () => void;
 }
 
 const TenantQuickActions: React.FC<TenantQuickActionsProps> = ({
   onViewPaymentHistory,
   onSubmitMaintenanceRequest,
-  onUpdateProfile
+  onUpdateProfile,
+  onViewAnnouncements
 }) => {
   const actions = [
     {
@@ -20,6 +22,14 @@ const TenantQuickActions: React.FC<TenantQuickActionsProps> = ({
       onClick: onViewPaymentHistory,
       variant: 'primary' as const,
       description: 'Check your payment records'
+    },
+    {
+      id: 'view-announcements',
+      label: 'View Announcements',
+      icon: Megaphone,
+      onClick: onViewAnnouncements,
+      variant: 'primary' as const,
+      description: 'Stay updated with community news'
     },
     {
       id: 'submit-maintenance',

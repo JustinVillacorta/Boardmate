@@ -6,7 +6,7 @@ import CreateUserModal from '../../components/users/CreateUserModal';
 import EditUserModal from '../../components/users/EditUserModal';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import { userManagementService, StaffAndTenantData } from '../../services/userManagementService';
-import { User, UserPlus, Loader2 } from 'lucide-react';
+import { User, UserPlus, Loader2, SortAsc } from 'lucide-react';
 
 interface UserData {
   id: string;
@@ -290,6 +290,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ currentPage, onNavigate, userRole
                     onClick={() => setIsSortOpen(true)}
                     className="inline-flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm hover:bg-gray-50"
                   >
+                    <SortAsc className="w-4 h-4" />
                     Sort
                   </button>
                   

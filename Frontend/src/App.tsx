@@ -16,7 +16,9 @@ import PaymentPage from './pages/shared/PaymentPage';
 import PaymentHistoryPage from './pages/shared/PaymentHistoryPage';
 import ReportsPage from './pages/shared/ReportsPage';
 import NotificationsPage from './pages/shared/NotificationsPage';
+import AnnouncementsPage from './pages/shared/AnnouncementsPage';
 import UsersPage from './pages/shared/UsersPage';
+import TenantAnnouncementsPage from './pages/Tenant/TenantAnnouncementsPage';
 
 // Auth service
 import { authService } from './services/authService';
@@ -84,6 +86,9 @@ const App: React.FC = () => {
     switch (currentPage) {
       case 'notifications':
         return <NotificationsPage currentPage={currentPage} onNavigate={handleNavigation} userRole="admin" />;
+      
+      case 'announcements':
+        return <AnnouncementsPage currentPage={currentPage} onNavigate={handleNavigation} userRole="admin" />;
 
       case 'reports':
         return <ReportsPage currentPage={currentPage} onNavigate={handleNavigation} userRole="admin" />;
@@ -108,6 +113,9 @@ const App: React.FC = () => {
     switch (currentPage) {
       case 'notifications':
         return <NotificationsPage currentPage={currentPage} onNavigate={handleNavigation} userRole="staff" />;
+      
+      case 'announcements':
+        return <AnnouncementsPage currentPage={currentPage} onNavigate={handleNavigation} userRole="staff" />;
 
       case 'reports':
         return <ReportsPage currentPage={currentPage} onNavigate={handleNavigation} userRole="staff" />;
@@ -138,6 +146,8 @@ const App: React.FC = () => {
         return <TenantReports currentPage={currentPage} onNavigate={handleNavigation} />;
       case 'notifications':
         return <TenantNotifications currentPage={currentPage} onNavigate={handleNavigation} />;
+      case 'announcements':
+        return <TenantAnnouncementsPage currentPage={currentPage} onNavigate={handleNavigation} />;
       case 'profile':
         return <TenantProfile currentPage={currentPage} onNavigate={handleNavigation} />;
       default:
