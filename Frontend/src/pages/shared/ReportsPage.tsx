@@ -236,7 +236,7 @@ const ReportsPage: React.FC<ReportsPageProps> = ({ currentPage, onNavigate, user
                 <div className="flex-1 pr-6">
                   <div className="mt-4">
                     <div className="inline-flex items-center gap-3 overflow-x-auto bg-white rounded-md px-3 py-2 shadow-sm">
-                      {(['All', 'Resolved', 'In Progress', 'Pending', 'Rejected'] as const).map(t => (
+                      {(['All', 'Pending', 'In Progress', 'Resolved', 'Rejected'] as const).map(t => (
                         <button
                           key={t}
                           onClick={() => setActiveTab(t as any)}
