@@ -7,6 +7,7 @@ import {
   PhilippinePeso, 
   Wrench, 
   BellDot,
+  Megaphone,
   Menu,
   X
 } from "lucide-react";
@@ -157,6 +158,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage = 'dashboard', onNavigate
         { name: "Payments", icon: PhilippinePeso, page: "payments", active: currentPage === 'payments' },
         { name: "Reports", icon: Wrench, page: "reports", active: currentPage === 'reports' },
         { name: "Notifications", icon: BellDot, page: "notifications", active: currentPage === 'notifications' },
+        { name: "Announcements", icon: Megaphone, page: "announcements", active: currentPage === 'announcements' },
         { name: "Profile", icon: User, page: "profile", active: currentPage === 'profile' },
         { name: "Logout", icon: LogOut, active: false, action: () => setShowLogoutConfirm(true) },
       ];
@@ -169,6 +171,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage = 'dashboard', onNavigate
         { name: "Reports", icon: Wrench, page: "reports", active: currentPage === 'reports' },
         { name: "Users", icon: User, page: "users", active: currentPage === 'users' },
         { name: "Notifications", icon: BellDot, page: "notifications", active: currentPage === 'notifications' },
+        { name: "Announcements", icon: Megaphone, page: "announcements", active: currentPage === 'announcements' },
         { name: "Logout", icon: LogOut, active: false, action: () => setShowLogoutConfirm(true) },
       ];
     }

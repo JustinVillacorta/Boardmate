@@ -161,28 +161,3 @@ export const getUnreadCount = catchAsync(async (req, res, next) => {
     }
   });
 });
-
-// @desc    Create system announcement (Admin only)
-// @route   POST /api/notifications/announcement
-// @access  Private (Admin only)
-export const createAnnouncement = catchAsync(async (req, res, next) => {
-  // Check validation errors
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return next(new AppError('Validation failed', 400, errors.array()));
-  }
-
-  const { title, message, userIds, expiresAt } = req.body;
-
-  await NotificationService.createSystemAnnouncement(
-    title,
-    message,
-    userIds,
-    expiresAt ? new Date(expiresAt) : null
-  );
-
-  res.status(201).json({
-    success: true,
-    message: 'Announcement created successfully'
-  });
-});

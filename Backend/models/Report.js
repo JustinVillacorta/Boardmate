@@ -52,6 +52,10 @@ const reportSchema = new mongoose.Schema({
   followUpDate: {
     type: Date,
     default: null
+  },
+  isArchived: {
+    type: Boolean,
+    default: false
   }
 }, { 
   timestamps: true 
@@ -62,6 +66,7 @@ reportSchema.index({ tenant: 1, status: 1 });
 reportSchema.index({ room: 1, type: 1 });
 reportSchema.index({ status: 1, submittedAt: -1 });
 reportSchema.index({ followUp: 1, followUpDate: 1 });
+reportSchema.index({ isArchived: 1, status: 1, updatedAt: -1 });
 
 // Method to check if follow-up has expired (after 7 days)
 reportSchema.methods.isFollowUpExpired = function() {
@@ -103,6 +108,21 @@ reportSchema.statics.getReportsStats = function() {
       }
     }
   ]);
+};
+
+// Static method to archive reports with resolved/rejected status older than 30 days
+reportSchema.statics.archiveOldReports = function() {
+  const now = new Date();
+  const thirtyDaysAgo = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
+  
+  return this.updateMany(
+    {
+      isArchived: false,
+      status: { $in: ['resolved', 'rejected'] },
+      updatedAt: { $lte: thirtyDaysAgo }
+    },
+    { isArchived: true }
+  );
 };
 
 export default mongoose.model('Report', reportSchema);

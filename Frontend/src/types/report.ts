@@ -12,6 +12,7 @@ export interface ReportItem {
   status: 'Resolved' | 'In Progress' | 'Pending' | 'Rejected';
   followUp?: boolean;
   followUpDate?: string;
+  isArchived?: boolean;
 }
 
 export interface Report {
@@ -25,4 +26,5 @@ export interface Report {
   data: any;
   generatedBy: string;
   createdAt: string;
+  isArchived?: boolean;
 }

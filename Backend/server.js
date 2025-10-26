@@ -16,6 +16,7 @@ import roomRoutes from './routes/roomRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
 import reportRoutes from './routes/reportRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
+import announcementRoutes from './routes/announcementRoutes.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import CronJobs from './utils/cronJobs.js';
 
@@ -68,6 +69,7 @@ app.use('/api/rooms', roomRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/announcements', announcementRoutes);
 
 // Health check route
 app.get('/api/health', (req, res) => {

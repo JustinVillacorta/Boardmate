@@ -5,11 +5,9 @@ import {
   markAsRead,
   markAllAsRead,
   deleteNotification,
-  getUnreadCount,
-  createAnnouncement
+  getUnreadCount
 } from '../controllers/notificationController.js';
 import { protect, adminOnly } from '../middleware/auth.js';
-import { validateAnnouncement } from '../middleware/validation.js';
 
 const router = express.Router();
 
@@ -30,9 +28,6 @@ router.route('/:id')
 
 // Mark single notification as read
 router.put('/:id/read', markAsRead);
-
-// Admin-only routes
-router.post('/announcement', adminOnly, validateAnnouncement, createAnnouncement);
 
 // Manual trigger routes (for testing - Admin only)
 router.post('/trigger/payment-reminders', adminOnly, async (req, res) => {

@@ -8,6 +8,7 @@ export interface NotificationItem {
   expiresAt?: string;
   meta?: Record<string, any>;
   read?: boolean;
+  isArchived?: boolean;
 }
 
 export interface Notification {
@@ -19,6 +20,7 @@ export interface Notification {
   isRead: boolean;
   createdAt: string;
   updatedAt: string;
+  isArchived?: boolean;
 }
 
 export interface TenantNotification {
@@ -28,4 +30,5 @@ export interface TenantNotification {
   timestamp: string;
   type: 'payment' | 'maintenance' | 'building';
   isUnread: boolean;
+  isArchived?: boolean;
 }

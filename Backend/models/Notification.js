@@ -33,7 +33,6 @@ const notificationSchema = new mongoose.Schema({
       'report_followup',
       'system_alert',
       'maintenance',
-      'announcement',
       'lease_reminder',
       'other'
     ],
@@ -67,11 +66,16 @@ const notificationSchema = new mongoose.Schema({
     enum: ['User', 'Tenant'],
     default: 'User'
   },
+  isArchived: {
+    type: Boolean,
+    default: false
+  }
 }, { timestamps: true });
 
 // Index for efficient querying
 notificationSchema.index({ user: 1, status: 1, createdAt: -1 });
 notificationSchema.index({ expiresAt: 1 });
+notificationSchema.index({ isArchived: 1, createdAt: -1 });
 
 // Auto-remove expired notifications
 notificationSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
@@ -130,6 +134,20 @@ notificationSchema.statics.markAllAsRead = function(userId) {
 // Static method to get unread count
 notificationSchema.statics.getUnreadCount = function(userId) {
   return this.countDocuments({ user: userId, status: 'unread' });
+};
+
+// Static method to archive notifications older than 30 days
+notificationSchema.statics.archiveOldNotifications = function() {
+  const now = new Date();
+  const thirtyDaysAgo = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
+  
+  return this.updateMany(
+    {
+      isArchived: false,
+      createdAt: { $lte: thirtyDaysAgo }
+    },
+    { isArchived: true }
+  );
 };
 
 export default mongoose.model('Notification', notificationSchema);
