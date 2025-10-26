@@ -1185,6 +1185,11 @@ export const forgotPassword = catchAsync(async (req, res, next) => {
   }
   if (!account) return next(new AppError('No user or tenant found with that email', 404));
 
+  // Check if account is archived
+  if (account.isArchived) {
+    return next(new AppError('Account has been archived and cannot reset password', 403));
+  }
+
   // Generate 6-digit OTP and store hashed copy in PasswordOTP collection
   const otp = (Math.floor(100000 + Math.random() * 900000)).toString();
   const ttlMinutes = parseInt(process.env.OTP_TTL_MINUTES) || 10;
@@ -1245,6 +1250,11 @@ export const resetPasswordWithOTP = catchAsync(async (req, res, next) => {
     accountType = 'tenant';
   }
   if (!account) return next(new AppError('No user or tenant found with that email', 404));
+
+  // Check if account is archived
+  if (account.isArchived) {
+    return next(new AppError('Account has been archived and cannot reset password', 403));
+  }
 
   // Update password
   account.password = newPassword;
