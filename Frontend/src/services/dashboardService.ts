@@ -65,8 +65,8 @@ export const dashboardService = {
       // Parallel base requests with error handling
       const [roomsRes, tenantsRes, reportsRes] = await Promise.allSettled([
         api.get('/rooms/stats'),
-        api.get('/auth/tenants-only', { params: { limit: 1 } }),
-        api.get('/reports', { params: { limit: 1 } }),
+        api.get('/auth/tenants-only', { params: { limit: 1, isArchived: false } }),
+        api.get('/reports', { params: { limit: 1, includeArchivedUsers: false } }),
       ]);
 
       // Payment stats for each of the last 4 months in parallel
