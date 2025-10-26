@@ -253,6 +253,8 @@ const ManageTenantsModal: React.FC<Props> = ({ room, onClose, onAddTenant }) => 
     );
   };
 
+  const [showAddTenantWizard, setShowAddTenantWizard] = useState(false);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="fixed inset-0 bg-black opacity-40" onClick={onClose} />
@@ -268,12 +270,10 @@ const ManageTenantsModal: React.FC<Props> = ({ room, onClose, onAddTenant }) => 
           </button>
         </div>
 
-        {renderProgressIndicator()}
-
-        <div className="p-6 overflow-y-auto flex-1">
-          {/* Step 1: Select Tenant */}
-          {currentStep === 1 && (
-            <div className="space-y-4">
+        {!showAddTenantWizard ? (
+          // Main View: Show Current Tenants and Add Button
+          <>
+            <div className="p-6 overflow-y-auto flex-1">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <div className="p-4 bg-blue-50 rounded-lg">
                   <div className="text-sm text-blue-600">Capacity</div>
@@ -292,7 +292,64 @@ const ManageTenantsModal: React.FC<Props> = ({ room, onClose, onAddTenant }) => 
                 </div>
               </div>
 
-              <h4 className="text-sm font-semibold text-green-700 mb-3">Select Tenant</h4>
+              <h4 className="text-sm font-semibold text-green-700 mb-3">Current Tenants ({current})</h4>
+              {current === 0 ? (
+                <div className="p-6 border rounded-lg text-center text-gray-500">
+                  <div className="mb-2">
+                    <svg className="w-8 h-8 mx-auto text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14c-4.418 0-8 1.79-8 4v1h16v-1c0-2.21-3.582-4-8-4z" />
+                    </svg>
+                  </div>
+                  <div>No current tenants in this room</div>
+                  <div className="text-xs text-gray-400">Room is available for new tenants</div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {room.tenants?.map((tenant: any) => (
+                    <div key={tenant.id} className="p-4 border rounded-lg bg-gray-50">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="font-medium text-gray-900">{tenant.name}</div>
+                          <div className="text-sm text-gray-500">{tenant.email}</div>
+                          {tenant.phoneNumber && (
+                            <div className="text-xs text-gray-400">{tenant.phoneNumber}</div>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => handleRemoveTenant(tenant.id)}
+                          className="px-3 py-1 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-sm flex items-center gap-1"
+                        >
+                          <UserMinus className="w-4 h-4" />
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="p-4 border-t bg-white flex-shrink-0 flex items-center justify-end gap-3">
+              <button
+                onClick={() => available > 0 && setShowAddTenantWizard(true)}
+                disabled={available === 0}
+                title={available === 0 ? 'Room is full' : 'Add tenant'}
+                className={`px-4 py-2 rounded-md flex items-center gap-2 ${available === 0 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
+              >
+                <UserPlus className="w-4 h-4" />Add Tenant
+              </button>
+            </div>
+          </>
+        ) : (
+          // Wizard View: Add Tenant Process
+          <>
+            {renderProgressIndicator()}
+
+            <div className="p-6 overflow-y-auto flex-1">
+              {/* Step 1: Select Tenant */}
+              {currentStep === 1 && (
+                <div className="space-y-4">
+                  <h4 className="text-sm font-semibold text-green-700 mb-3">Select Tenant</h4>
               
               {loading ? (
                 <div className="text-center py-8">
@@ -521,55 +578,61 @@ const ManageTenantsModal: React.FC<Props> = ({ room, onClose, onAddTenant }) => 
             </div>
           )}
 
-          {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm mt-4">
-              {error}
+              {error && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm mt-4">
+                  {error}
+                </div>
+              )}
             </div>
-          )}
-        </div>
 
-        <div className="p-4 border-t bg-white flex-shrink-0 flex items-center justify-between">
-          <div className="flex gap-2">
-            {currentStep > 1 && (
-              <button
-                onClick={() => {
-                  if (currentStep === 2) setContractMethod(null);
-                  setCurrentStep((currentStep - 1) as Step);
-                }}
-                className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 flex items-center gap-2"
-              >
-                <ChevronLeft className="w-4 h-4" />
-                Back
-              </button>
-            )}
-            <button onClick={onClose} className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
-              Cancel
-            </button>
-          </div>
-          
-          <div>
-            {currentStep < 3 ? (
-              <button
-                onClick={() => setCurrentStep((currentStep + 1) as Step)}
-                disabled={!canGoToNextStep()}
-                className={`px-6 py-2 rounded-md text-white flex items-center gap-2 ${
-                  canGoToNextStep() ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-300 cursor-not-allowed'
-                }`}
-              >
-                Next
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            ) : (
-              <button
-                onClick={handleFinalAssign}
-                disabled={loading}
-                className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center gap-2 disabled:opacity-50"
-              >
-                {loading ? 'Assigning...' : 'Assign Tenant'}
-              </button>
-            )}
-          </div>
-        </div>
+            <div className="p-4 border-t bg-white flex-shrink-0 flex items-center justify-between">
+              <div className="flex gap-2">
+                {currentStep > 1 && (
+                  <button
+                    onClick={() => {
+                      if (currentStep === 2) setContractMethod(null);
+                      setCurrentStep((currentStep - 1) as Step);
+                    }}
+                    className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 flex items-center gap-2"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    Back
+                  </button>
+                )}
+                <button onClick={() => setShowAddTenantWizard(false)} className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
+                  Cancel
+                </button>
+              </div>
+              
+              <div>
+                {currentStep < 3 ? (
+                  <button
+                    onClick={() => setCurrentStep((currentStep + 1) as Step)}
+                    disabled={!canGoToNextStep()}
+                    className={`px-6 py-2 rounded-md text-white flex items-center gap-2 ${
+                      canGoToNextStep() ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-300 cursor-not-allowed'
+                    }`}
+                  >
+                    Next
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                ) : (
+                  <button
+                    onClick={async () => {
+                      await handleFinalAssign();
+                      setShowAddTenantWizard(false);
+                      setCurrentStep(1);
+                    }}
+                    disabled={loading}
+                    className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center gap-2 disabled:opacity-50"
+                  >
+                    {loading ? 'Assigning...' : 'Assign Tenant'}
+                  </button>
+                )}
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       <RemoveTenantConfirmDialog

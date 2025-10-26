@@ -83,7 +83,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ currentPage, on
   }, [refresh]);
 
   // Role-based functionality
-  const canCreatePayments = userRole === 'admin'; // Only admin can create payments
+  const canCreatePayments = userRole === 'admin' || userRole === 'staff'; // Admin and staff can create payments
   const canMarkAsPaid = userRole === 'admin' || userRole === 'staff'; // Both can mark as paid
   const canDownload = userRole === 'admin' || userRole === 'staff'; // admin and staff can download
 
