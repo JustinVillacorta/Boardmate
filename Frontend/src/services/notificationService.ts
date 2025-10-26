@@ -15,13 +15,21 @@ export interface NotificationItem {
 }
 
 export const notificationService = {
-  async getNotifications(params: { page?: number; limit?: number; status?: string; type?: string; includeRead?: boolean } = {}) {
+  async getNotifications(params: { page?: number; limit?: number; status?: string; type?: string; includeRead?: boolean; includeArchived?: boolean } = {}) {
     const qs = new URLSearchParams();
-    if (params.page) qs.append('page', String(params.page));
-    if (params.limit) qs.append('limit', String(params.limit));
-    if (params.status) qs.append('status', params.status);
-    if (params.type) qs.append('type', params.type);
-    if (params.includeRead !== undefined) qs.append('includeRead', String(params.includeRead));
+    
+    // Set default values to exclude archived notifications unless explicitly requested
+    const defaultParams = {
+      includeArchived: false,
+      ...params
+    };
+    
+    if (defaultParams.page) qs.append('page', String(defaultParams.page));
+    if (defaultParams.limit) qs.append('limit', String(defaultParams.limit));
+    if (defaultParams.status) qs.append('status', defaultParams.status);
+    if (defaultParams.type) qs.append('type', defaultParams.type);
+    if (defaultParams.includeRead !== undefined) qs.append('includeRead', String(defaultParams.includeRead));
+    if (defaultParams.includeArchived !== undefined) qs.append('includeArchived', String(defaultParams.includeArchived));
     qs.append('_t', String(Date.now()));
 
     const res = await api.get(`/notifications?${qs.toString()}`);

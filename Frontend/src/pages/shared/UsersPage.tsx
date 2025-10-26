@@ -426,6 +426,11 @@ const UsersPage: React.FC<UsersPageProps> = ({ currentPage, onNavigate, userRole
           message={
             <>
               <p>Archiving this account will deactivate it and remove access.</p>
+              {selectedToArchive && users.find(u => u.id === selectedToArchive)?.roomNumber && (
+                <p className="mt-2 text-amber-600 font-medium">
+                  ⚠️ This user will also be removed from their current room ({users.find(u => u.id === selectedToArchive)?.roomNumber}).
+                </p>
+              )}
               <p className="mt-2">Are you sure you want to archive <strong>{selectedToArchive ? (users.find(u => u.id === selectedToArchive)?.name) : 'this user'}</strong>?</p>
             </>
           }

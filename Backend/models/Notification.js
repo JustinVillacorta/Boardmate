@@ -105,7 +105,8 @@ notificationSchema.statics.getUserNotifications = function(userId, options = {})
     type = null,
     limit = 20,
     page = 1,
-    includeRead = true
+    includeRead = true,
+    includeArchived = false
   } = options;
 
   const query = { user: userId };
@@ -113,6 +114,7 @@ notificationSchema.statics.getUserNotifications = function(userId, options = {})
   if (status) query.status = status;
   if (type) query.type = type;
   if (!includeRead) query.status = 'unread';
+  if (!includeArchived) query.isArchived = false;
 
   const skip = (page - 1) * limit;
 
@@ -133,7 +135,11 @@ notificationSchema.statics.markAllAsRead = function(userId) {
 
 // Static method to get unread count
 notificationSchema.statics.getUnreadCount = function(userId) {
-  return this.countDocuments({ user: userId, status: 'unread' });
+  return this.countDocuments({ 
+    user: userId, 
+    status: 'unread',
+    isArchived: false
+  });
 };
 
 // Static method to archive notifications older than 30 days

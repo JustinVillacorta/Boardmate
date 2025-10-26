@@ -37,6 +37,7 @@ export interface GetAnnouncementsParams {
   status?: string;
   priority?: string;
   includeExpired?: boolean;
+  includeArchived?: boolean;
   page?: number;
   limit?: number;
 }
@@ -80,7 +81,13 @@ export const announcementService = {
   async getAnnouncements(params: GetAnnouncementsParams = {}): Promise<GetAnnouncementsResponse> {
     const query = new URLSearchParams();
 
-    Object.entries(params).forEach(([k, v]) => {
+    // Set default values to exclude archived announcements unless explicitly requested
+    const defaultParams = {
+      includeArchived: false,
+      ...params
+    };
+
+    Object.entries(defaultParams).forEach(([k, v]) => {
       if (v !== undefined && v !== null && v !== '') {
         query.append(k, String(v));
       }

@@ -314,4 +314,46 @@ roomSchema.statics.getOccupancyStats = async function() {
   return result;
 };
 
+// Static method to clean up archived tenants from all rooms
+roomSchema.statics.removeArchivedTenants = async function() {
+  const Tenant = mongoose.model('Tenant');
+  
+  // Find all archived tenants
+  const archivedTenants = await Tenant.find({ isArchived: true }).select('_id');
+  const archivedTenantIds = archivedTenants.map(t => t._id);
+  
+  if (archivedTenantIds.length === 0) {
+    return { removedCount: 0, roomsUpdated: 0 };
+  }
+  
+  // Remove archived tenants from all rooms
+  const result = await this.updateMany(
+    { tenants: { $in: archivedTenantIds } },
+    { $pull: { tenants: { $in: archivedTenantIds } } }
+  );
+  
+  // Update occupancy for affected rooms
+  const affectedRooms = await this.find({ 
+    _id: { $in: await this.distinct('_id', { tenants: { $in: archivedTenantIds } }) }
+  });
+  
+  for (const room of affectedRooms) {
+    room.occupancy.current = room.tenants.length;
+    
+    // Auto-update status based on occupancy
+    if (room.occupancy.current === 0) {
+      room.status = 'available';
+    }
+    
+    await room.save();
+  }
+  
+  console.log(`Removed ${archivedTenantIds.length} archived tenants from ${result.modifiedCount} rooms`);
+  
+  return {
+    removedCount: archivedTenantIds.length,
+    roomsUpdated: result.modifiedCount
+  };
+};
+
 export default mongoose.model('Room', roomSchema);
