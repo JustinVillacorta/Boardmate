@@ -26,6 +26,8 @@ export interface StaffAndTenantData {
   monthlyRent?: number;
   securityDeposit?: number;
   tenantStatus?: 'active' | 'inactive' | 'pending';
+  leaseStartDate?: string;
+  leaseEndDate?: string;
   isArchived: boolean;
   isVerified?: boolean;
   createdAt: string;
