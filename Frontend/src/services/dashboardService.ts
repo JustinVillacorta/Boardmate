@@ -105,7 +105,9 @@ export const dashboardService = {
         };
       });
 
-      const currentSummary = paymentMonthResponses[paymentMonthResponses.length - 1]?.data?.data?.summary || {};
+      // Get current month's data (current month index is now.month - 1)
+      const currentMonthIndex = now.getMonth();
+      const currentSummary = paymentMonthResponses[currentMonthIndex]?.data?.data?.summary || {};
       const payments = {
         thisMonth: {
           amount: Number(currentSummary.totalAmount) || 0,
