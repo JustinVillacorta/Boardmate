@@ -64,10 +64,10 @@ const Charts: React.FC<ChartsProps> = ({ data }) => {
                   data={pieDataForRender}
                   cx="50%"
                   cy="50%"
-                  innerRadius={60}
-                  outerRadius={100}
-                  paddingAngle={0}
+                  outerRadius={120}
+                  paddingAngle={2}
                   dataKey="value"
+                  label
                 >
                   {pieDataForRender.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />

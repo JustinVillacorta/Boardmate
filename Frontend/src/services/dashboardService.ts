@@ -55,10 +55,10 @@ export const dashboardService = {
       // Current date for monthly stats
       const now = new Date();
 
-      // Prepare last 4 months including current
+      // Prepare all 12 months of the current year
       const months: { year: number; month: number; label: string }[] = [];
-      for (let i = 3; i >= 0; i--) {
-        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      for (let i = 0; i < 12; i++) {
+        const d = new Date(now.getFullYear(), i, 1);
         months.push({ year: d.getFullYear(), month: d.getMonth() + 1, label: getMonthLabel(d) });
       }
 
