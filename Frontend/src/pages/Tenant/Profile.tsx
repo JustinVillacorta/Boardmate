@@ -3,7 +3,9 @@ import Sidebar from "../../components/layout/Sidebar";
 import TopNavbar from "../../components/layout/TopNavbar";
 import ConfirmationDialog from "../../components/tenant/ConfirmationDialog";
 import { authService } from '../../services/authService';
+import * as roomManagementService from '../../services/roomManagementService';
 import api from '../../config/api';
+import { FileText, Download, Eye } from 'lucide-react';
 
 interface ProfileProps {
   currentPage?: string;
@@ -33,6 +35,11 @@ const Profile: React.FC<ProfileProps> = ({ currentPage, onNavigate }) => {
   const [passwordErrors, setPasswordErrors] = useState<Partial<typeof passwordForm>>({});
   const [isUpdatingContact, setIsUpdatingContact] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  
+  // Contract states
+  const [contractData, setContractData] = useState<any>(null);
+  const [loadingContract, setLoadingContract] = useState(false);
+  const [contractError, setContractError] = useState<string | null>(null);
 
   // Confirmation dialog states
   const [showContactConfirmDialog, setShowContactConfirmDialog] = useState(false);
@@ -107,11 +114,49 @@ const Profile: React.FC<ProfileProps> = ({ currentPage, onNavigate }) => {
             accountStatus: tenant.tenantStatus ? tenant.tenantStatus.charAt(0).toUpperCase() + tenant.tenantStatus.slice(1) : '',
             securityDeposit: tenant.securityDeposit || 0
           });
+          
+          // Load contract information
+          if (tenant._id) {
+            loadContract(tenant._id);
+          }
         }
       };
       loadProfile();
     }
   }, [currentPage]);
+
+  const loadContract = async (tenantId: string) => {
+    try {
+      setLoadingContract(true);
+      setContractError(null);
+      const response = await roomManagementService.getContract(tenantId);
+      setContractData(response.data);
+    } catch (err: any) {
+      console.error('Error loading contract:', err);
+      setContractError(err?.response?.data?.message || err?.message || 'Failed to load contract');
+    } finally {
+      setLoadingContract(false);
+    }
+  };
+
+  const handleViewContract = () => {
+    if (contractData?.contractFile) {
+      const blob = roomManagementService.base64ToBlob(contractData.contractFile, contractData.contractMimeType || 'application/pdf');
+      const url = window.URL.createObjectURL(blob);
+      window.open(url, '_blank');
+      // Clean up after a delay
+      setTimeout(() => window.URL.revokeObjectURL(url), 100);
+    }
+  };
+
+  const handleDownloadContract = () => {
+    if (contractData?.contractFile) {
+      roomManagementService.downloadContract(
+        contractData.contractFile,
+        contractData.contractFileName || 'contract.pdf'
+      );
+    }
+  };
 
   const handleContactInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -352,6 +397,62 @@ const Profile: React.FC<ProfileProps> = ({ currentPage, onNavigate }) => {
                     </div>
                   </div>
                 </div>
+              </div>
+            </div>
+
+            {/* Contract Information Card */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+              <div className="p-6 border-b border-gray-200">
+                <h2 className="text-lg font-semibold text-gray-900">Contract Information</h2>
+                <p className="text-sm text-gray-500 mt-1">Your lease agreement and documents.</p>
+              </div>
+              <div className="p-6">
+                {loadingContract ? (
+                  <div className="text-center py-8">
+                    <div className="text-gray-500">Loading contract...</div>
+                  </div>
+                ) : contractError ? (
+                  <div className="text-center py-8">
+                    <div className="text-red-600 mb-2">{contractError}</div>
+                  </div>
+                ) : contractData?.contractFile ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg border border-blue-200">
+                      <div className="flex items-center gap-3">
+                        <FileText className="w-8 h-8 text-blue-600" />
+                        <div>
+                          <div className="font-medium text-gray-900">{contractData.contractFileName || 'contract.pdf'}</div>
+                          {contractData.contractUploadDate && (
+                            <div className="text-sm text-gray-500">
+                              Uploaded: {new Date(contractData.contractUploadDate).toLocaleDateString()}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={handleViewContract}
+                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                        >
+                          <Eye className="w-4 h-4" />
+                          View
+                        </button>
+                        <button
+                          onClick={handleDownloadContract}
+                          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+                        >
+                          <Download className="w-4 h-4" />
+                          Download
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <FileText className="w-12 h-12 mx-auto text-gray-300 mb-2" />
+                    <div>No contract available</div>
+                  </div>
+                )}
               </div>
             </div>
 

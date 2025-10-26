@@ -127,6 +127,24 @@ const tenantSchema = new mongoose.Schema({
     type: Boolean, 
     default: false 
   },
+  // Contract file storage
+  contractFile: {
+    type: String, // Base64-encoded PDF
+    trim: true,
+  },
+  contractFileName: {
+    type: String,
+    trim: true,
+    maxlength: 255,
+  },
+  contractUploadDate: {
+    type: Date,
+  },
+  contractMimeType: {
+    type: String,
+    enum: ['application/pdf'],
+    default: 'application/pdf',
+  },
   // Authentication-related fields
   isVerified: {
     type: Boolean,
