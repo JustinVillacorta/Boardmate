@@ -51,22 +51,22 @@ const Charts: React.FC<ChartsProps> = ({ data }) => {
   return (
     <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6">
       {/* Occupancy Rate Chart */}
-      <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-4 lg:p-6">
+      <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-4 lg:p-6 min-h-[400px]">
         <div className="flex items-center justify-between mb-4 lg:mb-6">
           <h2 className="text-lg lg:text-xl font-semibold text-gray-800">Occupancy Rate</h2>
         </div>
 
         {/* Responsive container for Pie Chart + Legend */}
-        <div className="flex flex-col lg:flex-row items-center justify-center">
+        <div className="flex flex-col lg:flex-row items-center justify-center h-full">
           {/* Pie Chart - enlarged to fill column (fixed height for ResponsiveContainer) */}
-          <div className="w-full lg:w-1/2" style={{ height: 320 }}>
+          <div className="w-full lg:w-1/2 h-80">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={pieDataForRender}
                   cx="50%"
                   cy="50%"
-                  outerRadius={120}
+                  outerRadius={100}
                   paddingAngle={2}
                   dataKey="value"
                   label
