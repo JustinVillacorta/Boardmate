@@ -151,6 +151,13 @@ const AnnouncementsPage: React.FC<AnnouncementsPageProps> = ({
           title="Announcements"
           subtitle={userRole === 'admin' ? "Create and manage announcements for your community" : "View community announcements and updates"}
           onNotificationOpen={() => onNavigate && onNavigate('notifications')} 
+          onAnnouncementOpen={(announcement) => { 
+            if (announcement) { 
+              // Handle specific announcement click if needed
+            } else { 
+              // "View All" was clicked - already on announcements page
+            } 
+          }}
         />
 
         <main className="flex-1 p-4 lg:p-6 overflow-auto">

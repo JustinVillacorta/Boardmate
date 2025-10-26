@@ -23,7 +23,6 @@ interface UserData {
   monthlyRent?: number;
   avatar?: string;
   createdAt?: string | null;
-  lastLogin?: string | null;
 }
 
 interface UsersPageProps {
@@ -84,8 +83,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ currentPage, onNavigate, userRole
           ? record.name?.charAt(0) || 'S'
           : record.firstName?.charAt(0) || record.lastName?.charAt(0) || 'T'
         ,
-        createdAt: record.createdAt || null,
-        lastLogin: (record as any).lastLoginAt || null
+        createdAt: record.createdAt || null
       }));
       
       setUsers(transformedUsers);
@@ -257,8 +255,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ currentPage, onNavigate, userRole
         'Room Number': record.room?.roomNumber || '-',
         'Room Type': record.room?.roomType || '-',
         'Monthly Rent': record.room?.monthlyRent ? `₱${record.room.monthlyRent.toLocaleString()}` : '-',
-        'Created Date': formatDate(record.createdAt),
-        'Last Login': record.lastLoginAt ? formatDate(record.lastLoginAt) : '-'
+        'Created Date': formatDate(record.createdAt)
       }));
       
       await exportToExcel(exportData, 'users_export', { 
@@ -287,6 +284,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ currentPage, onNavigate, userRole
           subtitle={userRole === 'staff' ? "Manage tenant accounts" : "Manage system users and permissions"}
           // onSearch removed
           onNotificationOpen={() => onNavigate && onNavigate('notifications')}
+          onAnnouncementOpen={() => onNavigate && onNavigate('announcements')}
         />
 
         {/* Page Content */}

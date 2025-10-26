@@ -168,6 +168,7 @@ const PaymentPage: React.FC<PaymentPageProps> = ({ currentPage, onNavigate, user
           subtitle={userRole === 'staff' ? "Manage tenant payments and dues" : "Manage your account and preferences"} 
           // onSearch removed
           onNotificationOpen={() => onNavigate && onNavigate('notifications')}
+          onAnnouncementOpen={() => onNavigate && onNavigate('announcements')}
         />
 
         <main className="flex-1 p-4 lg:p-6 overflow-auto">
