@@ -8,7 +8,8 @@ import {
   RoomResponse,
   RoomStatsResponse,
   AvailableTenantsResponse,
-  RoomDisplayData
+  RoomDisplayData,
+  ContractResponse
 } from '../types/room';
 
 /**
@@ -171,6 +172,95 @@ export const getAvailableTenants = async (): Promise<AvailableTenantsResponse> =
   // Add cache-busting parameter to ensure fresh data
   const response = await api.get<AvailableTenantsResponse>(`/auth/staff-and-tenants?userType=tenant&_t=${Date.now()}`);
   return response.data;
+};
+
+/**
+ * Get contract file for a tenant
+ */
+export const getContract = async (tenantId: string): Promise<ContractResponse> => {
+  const response = await api.get<ContractResponse>(`/rooms/contracts/${tenantId}`);
+  return response.data;
+};
+
+/**
+ * Generate contract PDF
+ */
+export interface ContractGenerationParams {
+  tenantId: string;
+  roomId: string;
+  leaseDurationMonths: number;
+  leaseStartDate: string;
+  monthlyRent: number;
+  securityDeposit: number;
+  landlordName: string;
+  landlordAddress: string;
+  specialTerms?: string;
+}
+
+export interface ContractGenerationResponse {
+  success: boolean;
+  data: {
+    contractFile: string;
+    contractFileName: string;
+    contractDetails: {
+      tenantName: string;
+      roomNumber: string;
+      leaseStartDate: string;
+      leaseEndDate: string;
+      monthlyRent: number;
+      securityDeposit: number;
+      durationMonths: number;
+    };
+  };
+}
+
+export const generateContract = async (params: ContractGenerationParams): Promise<ContractGenerationResponse> => {
+  const response = await api.post<ContractGenerationResponse>('/rooms/generate-contract', params);
+  return response.data;
+};
+
+/**
+ * Convert File to base64 string
+ */
+export const fileToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64String = reader.result as string;
+      resolve(base64String);
+    };
+    reader.onerror = (error) => reject(error);
+    reader.readAsDataURL(file);
+  });
+};
+
+/**
+ * Convert base64 to Blob for download
+ */
+export const base64ToBlob = (base64String: string, mimeType: string = 'application/pdf'): Blob => {
+  const base64Data = base64String.split(',')[1];
+  const byteCharacters = atob(base64Data);
+  const byteNumbers = new Array(byteCharacters.length);
+  for (let i = 0; i < byteCharacters.length; i++) {
+    byteNumbers[i] = byteCharacters.charCodeAt(i);
+  }
+  const byteArray = new Uint8Array(byteNumbers);
+  return new Blob([byteArray], { type: mimeType });
+};
+
+/**
+ * Download contract file
+ */
+export const downloadContract = (contractFile: string, fileName: string): void => {
+  const blob = base64ToBlob(contractFile, 'application/pdf');
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  window.URL.revokeObjectURL(url);
 };
 
 /**

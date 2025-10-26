@@ -37,6 +37,10 @@ export interface Tenant {
   tenantStatus: 'active' | 'inactive';
   leaseStartDate?: string;
   leaseEndDate?: string;
+  contractFile?: string;
+  contractFileName?: string;
+  contractUploadDate?: string;
+  contractMimeType?: string;
 }
 
 export interface RoomFormData {
@@ -59,6 +63,8 @@ export interface TenantAssignment {
   leaseEndDate: string;
   monthlyRent?: number;
   securityDeposit?: number;
+  contractFile?: string;
+  contractFileName?: string;
 }
 
 export interface RoomFilters {
@@ -124,6 +130,16 @@ export interface RoomResponse {
 export interface RoomStatsResponse {
   success: boolean;
   data: RoomStats;
+}
+
+export interface ContractResponse {
+  success: boolean;
+  data: {
+    contractFile: string;
+    contractFileName: string;
+    contractUploadDate: string;
+    contractMimeType: string;
+  };
 }
 
 export interface AvailableTenantsResponse {

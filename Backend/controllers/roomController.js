@@ -4,6 +4,7 @@ import Tenant from '../models/Tenant.js';
 import Payment from '../models/Payment.js';
 import { AppError } from '../utils/AppError.js';
 import { catchAsync } from '../utils/catchAsync.js';
+import { generateContractPDF } from '../utils/contractGenerator.js';
 
 // @desc    Get all rooms with filtering and pagination
 // @route   GET /api/rooms
@@ -195,7 +196,7 @@ export const assignTenant = catchAsync(async (req, res, next) => {
     return next(new AppError('Validation failed', 400, errors.array()));
   }
 
-  const { tenantId, leaseStartDate, leaseEndDate, monthlyRent, securityDeposit } = req.body;
+  const { tenantId, leaseStartDate, leaseEndDate, monthlyRent, securityDeposit, contractFile, contractFileName } = req.body;
 
   const room = await Room.findById(req.params.id);
   if (!room || !room.isActive) {
@@ -239,6 +240,17 @@ export const assignTenant = catchAsync(async (req, res, next) => {
       tenantUpdateData.securityDeposit = securityDeposit;
     } else {
       tenantUpdateData.securityDeposit = room.securityDeposit;
+    }
+
+    // Add contract file information if provided
+    if (contractFile) {
+      tenantUpdateData.contractFile = contractFile;
+      tenantUpdateData.contractUploadDate = new Date();
+      tenantUpdateData.contractMimeType = 'application/pdf';
+    }
+
+    if (contractFileName) {
+      tenantUpdateData.contractFileName = contractFileName;
     }
 
     await Tenant.findByIdAndUpdate(tenantId, tenantUpdateData);
@@ -453,4 +465,118 @@ export const getMyRoom = catchAsync(async (req, res, next) => {
     success: true,
     data: { room }
   });
+});
+
+// @desc    Get contract file for a tenant
+// @route   GET /api/rooms/contracts/:tenantId
+// @access  Private (Admin/Staff for any tenant, Tenant for their own)
+export const getContract = catchAsync(async (req, res, next) => {
+  const { tenantId } = req.params;
+
+  const tenant = await Tenant.findById(tenantId);
+  if (!tenant) {
+    return next(new AppError('Tenant not found', 404));
+  }
+
+  // Check if user is authorized to view this contract
+  // If user is a tenant, they can only view their own contract
+  if (req.userType === 'tenant' && req.user.id !== tenantId) {
+    return next(new AppError('You are not authorized to view this contract', 403));
+  }
+
+  // Check if contract exists
+  if (!tenant.contractFile) {
+    return next(new AppError('Contract not found', 404));
+  }
+
+  res.status(200).json({
+    success: true,
+    data: {
+      contractFile: tenant.contractFile,
+      contractFileName: tenant.contractFileName || 'contract.pdf',
+      contractUploadDate: tenant.contractUploadDate,
+      contractMimeType: tenant.contractMimeType
+    }
+  });
+});
+
+// @desc    Generate contract PDF
+// @route   POST /api/rooms/generate-contract
+// @access  Private (Admin/Staff)
+export const generateContract = catchAsync(async (req, res, next) => {
+  // Check validation errors
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return next(new AppError('Validation failed', 400, errors.array()));
+  }
+
+  const { 
+    tenantId, 
+    roomId, 
+    leaseDurationMonths, 
+    leaseStartDate, 
+    monthlyRent, 
+    securityDeposit, 
+    landlordName, 
+    landlordAddress, 
+    specialTerms 
+  } = req.body;
+
+  // Fetch tenant and room data
+  const tenant = await Tenant.findById(tenantId);
+  if (!tenant) {
+    return next(new AppError('Tenant not found', 404));
+  }
+
+  const room = await Room.findById(roomId);
+  if (!room || !room.isActive) {
+    return next(new AppError('Room not found', 404));
+  }
+
+  // Prepare contract data
+  const contractData = {
+    landlordName,
+    landlordAddress,
+    tenantName: `${tenant.firstName} ${tenant.lastName}`,
+    tenantEmail: tenant.email,
+    tenantPhone: tenant.phoneNumber,
+    tenantAddress: tenant.address ? `${tenant.address.street || ''}, ${tenant.address.city || ''}` : 'As provided',
+    roomNumber: room.roomNumber,
+    roomType: room.roomType,
+    roomCapacity: room.capacity,
+    leaseDurationMonths: parseInt(leaseDurationMonths),
+    leaseStartDate,
+    monthlyRent: monthlyRent || room.monthlyRent,
+    securityDeposit: securityDeposit || room.securityDeposit,
+    specialTerms,
+    contractDate: new Date()
+  };
+
+  try {
+    // Generate PDF
+    const base64PDF = await generateContractPDF(contractData);
+    
+    // Generate filename
+    const filename = `lease-agreement-${room.roomNumber}-${tenant.firstName}-${tenant.lastName}-${Date.now()}.pdf`;
+
+    res.status(200).json({
+      success: true,
+      data: {
+        contractFile: base64PDF,
+        contractFileName: filename,
+        contractDetails: {
+          tenantName: contractData.tenantName,
+          roomNumber: contractData.roomNumber,
+          leaseStartDate: contractData.leaseStartDate,
+          leaseEndDate: new Date(new Date(contractData.leaseStartDate).setMonth(new Date(contractData.leaseStartDate).getMonth() + contractData.leaseDurationMonths)).toISOString(),
+          monthlyRent: contractData.monthlyRent,
+          securityDeposit: contractData.securityDeposit,
+          durationMonths: contractData.leaseDurationMonths
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Contract generation error:', error);
+    return next(new AppError('Failed to generate contract', 500));
+  }
 });

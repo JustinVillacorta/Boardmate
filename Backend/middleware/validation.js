@@ -453,6 +453,37 @@ export const validateTenantAssignment = [
     .optional()
     .isFloat({ min: 0 })
     .withMessage('Security deposit must be a positive number'),
+
+  // Contract file validation
+  body('contractFile')
+    .notEmpty()
+    .withMessage('Contract file is required')
+    .custom((value) => {
+      // Check if it's a valid base64 string
+      const base64Regex = /^data:application\/pdf;base64,/
+      if (!base64Regex.test(value)) {
+        throw new Error('Contract file must be a PDF file in base64 format');
+      }
+      
+      // Decode base64 to check size (approximately 4/3 of the string length)
+      const base64Data = value.split(',')[1];
+      const sizeInBytes = (base64Data.length * 3) / 4;
+      const maxSize = 10 * 1024 * 1024; // 10MB
+      
+      if (sizeInBytes > maxSize) {
+        throw new Error('Contract file size must not exceed 10MB');
+      }
+      
+      return true;
+    }),
+
+  body('contractFileName')
+    .optional()
+    .trim()
+    .isLength({ min: 1, max: 255 })
+    .withMessage('Contract file name must be between 1 and 255 characters')
+    .matches(/\.pdf$/i)
+    .withMessage('Contract file must have .pdf extension'),
 ];
 
 // Validation for room status update
@@ -764,4 +795,49 @@ export const validateReportRejection = [
     .trim()
     .isLength({ min: 5, max: 1000 })
     .withMessage('Rejection reason must be between 5 and 1000 characters'),
+];
+
+// Validation for contract generation
+export const validateContractGeneration = [
+  body('tenantId')
+    .isMongoId()
+    .withMessage('Valid tenant ID is required'),
+
+  body('roomId')
+    .isMongoId()
+    .withMessage('Valid room ID is required'),
+
+  body('leaseDurationMonths')
+    .isInt({ min: 1, max: 60 })
+    .withMessage('Lease duration must be between 1 and 60 months'),
+
+  body('leaseStartDate')
+    .isISO8601()
+    .withMessage('Lease start date is required and must be a valid date'),
+
+  body('monthlyRent')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('Monthly rent must be a positive number'),
+
+  body('securityDeposit')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('Security deposit must be a positive number'),
+
+  body('landlordName')
+    .trim()
+    .isLength({ min: 3, max: 100 })
+    .withMessage('Landlord name must be between 3 and 100 characters'),
+
+  body('landlordAddress')
+    .trim()
+    .isLength({ min: 10, max: 200 })
+    .withMessage('Landlord address must be between 10 and 200 characters'),
+
+  body('specialTerms')
+    .optional()
+    .trim()
+    .isLength({ max: 1000 })
+    .withMessage('Special terms must not exceed 1000 characters'),
 ];
