@@ -101,11 +101,34 @@ export const getReports = catchAsync(async (req, res, next) => {
   // If tenant, only show their reports
   if (req.userType === 'tenant') {
     queryObj.tenant = req.user.id;
-  }
-
-  // Filter by tenant (Admin/Staff only)
-  if (req.query.tenant && req.userType !== 'tenant') {
-    queryObj.tenant = req.query.tenant;
+  } else {
+    // For admin/staff: exclude reports from archived tenants unless explicitly requested
+    const includeArchivedUsers = req.query.includeArchivedUsers === 'true';
+    if (!includeArchivedUsers) {
+      // Get all non-archived tenant IDs
+      const Tenant = (await import('../models/Tenant.js')).default;
+      const activeTenantIds = await Tenant.find({ isArchived: false }).distinct('_id');
+      
+      // Filter by tenant (Admin/Staff only)
+      if (req.query.tenant) {
+        // If specific tenant requested, check if they're active
+        const requestedTenantId = req.query.tenant;
+        if (activeTenantIds.some(id => id.toString() === requestedTenantId)) {
+          queryObj.tenant = requestedTenantId;
+        } else {
+          // Requested tenant is archived, return no results
+          queryObj.tenant = null;
+        }
+      } else {
+        // No specific tenant requested, filter to active tenants only
+        queryObj.tenant = { $in: activeTenantIds };
+      }
+    } else {
+      // Include archived users - handle tenant filter normally
+      if (req.query.tenant) {
+        queryObj.tenant = req.query.tenant;
+      }
+    }
   }
 
   // Filter by room
@@ -237,12 +260,18 @@ export const getReports = catchAsync(async (req, res, next) => {
 // @access  Private (Admin/Staff/Tenant for own reports)
 export const getReport = catchAsync(async (req, res, next) => {
   const report = await Report.findById(req.params.id)
-    .populate('tenant', 'firstName lastName email phoneNumber address')
+    .populate('tenant', 'firstName lastName email phoneNumber address isArchived')
     .populate('room', 'roomNumber roomType floor amenities')
     .populate('assignedTo', 'name email role')
     .populate('statusHistory.updatedBy', 'name role');
 
   if (!report) {
+    return next(new AppError('Report not found', 404));
+  }
+
+  // Check if the report belongs to an archived tenant (unless explicitly allowed)
+  const includeArchivedUsers = req.query.includeArchivedUsers === 'true';
+  if (!includeArchivedUsers && report.tenant && report.tenant.isArchived) {
     return next(new AppError('Report not found', 404));
   }
 
