@@ -101,6 +101,63 @@ class NotificationService {
     }
   }
 
+  // Create notification for follow-up reports
+  static async createFollowUpNotification(report, createdBy) {
+    try {
+      // Create notifications for all admin/staff users about the follow-up
+      const staffUsers = await User.find({ 
+        role: { $in: ['admin', 'staff'] },
+        isArchived: false 
+      });
+
+      const staffNotifications = staffUsers.map(user => ({
+        user: user._id,
+        userModel: 'User',
+        title: 'Report Follow-up Required',
+        message: `A tenant has followed up on a resolved ${report.type} report "${report.title}". This requires immediate attention as the tenant is not satisfied with the resolution.`,
+        type: 'report_followup',
+        metadata: {
+          reportId: report._id,
+          reportType: report.type,
+          reportStatus: report.status,
+          tenantId: report.tenant,
+          roomId: report.room,
+          isFollowUp: true,
+          followUpDate: report.followUpDate
+        },
+        createdBy: createdBy,
+        createdByModel: 'Tenant'
+      }));
+
+      await Promise.all(
+        staffNotifications.map(notification => 
+          Notification.createNotification(notification)
+        )
+      );
+
+      // Send confirmation to tenant
+      await Notification.createNotification({
+        user: report.tenant,
+        userModel: 'Tenant',
+        title: 'Follow-up Submitted',
+        message: `Your follow-up for the ${report.type} report "${report.title}" has been submitted successfully. Management will review your concerns and respond accordingly.`,
+        type: 'report_followup',
+        metadata: {
+          reportId: report._id,
+          reportType: report.type,
+          isFollowUp: true,
+          followUpDate: report.followUpDate
+        },
+        createdBy: createdBy,
+        createdByModel: 'Tenant'
+      });
+
+      console.log(`Created follow-up notifications for report ${report._id}`);
+    } catch (error) {
+      console.error('Error creating follow-up notification:', error);
+    }
+  }
+
   // Create notification for payment due dates
   static async createPaymentDueNotification(payment) {
     try {

@@ -10,6 +10,8 @@ export interface ReportItem {
   room?: string;
   daysOpen?: number;
   status: 'Resolved' | 'In Progress' | 'Pending' | 'Rejected';
+  followUp?: boolean;
+  followUpDate?: string;
 }
 
 export interface Report {

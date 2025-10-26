@@ -2,7 +2,7 @@ import React from 'react';
 import Sidebar from '../../components/layout/Sidebar';
 import TopNavbar from '../../components/layout/TopNavbar';
 import SummaryCard from '../../components/reports/SummaryCard';
-import { AlertCircle, CheckCircle2, Play, Clock } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Play, Clock, AlertTriangle } from 'lucide-react';
 import ReportCard from '../../components/reports/ReportCard';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import { ReportItem } from '../../types/report';
@@ -67,6 +67,8 @@ const ReportsPage: React.FC<ReportsPageProps> = ({ currentPage, onNavigate, user
         room: r.room ? (r.room.roomNumber || r.room) : undefined,
         daysOpen: r.submittedAt ? Math.floor((Date.now() - new Date(r.submittedAt).getTime()) / (1000 * 60 * 60 * 24)) : undefined,
         status: mapStatusToLabel(r.status || 'pending') as any,
+        followUp: r.followUp || false,
+        followUpDate: r.followUpDate ? new Date(r.followUpDate).toLocaleDateString() : undefined
       }));
 
       setReports(mapped);
@@ -125,10 +127,10 @@ const ReportsPage: React.FC<ReportsPageProps> = ({ currentPage, onNavigate, user
 
   // Confirmation dialog state for any requested status change
   const [confirmOpen, setConfirmOpen] = React.useState(false);
-  const [pendingChange, setPendingChange] = React.useState<null | { id: string; status: ReportItem['status']; title?: string; locked?: boolean }>(null);
+  const [pendingChange, setPendingChange] = React.useState<null | { id: string; status: ReportItem['status']; title?: string }>(null);
 
-  const openConfirmFor = (id: string, status: ReportItem['status'], title?: string, locked: boolean = false) => {
-    setPendingChange({ id, status, title, locked });
+  const openConfirmFor = (id: string, status: ReportItem['status'], title?: string) => {
+    setPendingChange({ id, status, title });
     setConfirmOpen(true);
   };
 
@@ -199,13 +201,20 @@ const ReportsPage: React.FC<ReportsPageProps> = ({ currentPage, onNavigate, user
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
               <SummaryCard
                 title="Total Reports"
                 value={reports.length}
                 icon={<AlertCircle className="w-5 h-5" />}
                 iconBgClass="bg-white"
                 iconColorClass="text-blue-500"
+              />
+              <SummaryCard
+                title="Follow-ups"
+                value={reports.filter(r => r.followUp).length}
+                icon={<AlertTriangle className="w-5 h-5" />}
+                iconBgClass="bg-red-50"
+                iconColorClass="text-red-500"
               />
               <SummaryCard
                 title="Resolved"
@@ -270,7 +279,7 @@ const ReportsPage: React.FC<ReportsPageProps> = ({ currentPage, onNavigate, user
                   selected={r.id === selectedReportId}
                   userRole={userRole}
                   // prefer request/change separation: ReportCard will call onRequestChange when user interacts
-                  onRequestChange={canModifyReports ? (id, status, title, locked) => openConfirmFor(id, status, title, !!locked) : undefined}
+                  onRequestChange={canModifyReports ? (id, status, title) => openConfirmFor(id, status, title) : undefined}
                   onChangeStatus={canModifyReports ? handleStatusChange : undefined}
                 />
               ))}
@@ -281,12 +290,11 @@ const ReportsPage: React.FC<ReportsPageProps> = ({ currentPage, onNavigate, user
       
       <ConfirmDialog
         isOpen={confirmOpen}
-        title={pendingChange && pendingChange.locked ? 'Reopen Report' : 'Change Status'}
-        message={pendingChange ? (pendingChange.locked ? `Do you want to reopen "${pendingChange.title || ''}"? (Its status will change to Pending)` : `Do you want to change the status of "${pendingChange.title || ''}" to "${pendingChange.status}"?`) : ''}
-        confirmLabel={pendingChange ? (pendingChange.locked ? 'Reopen' : `Change to ${pendingChange.status}`) : undefined}
+        title="Change Status"
+        message={pendingChange ? `Do you want to change the status of "${pendingChange.title || ''}" to "${pendingChange.status}"?` : ''}
+        confirmLabel={pendingChange ? `Change to ${pendingChange.status}` : undefined}
         cancelLabel="Cancel"
         confirmStatus={pendingChange ? pendingChange.status : undefined}
-        confirmVariant={pendingChange && pendingChange.locked ? 'reopen' : undefined}
         onConfirm={handleConfirm}
         onCancel={handleCancel}
       />

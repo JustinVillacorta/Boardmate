@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Sidebar from "../../components/layout/Sidebar";
 import TopNavbar from "../../components/layout/TopNavbar";
+import ConfirmationDialog from "../../components/tenant/ConfirmationDialog";
 import { authService } from '../../services/authService';
 import api from '../../config/api';
 
@@ -32,6 +33,12 @@ const Profile: React.FC<ProfileProps> = ({ currentPage, onNavigate }) => {
   const [passwordErrors, setPasswordErrors] = useState<Partial<typeof passwordForm>>({});
   const [isUpdatingContact, setIsUpdatingContact] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+
+  // Confirmation dialog states
+  const [showContactConfirmDialog, setShowContactConfirmDialog] = useState(false);
+  const [showPasswordConfirmDialog, setShowPasswordConfirmDialog] = useState(false);
+  const [pendingContactData, setPendingContactData] = useState<any>(null);
+  const [pendingPasswordData, setPendingPasswordData] = useState<any>(null);
 
   // tenancy information (populated from tenant profile)
   const [tenancyInfo, setTenancyInfo] = useState({
@@ -197,23 +204,34 @@ const Profile: React.FC<ProfileProps> = ({ currentPage, onNavigate }) => {
       return;
     }
 
+    // Prepare the payload but don't submit yet
+    const payload = {
+      firstName: contactForm.fullName.split(' ')[0] || '',
+      lastName: contactForm.fullName.split(' ').slice(1).join(' ') || '',
+      email: contactForm.email,
+      phoneNumber: contactForm.phone,
+      emergencyContact: { phoneNumber: contactForm.emergencyContact }
+    };
+
+    // Store pending data and show confirmation dialog
+    setPendingContactData(payload);
+    setShowContactConfirmDialog(true);
+  };
+
+  const confirmUpdateContact = async () => {
+    if (!pendingContactData) return;
+
     setIsUpdatingContact(true);
     try {
-      const payload = {
-        firstName: contactForm.fullName.split(' ')[0] || '',
-        lastName: contactForm.fullName.split(' ').slice(1).join(' ') || '',
-        email: contactForm.email,
-        phoneNumber: contactForm.phone,
-        emergencyContact: { phoneNumber: contactForm.emergencyContact }
-      };
-
-      await api.put('/auth/tenant/updatedetails', payload);
+      await api.put('/auth/tenant/updatedetails', pendingContactData);
 
       // Refresh stored user data
       await authService.getCurrentUser();
 
       setIsUpdatingContact(false);
-      alert('Contact information updated');
+      setShowContactConfirmDialog(false);
+      setPendingContactData(null);
+      alert('Contact information updated successfully');
     } catch (err: any) {
       setIsUpdatingContact(false);
       alert(err?.response?.data?.message || err?.message || 'Failed to update contact info');
@@ -227,16 +245,29 @@ const Profile: React.FC<ProfileProps> = ({ currentPage, onNavigate }) => {
       return;
     }
 
+    // Prepare the payload but don't submit yet
+    const payload = {
+      currentPassword: passwordForm.currentPassword,
+      newPassword: passwordForm.newPassword,
+      confirmPassword: passwordForm.confirmPassword
+    };
+
+    // Store pending data and show confirmation dialog
+    setPendingPasswordData(payload);
+    setShowPasswordConfirmDialog(true);
+  };
+
+  const confirmChangePassword = async () => {
+    if (!pendingPasswordData) return;
+
     setIsChangingPassword(true);
     try {
-      await api.put('/auth/tenant/updatepassword', {
-        currentPassword: passwordForm.currentPassword,
-        newPassword: passwordForm.newPassword,
-        confirmPassword: passwordForm.confirmPassword
-      });
+      await api.put('/auth/tenant/updatepassword', pendingPasswordData);
 
       setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
       setIsChangingPassword(false);
+      setShowPasswordConfirmDialog(false);
+      setPendingPasswordData(null);
       alert('Password changed successfully');
     } catch (err: any) {
       setIsChangingPassword(false);
@@ -411,7 +442,7 @@ const Profile: React.FC<ProfileProps> = ({ currentPage, onNavigate }) => {
                     disabled={isUpdatingContact}
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
-                    {isUpdatingContact ? 'Updating...' : 'Update Contact'}
+                    Update Contact
                   </button>
                 </div>
               </form>
@@ -543,7 +574,7 @@ const Profile: React.FC<ProfileProps> = ({ currentPage, onNavigate }) => {
                     disabled={isChangingPassword}
                     className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
-                    {isChangingPassword ? 'Changing...' : 'Change Password'}
+                    Change Password
                   </button>
                 </div>
               </form>
@@ -551,6 +582,36 @@ const Profile: React.FC<ProfileProps> = ({ currentPage, onNavigate }) => {
           </div>
         </main>
       </div>
+
+      {/* Contact Update Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={showContactConfirmDialog}
+        onClose={() => {
+          setShowContactConfirmDialog(false);
+          setPendingContactData(null);
+        }}
+        onConfirm={confirmUpdateContact}
+        title="Confirm Contact Information Update"
+        message="Are you sure you want to update your contact information? This will change your profile details and may affect how you receive important notifications."
+        confirmButtonText="Update Contact Info"
+        confirmButtonColor="blue"
+        isLoading={isUpdatingContact}
+      />
+
+      {/* Password Change Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={showPasswordConfirmDialog}
+        onClose={() => {
+          setShowPasswordConfirmDialog(false);
+          setPendingPasswordData(null);
+        }}
+        onConfirm={confirmChangePassword}
+        title="Confirm Password Change"
+        message="Are you sure you want to change your password? You will need to use the new password for future logins. Make sure you remember it or store it securely."
+        confirmButtonText="Change Password"
+        confirmButtonColor="red"
+        isLoading={isChangingPassword}
+      />
     </div>
   );
 };

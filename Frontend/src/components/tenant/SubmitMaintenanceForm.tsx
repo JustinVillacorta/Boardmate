@@ -85,11 +85,13 @@ const SubmitMaintenanceForm: React.FC<SubmitMaintenanceFormProps> = ({ onClose, 
       }
 
       const tenant = userData as any;
-      const roomId = tenant?.room;
+      const roomId = tenant?.room?._id || tenant?.room;
 
       if (!roomId) {
         throw new Error('No room assigned to your account. Please contact administration.');
       }
+
+      console.log('Debug: Submitting report with room ID:', roomId);
 
   const payload = { room: roomId, type: formData.type || 'maintenance', title: formData.title.trim(), description: formData.description.trim() };
 
@@ -98,6 +100,7 @@ const SubmitMaintenanceForm: React.FC<SubmitMaintenanceFormProps> = ({ onClose, 
       onClose();
     } catch (err: any) {
       setIsSubmitting(false);
+      console.error('Error submitting report:', err);
       setErrors(prev => ({ ...prev, description: prev.description }));
       alert(err?.message || 'Failed to submit maintenance request');
     }

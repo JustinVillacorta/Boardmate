@@ -705,7 +705,7 @@ export const universalLogin = catchAsync(async (req, res, next) => {
 
   // If not found as user, try tenant
   if (!user) {
-    user = await Tenant.findByEmail(email);
+    user = await Tenant.findByEmail(email).populate('room', 'roomNumber roomType monthlyRent');
     userType = 'tenant';
   }
 

@@ -4,7 +4,8 @@ import {
   getReports,
   getReport,
   updateReport,
-  deleteReport
+  deleteReport,
+  createFollowUp
 } from '../controllers/reportController.js';
 import { protect, staffOrAdmin } from '../middleware/auth.js';
 import {
@@ -23,5 +24,9 @@ router.route('/:id')
   .get(protect, getReport) // Allow tenants to view their own reports
   .put(protect, staffOrAdmin, validateReportUpdate, updateReport) // Only staff can update status
   .delete(protect, staffOrAdmin, deleteReport); // Only staff can delete
+
+// Follow-up route for tenants
+router.route('/:id/follow-up')
+  .put(protect, createFollowUp); // Tenants can follow up on their resolved reports
 
 export default router;
