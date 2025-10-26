@@ -57,7 +57,13 @@ const ForgotPasswordModal: React.FC<Props> = ({ open, onClose }) => {
   // focus handled by effect
     } catch (err: any) {
       console.error('Request OTP error', err);
-      setError(err.message || 'Failed to send OTP');
+      
+      // Handle specific error cases
+      if (err.response?.status === 403) {
+        setError('This account has been archived and cannot reset the password. Please contact an administrator for assistance.');
+      } else {
+        setError(err.message || 'Failed to send OTP');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -98,7 +104,13 @@ const ForgotPasswordModal: React.FC<Props> = ({ open, onClose }) => {
       setTimeout(() => handleClose(), 1800);
     } catch (err: any) {
       console.error('Reset password error', err);
-      setError(err.message || 'Failed to reset password');
+      
+      // Handle specific error cases
+      if (err.response?.status === 403) {
+        setError('This account has been archived and cannot reset the password. Please contact an administrator for assistance.');
+      } else {
+        setError(err.message || 'Failed to reset password');
+      }
     } finally {
       setIsLoading(false);
     }
