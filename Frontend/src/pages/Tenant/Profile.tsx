@@ -133,7 +133,15 @@ const Profile: React.FC<ProfileProps> = ({ currentPage, onNavigate }) => {
       setContractData(response.data);
     } catch (err: any) {
       console.error('Error loading contract:', err);
-      setContractError(err?.response?.data?.message || err?.message || 'Failed to load contract');
+      
+      // Handle specific error cases with user-friendly messages
+      if (err?.response?.status === 404) {
+        setContractError('No contract has been uploaded yet. Please contact the administrator if you need assistance.');
+      } else if (err?.response?.status === 403) {
+        setContractError('You do not have permission to view this contract. Please contact support for assistance.');
+      } else {
+        setContractError(err?.response?.data?.message || err?.message || 'Unable to load contract information. Please try again later.');
+      }
     } finally {
       setLoadingContract(false);
     }

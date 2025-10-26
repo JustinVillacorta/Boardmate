@@ -38,7 +38,13 @@ const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ onBackToLogin }
       setSuccessMessage('OTP has been sent to your email.');
     } catch (err: any) {
       console.error('Request OTP error', err);
-      setForgotError(err.message || 'Failed to send OTP');
+      
+      // Handle specific error cases
+      if (err.response?.status === 403) {
+        setForgotError('This account has been archived and cannot reset the password. Please contact an administrator for assistance.');
+      } else {
+        setForgotError(err.message || 'Failed to send OTP');
+      }
     } finally {
       setForgotLoading(false);
     }
@@ -80,7 +86,13 @@ const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ onBackToLogin }
       }, 1800);
     } catch (err: any) {
       console.error('Reset password error', err);
-      setForgotError(err.message || 'Failed to reset password');
+      
+      // Handle specific error cases
+      if (err.response?.status === 403) {
+        setForgotError('This account has been archived and cannot reset the password. Please contact an administrator for assistance.');
+      } else {
+        setForgotError(err.message || 'Failed to reset password');
+      }
     } finally {
       setForgotLoading(false);
     }
