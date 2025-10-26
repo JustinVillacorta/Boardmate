@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import LoginForm from '../../components/auth/LoginForm';
 
 interface LoginPageProps {
@@ -6,6 +6,12 @@ interface LoginPageProps {
 }
 
 const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
+  const [currentView, setCurrentView] = useState<'login' | 'forgot-password'>('login');
+
+  const handleViewChange = (view: 'login' | 'forgot-password') => {
+    setCurrentView(view);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex">
       {/* Left Section */}
@@ -34,12 +40,24 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
           </div>
 
           {/* Heading */}
-          <h2 className="text-4xl font-extrabold text-center">Welcome Back!</h2>
-
-          {/* Description */}
-          <p className="text-lg text-center max-w-xs opacity-90">
-            Access your account and continue your journey with us.
-          </p>
+          {currentView === 'login' && (
+            <>
+              <h2 className="text-4xl font-extrabold text-center">Welcome Back!</h2>
+              {/* Description */}
+              <p className="text-lg text-center max-w-xs opacity-90">
+                Access your account and continue your journey with us.
+              </p>
+            </>
+          )}
+          {currentView === 'forgot-password' && (
+            <>
+              <h2 className="text-4xl font-extrabold text-center">Reset Password</h2>
+              {/* Description */}
+              <p className="text-lg text-center max-w-xs opacity-90">
+                Recover your account and regain access.
+              </p>
+            </>
+          )}
         </div>
       </div>
 
@@ -47,30 +65,34 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-gray-50">
         <div className="w-full max-w-md">
           {/* Mobile Header */}
-          <div className="lg:hidden text-center mb-8">
-            <div className="w-16 h-16 mx-auto bg-blue-600 rounded-full flex items-center justify-center mb-4">
-              <svg 
-                className="w-8 h-8 text-white" 
-                fill="currentColor" 
-                viewBox="0 0 24 24"
-              >
-                <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
-                <circle cx="7" cy="7" r="2" fill="none" stroke="currentColor" strokeWidth="1"/>
-                <path d="m8.5 8.5 1.5 1.5" stroke="currentColor" strokeWidth="1"/>
-              </svg>
-            </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Welcome back!</h1>
-            <p className="text-gray-600">Sign in to access your boarding house dashboard</p>
-          </div>
-
-          {/* Login Form Card */}
-          <div className="bg-white rounded-2xl shadow-xl p-8">
-            <div className="hidden lg:block text-center mb-8">
+          {currentView === 'login' && (
+            <div className="lg:hidden text-center mb-8">
+              <div className="w-16 h-16 mx-auto bg-blue-600 rounded-full flex items-center justify-center mb-4">
+                <svg 
+                  className="w-8 h-8 text-white" 
+                  fill="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+                  <circle cx="7" cy="7" r="2" fill="none" stroke="currentColor" strokeWidth="1"/>
+                  <path d="m8.5 8.5 1.5 1.5" stroke="currentColor" strokeWidth="1"/>
+                </svg>
+              </div>
               <h1 className="text-2xl font-bold text-gray-900 mb-2">Welcome back!</h1>
               <p className="text-gray-600">Sign in to access your boarding house dashboard</p>
             </div>
+          )}
 
-            <LoginForm onLogin={onLogin} />
+          {/* Login Form Card */}
+          <div className="bg-white rounded-2xl shadow-xl p-8">
+            {currentView === 'login' && (
+              <div className="hidden lg:block text-center mb-8">
+                <h1 className="text-2xl font-bold text-gray-900 mb-2">Welcome back!</h1>
+                <p className="text-gray-600">Sign in to access your boarding house dashboard</p>
+              </div>
+            )}
+
+            <LoginForm onLogin={onLogin} onViewChange={handleViewChange} />
           </div>
         </div>
       </div>
