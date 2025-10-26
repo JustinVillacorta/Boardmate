@@ -117,14 +117,23 @@ const ReportsPage: React.FC<ReportsPageProps> = ({ currentPage, onNavigate, user
 
     const backendStatus = mapLabelToStatus(statusLabel as string);
 
-    // Optimistic update (keep UI label)
-    setReports(prev => prev.map(r => r.id === id ? { ...r, status: statusLabel } : r));
     try {
+      // First make the API call
       await reportService.updateReport(id, { status: backendStatus });
+      
+      // Then update UI state - clear follow-up when status changes (matches backend behavior)
+      setReports(prev => prev.map(r => r.id === id ? { 
+        ...r, 
+        status: statusLabel,
+        // Clear follow-up when status is updated (matches backend behavior)
+        followUp: false,
+        followUpDate: undefined
+      } : r));
+      
     } catch (err) {
-      // Revert on error and show basic alert
-      await fetchReports();
+      // Show error and refresh data on failure
       alert('Failed to update report status');
+      await fetchReports();
     }
   };
 

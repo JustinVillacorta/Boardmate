@@ -12,6 +12,7 @@ export interface GetReportsParams {
   endDate?: string;
   search?: string;
   sortBy?: string;
+  isArchived?: boolean;
 }
 
 export interface GetReportsResponse {
@@ -35,7 +36,13 @@ export const reportService = {
   async getReports(params: GetReportsParams = {}): Promise<GetReportsResponse> {
     const query = new URLSearchParams();
 
-    Object.entries(params).forEach(([k, v]) => {
+    // Set default values to exclude archived reports unless explicitly requested
+    const defaultParams = {
+      isArchived: false,
+      ...params
+    };
+
+    Object.entries(defaultParams).forEach(([k, v]) => {
       if (v !== undefined && v !== null && v !== '') {
         if (Array.isArray(v)) {
           v.forEach(val => query.append(k, val));

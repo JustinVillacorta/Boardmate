@@ -13,7 +13,8 @@ export const getNotifications = catchAsync(async (req, res, next) => {
     type,
     page = 1,
     limit = 20,
-    includeRead = true
+    includeRead = true,
+    includeArchived = false
   } = req.query;
 
   const options = {
@@ -21,7 +22,8 @@ export const getNotifications = catchAsync(async (req, res, next) => {
     type: type || null,
     page: parseInt(page),
     limit: parseInt(limit),
-    includeRead: includeRead === 'true'
+    includeRead: includeRead === 'true',
+    includeArchived: includeArchived === 'true'
   };
 
   // Handle both user and tenant types
@@ -32,7 +34,8 @@ export const getNotifications = catchAsync(async (req, res, next) => {
     user: userId,
     ...(status && { status }),
     ...(type && { type }),
-    ...(!options.includeRead && { status: 'unread' })
+    ...(!options.includeRead && { status: 'unread' }),
+    ...(!options.includeArchived && { isArchived: false })
   });
 
   const unreadCount = await Notification.getUnreadCount(userId);
@@ -159,30 +162,5 @@ export const getUnreadCount = catchAsync(async (req, res, next) => {
     data: {
       unreadCount
     }
-  });
-});
-
-// @desc    Create system announcement (Admin only)
-// @route   POST /api/notifications/announcement
-// @access  Private (Admin only)
-export const createAnnouncement = catchAsync(async (req, res, next) => {
-  // Check validation errors
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return next(new AppError('Validation failed', 400, errors.array()));
-  }
-
-  const { title, message, userIds, expiresAt } = req.body;
-
-  await NotificationService.createSystemAnnouncement(
-    title,
-    message,
-    userIds,
-    expiresAt ? new Date(expiresAt) : null
-  );
-
-  res.status(201).json({
-    success: true,
-    message: 'Announcement created successfully'
   });
 });

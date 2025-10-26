@@ -7,6 +7,7 @@ import Tenant from '../models/Tenant.js';
 import PasswordOTP from '../models/PasswordOTP.js';
 import { AppError } from '../utils/AppError.js';
 import { catchAsync } from '../utils/catchAsync.js';
+import { cleanupArchivedTenants, verifyRoomTenantIntegrity } from '../utils/tenantCleanup.js';
 
 // Generate JWT Token
 const generateToken = (userId, userType = 'user') => {
@@ -381,12 +382,41 @@ export const archiveUserByAdmin = catchAsync(async (req, res, next) => {
   if (user.isArchived) {
     return next(new AppError('User is already archived', 400));
   }
+
+  // Check if this user is also a tenant and handle room removal
+  const Tenant = (await import('../models/Tenant.js')).default;
+  const tenant = await Tenant.findOne({ user: userId });
+  
+  if (tenant && tenant.room) {
+    const Room = (await import('../models/Room.js')).default;
+    const room = await Room.findById(tenant.room);
+    
+    if (room) {
+      try {
+        await room.removeTenant(tenant._id);
+        console.log(`User ${userId} (tenant ${tenant._id}) removed from room ${room.roomNumber} due to user archiving`);
+      } catch (error) {
+        console.error(`Error removing user's tenant record from room during archiving: ${error.message}`);
+      }
+    }
+    
+    // Archive the associated tenant record as well
+    await Tenant.findByIdAndUpdate(
+      tenant._id,
+      { 
+        isArchived: true, 
+        tenantStatus: 'inactive',
+        room: null
+      },
+      { new: true }
+    );
+  }
   
   await User.findByIdAndUpdate(userId, { isArchived: true }, { new: true });
   
   res.status(200).json({
     success: true,
-    message: 'User account archived successfully',
+    message: 'User account archived successfully and removed from room if applicable',
   });
 });
 
@@ -429,16 +459,37 @@ export const archiveTenantByAdmin = catchAsync(async (req, res, next) => {
   if (tenant.isArchived) {
     return next(new AppError('Tenant is already archived', 400));
   }
+
+  // If tenant is assigned to a room, remove them from the room
+  if (tenant.room) {
+    const Room = (await import('../models/Room.js')).default;
+    const room = await Room.findById(tenant.room);
+    
+    if (room) {
+      // Use the room's removeTenant method to properly handle the removal
+      try {
+        await room.removeTenant(tenantId);
+        console.log(`Tenant ${tenantId} removed from room ${room.roomNumber} due to archiving`);
+      } catch (error) {
+        console.error(`Error removing tenant from room during archiving: ${error.message}`);
+        // Continue with archiving even if room removal fails
+      }
+    }
+  }
   
   await Tenant.findByIdAndUpdate(
     tenantId, 
-    { isArchived: true, tenantStatus: 'inactive' }, 
+    { 
+      isArchived: true, 
+      tenantStatus: 'inactive',
+      room: null // Ensure room reference is cleared
+    }, 
     { new: true }
   );
   
   res.status(200).json({
     success: true,
-    message: 'Tenant account archived successfully',
+    message: 'Tenant account archived successfully and removed from room',
   });
 });
 
@@ -1486,4 +1537,41 @@ export const getAuthStats = catchAsync(async (req, res, next) => {
       }
     }
   });
+});
+
+// @desc    Clean up archived tenants from rooms
+// @route   POST /api/auth/admin/cleanup-archived-tenants
+// @access  Private (Admin only)
+export const cleanupArchivedTenantsFromRooms = catchAsync(async (req, res, next) => {
+  try {
+    const result = await cleanupArchivedTenants();
+    
+    res.status(200).json({
+      success: true,
+      message: 'Archived tenant cleanup completed successfully',
+      data: result
+    });
+  } catch (error) {
+    return next(new AppError('Failed to cleanup archived tenants', 500));
+  }
+});
+
+// @desc    Verify room-tenant data integrity
+// @route   GET /api/auth/admin/verify-room-tenant-integrity
+// @access  Private (Admin only)
+export const verifyRoomTenantDataIntegrity = catchAsync(async (req, res, next) => {
+  try {
+    const issues = await verifyRoomTenantIntegrity();
+    
+    res.status(200).json({
+      success: true,
+      message: `Integrity check completed. Found ${issues.length} issues.`,
+      data: {
+        issuesFound: issues.length,
+        issues
+      }
+    });
+  } catch (error) {
+    return next(new AppError('Failed to verify data integrity', 500));
+  }
 });

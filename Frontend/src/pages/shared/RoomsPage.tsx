@@ -7,7 +7,7 @@ import ManageTenantsModal from '../../components/rooms/ManageTenantsModal';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import EditRoomModal from '../../components/rooms/EditRoomModal';
 import ExportButton from '../../components/ui/ExportButton';
-import { RefreshCw, Plus } from 'lucide-react';
+import { RefreshCw, Plus, SortAsc } from 'lucide-react';
 import * as roomManagementService from '../../services/roomManagementService';
 import { RoomDisplayData, RoomFilters } from '../../types/room';
 import { exportToExcel, formatDate, formatCurrency } from '../../utils/excelExport';
@@ -240,6 +240,7 @@ const RoomsPage: React.FC<RoomsPageProps> = ({ currentPage, onNavigate, userRole
                     onClick={() => setIsSortOpen(true)}
                     className="inline-flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm hover:bg-gray-50"
                   >
+                    <SortAsc className="w-4 h-4" />
                     Sort
                   </button>
                   <ExportButton onClick={handleExport} loading={isExporting} />

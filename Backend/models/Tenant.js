@@ -171,19 +171,52 @@ tenantSchema.virtual('fullName').get(function() {
   return `${this.firstName} ${this.lastName}`;
 });
 
-// Hash password before saving
+// Pre-save middleware for password hashing
 tenantSchema.pre('save', async function(next) {
   // Only hash the password if it has been modified (or is new)
-  if (!this.isModified('password')) return next();
-  
-  try {
-    // Hash password with cost of 12
-    const saltRounds = parseInt(process.env.BCRYPT_SALT_ROUNDS) || 12;
-    this.password = await bcrypt.hash(this.password, saltRounds);
-    next();
-  } catch (error) {
-    next(error);
+  if (this.isModified('password')) {
+    try {
+      // Hash password with cost of 12
+      const saltRounds = parseInt(process.env.BCRYPT_SALT_ROUNDS) || 12;
+      this.password = await bcrypt.hash(this.password, saltRounds);
+    } catch (error) {
+      return next(error);
+    }
   }
+  
+  // Handle archiving and room removal
+  if (this.isModified('isArchived') && this.isArchived && this.room) {
+    try {
+      const Room = mongoose.model('Room');
+      const room = await Room.findById(this.room);
+      
+      if (room) {
+        // Remove tenant from room's tenants array
+        const tenantIndex = room.tenants.indexOf(this._id);
+        if (tenantIndex > -1) {
+          room.tenants.splice(tenantIndex, 1);
+          room.occupancy.current = room.tenants.length;
+          
+          // Auto-update room status based on occupancy
+          if (room.occupancy.current === 0) {
+            room.status = 'available';
+          }
+          
+          await room.save();
+          console.log(`Tenant ${this._id} automatically removed from room ${room.roomNumber} due to archiving`);
+        }
+      }
+      
+      // Clear room reference and set tenant status to inactive
+      this.room = null;
+      this.tenantStatus = 'inactive';
+    } catch (error) {
+      console.error(`Error removing tenant from room during archiving: ${error.message}`);
+      // Continue with save even if room removal fails
+    }
+  }
+  
+  next();
 });
 
 // Instance method to check password

@@ -288,7 +288,7 @@ class NotificationService {
         userModel: t.model,
         title: title,
         message: message,
-        type: 'announcement',
+        type: 'system_alert',
         metadata: {
           isSystemAnnouncement: true
         },

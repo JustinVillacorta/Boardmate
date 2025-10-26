@@ -112,16 +112,22 @@ export const userManagementService = {
     try {
       const queryParams = new URLSearchParams();
       
-      if (params?.page) queryParams.append('page', params.page.toString());
-      if (params?.limit) queryParams.append('limit', params.limit.toString());
-      if (params?.userType) queryParams.append('userType', params.userType);
-      if (params?.isArchived !== undefined) queryParams.append('isArchived', params.isArchived.toString());
-      if (params?.tenantStatus) queryParams.append('tenantStatus', params.tenantStatus);
-      if (params?.isVerified !== undefined) queryParams.append('isVerified', params.isVerified.toString());
-      if (params?.hasRoom !== undefined) queryParams.append('hasRoom', params.hasRoom.toString());
-      if (params?.search) queryParams.append('search', params.search);
-      if (params?.sortBy) queryParams.append('sortBy', params.sortBy);
-      if (params?.sortOrder) queryParams.append('sortOrder', params.sortOrder);
+      // Set default values to exclude archived users unless explicitly requested
+      const defaultParams = {
+        isArchived: false,
+        ...params
+      };
+      
+      if (defaultParams?.page) queryParams.append('page', defaultParams.page.toString());
+      if (defaultParams?.limit) queryParams.append('limit', defaultParams.limit.toString());
+      if (defaultParams?.userType) queryParams.append('userType', defaultParams.userType);
+      if (defaultParams?.isArchived !== undefined) queryParams.append('isArchived', defaultParams.isArchived.toString());
+      if (defaultParams?.tenantStatus) queryParams.append('tenantStatus', defaultParams.tenantStatus);
+      if (defaultParams?.isVerified !== undefined) queryParams.append('isVerified', defaultParams.isVerified.toString());
+      if (defaultParams?.hasRoom !== undefined) queryParams.append('hasRoom', defaultParams.hasRoom.toString());
+      if (defaultParams?.search) queryParams.append('search', defaultParams.search);
+      if (defaultParams?.sortBy) queryParams.append('sortBy', defaultParams.sortBy);
+      if (defaultParams?.sortOrder) queryParams.append('sortOrder', defaultParams.sortOrder);
       
       // Add cache-busting parameter to ensure fresh data
       queryParams.append('_t', Date.now().toString());
@@ -245,5 +251,21 @@ export const userManagementService = {
         throw new Error('Failed to unarchive tenant');
       }
     }
+  },
+
+  /**
+   * Clean up archived tenants from rooms (Admin only)
+   */
+  async cleanupArchivedTenants(): Promise<{ success: boolean; message: string; data: any }> {
+    const response = await api.post('/auth/admin/cleanup-archived-tenants');
+    return response.data;
+  },
+
+  /**
+   * Verify room-tenant data integrity (Admin only)
+   */
+  async verifyRoomTenantIntegrity(): Promise<{ success: boolean; message: string; data: any }> {
+    const response = await api.get('/auth/admin/verify-room-tenant-integrity');
+    return response.data;
   }
 };
