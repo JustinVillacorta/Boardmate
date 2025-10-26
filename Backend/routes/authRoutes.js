@@ -21,7 +21,9 @@ import {
   unarchiveTenantByAdmin,
   forgotPassword, 
   verifyOTP, 
-  resetPasswordWithOTP
+  resetPasswordWithOTP,
+  cleanupArchivedTenantsFromRooms,
+  verifyRoomTenantDataIntegrity
 } from '../controllers/authController.js';
 import { protect, adminOnly, staffOrAdmin, canManageTenants, canManageStaff } from '../middleware/auth.js';
 import {
@@ -75,6 +77,10 @@ router.delete('/archive', protect, staffOrAdmin, archiveAccount);
 router.put('/admin/update-user/:userId', protect, canManageStaff, validateUpdateDetails, updateUserByAdmin);
 router.delete('/admin/archive-user/:userId', protect, canManageStaff, archiveUserByAdmin);
 router.patch('/admin/unarchive-user/:userId', protect, canManageStaff, unarchiveUserByAdmin);
+
+// Admin-only maintenance routes
+router.post('/admin/cleanup-archived-tenants', protect, adminOnly, cleanupArchivedTenantsFromRooms);
+router.get('/admin/verify-room-tenant-integrity', protect, adminOnly, verifyRoomTenantDataIntegrity);
 
 // ==================== STAFF/ADMIN ROUTES ====================
 // Staff can manage tenants, Admin can manage everything

@@ -92,6 +92,12 @@ export const getReports = catchAsync(async (req, res, next) => {
   // Build query object
   let queryObj = {};
 
+  // Default: exclude archived reports unless explicitly requested
+  const includeArchived = req.query.isArchived === 'true';
+  if (!includeArchived) {
+    queryObj.isArchived = false;
+  }
+
   // If tenant, only show their reports
   if (req.userType === 'tenant') {
     queryObj.tenant = req.user.id;

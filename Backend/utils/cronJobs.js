@@ -1,6 +1,7 @@
 import cron from 'node-cron';
 import NotificationService from '../utils/notificationService.js';
 import { generateMonthlyRentChargesInternal } from '../controllers/paymentController.js';
+import { cleanupArchivedTenants } from './tenantCleanup.js';
 
 class CronJobs {
   // Start all scheduled jobs
@@ -75,6 +76,10 @@ class CronJobs {
         const Report = (await import('../models/Report.js')).default;
         const reportResult = await Report.archiveOldReports();
         console.log(`Archived ${reportResult.modifiedCount} resolved/rejected reports older than 30 days`);
+
+        // Clean up archived tenants from rooms
+        const tenantCleanupResult = await cleanupArchivedTenants();
+        console.log('Archived tenant cleanup completed:', tenantCleanupResult);
       } catch (error) {
         console.error('Error in cleanup job:', error);
       }
@@ -138,6 +143,18 @@ class CronJobs {
       return results;
     } catch (error) {
       console.error('Error in manual archiving trigger:', error);
+      throw error;
+    }
+  }
+
+  // Manual trigger for tenant cleanup (for testing)
+  static async triggerTenantCleanup() {
+    try {
+      const result = await cleanupArchivedTenants();
+      console.log('Manual tenant cleanup completed:', result);
+      return result;
+    } catch (error) {
+      console.error('Error in manual tenant cleanup trigger:', error);
       throw error;
     }
   }
