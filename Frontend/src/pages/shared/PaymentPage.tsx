@@ -28,7 +28,7 @@ const PaymentPage: React.FC<PaymentPageProps> = ({ currentPage, onNavigate, user
   const [tenants, setTenants] = React.useState<TenantRow[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [isSortOpen, setIsSortOpen] = React.useState(false);
-  const [sortOption, setSortOption] = React.useState<'tenantAZ'|'tenantZA'|'roomAZ'|'roomZA'>('tenantAZ');
+  const [sortOption, setSortOption] = React.useState<'tenantAZ'|'tenantZA'>('tenantAZ');
   const [isExporting, setIsExporting] = React.useState(false);
 
   React.useEffect(() => {
@@ -72,12 +72,9 @@ const PaymentPage: React.FC<PaymentPageProps> = ({ currentPage, onNavigate, user
   // Apply client-side sorting based on selected option
   const sorted = [...filtered].sort((a, b) => {
     const tenantCompare = a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
-    const roomCompare = a.roomNumber.localeCompare(b.roomNumber, undefined, { numeric: true, sensitivity: 'base' });
 
     if (sortOption === 'tenantAZ') return tenantCompare || a.id.localeCompare(b.id);
     if (sortOption === 'tenantZA') return -tenantCompare || a.id.localeCompare(b.id);
-    if (sortOption === 'roomAZ') return roomCompare || tenantCompare || a.id.localeCompare(b.id);
-    if (sortOption === 'roomZA') return -roomCompare || tenantCompare || a.id.localeCompare(b.id);
     return 0;
   });
 
@@ -254,14 +251,6 @@ const PaymentPage: React.FC<PaymentPageProps> = ({ currentPage, onNavigate, user
             <label className="flex items-center gap-2">
               <input type="radio" name="paymentSort" value="tenantZA" checked={sortOption === 'tenantZA'} onChange={() => setSortOption('tenantZA')} />
               <span className="text-sm">Tenant (Z → A)</span>
-            </label>
-            <label className="flex items-center gap-2">
-              <input type="radio" name="paymentSort" value="roomAZ" checked={sortOption === 'roomAZ'} onChange={() => setSortOption('roomAZ')} />
-              <span className="text-sm">Room (A → Z)</span>
-            </label>
-            <label className="flex items-center gap-2">
-              <input type="radio" name="paymentSort" value="roomZA" checked={sortOption === 'roomZA'} onChange={() => setSortOption('roomZA')} />
-              <span className="text-sm">Room (Z → A)</span>
             </label>
           </div>
         </div>

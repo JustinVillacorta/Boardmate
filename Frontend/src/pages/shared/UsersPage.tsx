@@ -39,7 +39,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ currentPage, onNavigate, userRole
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [isSortOpen, setIsSortOpen] = useState(false);
-  const [sortOption, setSortOption] = useState<'nameAsc' | 'nameDesc' | 'createdNewOld' | 'createdOldNew' | 'lastLoginNewOld'>('createdNewOld');
+  const [sortOption, setSortOption] = useState<'nameAsc' | 'nameDesc' | 'createdNewOld' | 'createdOldNew'>('createdNewOld');
   const [users, setUsers] = useState<UserData[]>([]);
   const isStaffUser = String(userRole).toLowerCase() === 'staff'; // Staff can only create tenants
   const [isLoading, setIsLoading] = useState(true);
@@ -126,12 +126,6 @@ const UsersPage: React.FC<UsersPageProps> = ({ currentPage, onNavigate, userRole
         const da = a.createdAt ? new Date(a.createdAt).getTime() : 0;
         const db = b.createdAt ? new Date(b.createdAt).getTime() : 0;
         return da - db;
-      }
-      // Last login new→old
-      if (sortOption === 'lastLoginNewOld') {
-        const la = a.lastLogin ? new Date(a.lastLogin).getTime() : 0;
-        const lb = b.lastLogin ? new Date(b.lastLogin).getTime() : 0;
-        return lb - la;
       }
 
       return 0;
@@ -509,10 +503,6 @@ const UsersPage: React.FC<UsersPageProps> = ({ currentPage, onNavigate, userRole
               <label className="flex items-center gap-2">
                 <input type="radio" name="sort" value="createdOldNew" checked={sortOption === 'createdOldNew'} onChange={() => setSortOption('createdOldNew')} />
                 <span className="text-sm">Created (old → new)</span>
-              </label>
-              <label className="flex items-center gap-2">
-                <input type="radio" name="sort" value="lastLoginNewOld" checked={sortOption === 'lastLoginNewOld'} onChange={() => setSortOption('lastLoginNewOld')} />
-                <span className="text-sm">Last login (new → old)</span>
               </label>
             
             {/* Role filters (only for admin view) - only show Staff and Tenant */}
