@@ -14,6 +14,7 @@ interface TenantRow {
   email: string;
   roomNumber: string;
   roomId: string;
+  startDate: string;
 }
 
 interface PaymentPageProps {
@@ -42,6 +43,15 @@ const PaymentPage: React.FC<PaymentPageProps> = ({ currentPage, onNavigate, user
           email: r.email,
           roomNumber: r.room?.roomNumber || '-',
           roomId: r.room?._id || '',
+          startDate: r.leaseStartDate ? new Date(r.leaseStartDate).toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric', 
+            year: 'numeric' 
+          }) : (r.createdAt ? new Date(r.createdAt).toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric', 
+            year: 'numeric' 
+          }) : ''),
         }));
         setTenants(mapped);
       } catch (e) {
@@ -210,7 +220,7 @@ const PaymentPage: React.FC<PaymentPageProps> = ({ currentPage, onNavigate, user
                       } catch(e) {}
                       onNavigate && onNavigate('payment-history');
                     }} className="cursor-pointer">
-                      <UserCard user={{ id: row.id, name: row.name, email: row.email, role: 'Tenant', status: 'Active', startDate: '', roomNumber: row.roomNumber }} />
+                      <UserCard user={{ id: row.id, name: row.name, email: row.email, role: 'Tenant', status: 'Active', startDate: row.startDate, roomNumber: row.roomNumber }} />
                     </div>
                   ))}
                 </div>
