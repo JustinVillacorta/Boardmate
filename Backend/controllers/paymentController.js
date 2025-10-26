@@ -46,7 +46,9 @@ export const createPayment = catchAsync(async (req, res, next) => {
     if (!tenantExists) {
       return next(new AppError('Tenant not found', 404));
     }
-    if (!roomExists.tenants.map(t => t.toString()).includes(tenant.toString())) {
+    // Check if tenant belongs to the room (handle both ObjectId and populated objects)
+    const tenantIds = roomExists.tenants.map(t => t._id ? t._id.toString() : t.toString());
+    if (!tenantIds.includes(tenant.toString())) {
       return next(new AppError('Tenant does not belong to this room', 400));
     }
   }
