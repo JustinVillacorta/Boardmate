@@ -36,7 +36,7 @@ interface RoomsPageProps {
 const RoomsPage: React.FC<RoomsPageProps> = ({ currentPage, onNavigate, userRole = 'admin' }) => {
   const [search, setSearch] = useState('');
   const [isSortOpen, setIsSortOpen] = useState(false);
-  const [sortOption, setSortOption] = useState<'roomNumberAZ' | 'roomNumberZA' | 'rentLowHigh' | 'rentHighLow' | 'capacityHighLow' | 'capacityLowHigh' | 'updatedNewOld' | 'updatedOldNew'>('roomNumberAZ');
+  const [sortOption, setSortOption] = useState<'ascending' | 'descending'>('ascending');
   const [rooms, setRooms] = useState<RoomDisplayData[]>([]);
   const [selectedAvailability, setSelectedAvailability] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -83,57 +83,15 @@ const RoomsPage: React.FC<RoomsPageProps> = ({ currentPage, onNavigate, userRole
 
   // Apply sorting based on selected option
   const sorted = [...filtered].sort((a, b) => {
-    // Helper: normalize room number for ties
+    // Helper: normalize room number for sorting
     const roomNumberCompare = (x: RoomDisplayData, y: RoomDisplayData) => x.name.localeCompare(y.name, undefined, { numeric: true, sensitivity: 'base' });
 
-    // availability is now a filter via chips (selectedAvailability)
+    if (sortOption === 'ascending') {
+      return roomNumberCompare(a, b);
+    }
 
-    if (sortOption === 'roomNumberZA') {
-      // Z → A
+    if (sortOption === 'descending') {
       return roomNumberCompare(b, a);
-    }
-
-    if (sortOption === 'roomNumberAZ') {
-      // A → Z
-      return roomNumberCompare(a, b);
-    }
-
-    if (sortOption === 'rentHighLow') {
-      const ra = (a.rentNumber ?? 0);
-      const rb = (b.rentNumber ?? 0);
-      if (ra !== rb) return rb - ra;
-      return roomNumberCompare(a, b);
-    }
-
-    if (sortOption === 'rentLowHigh') {
-      const ra = (a.rentNumber ?? 0);
-      const rb = (b.rentNumber ?? 0);
-      if (ra !== rb) return ra - rb;
-      return roomNumberCompare(a, b);
-    }
-
-    if (sortOption === 'capacityLowHigh') {
-      if (a.capacity !== b.capacity) return a.capacity - b.capacity;
-      return roomNumberCompare(a, b);
-    }
-
-    if (sortOption === 'capacityHighLow') {
-      if (a.capacity !== b.capacity) return b.capacity - a.capacity;
-      return roomNumberCompare(a, b);
-    }
-
-    if (sortOption === 'updatedOldNew') {
-      const da = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
-      const db = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
-      if (da !== db) return da - db;
-      return roomNumberCompare(a, b);
-    }
-
-    if (sortOption === 'updatedNewOld') {
-      const da = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
-      const db = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
-      if (da !== db) return db - da;
-      return roomNumberCompare(a, b);
     }
 
     return 0;
@@ -380,44 +338,13 @@ const RoomsPage: React.FC<RoomsPageProps> = ({ currentPage, onNavigate, userRole
             </div>
 
             <div className="space-y-3">
-              {/* Room number directions */}
               <label className="flex items-center gap-2">
-                <input type="radio" name="roomSort" value="roomNumberAZ" checked={sortOption === 'roomNumberAZ'} onChange={() => setSortOption('roomNumberAZ')} />
-                <span className="text-sm">Room number (A → Z)</span>
+                <input type="radio" name="roomSort" value="ascending" checked={sortOption === 'ascending'} onChange={() => setSortOption('ascending')} />
+                <span className="text-sm">Ascending</span>
               </label>
               <label className="flex items-center gap-2">
-                <input type="radio" name="roomSort" value="roomNumberZA" checked={sortOption === 'roomNumberZA'} onChange={() => setSortOption('roomNumberZA')} />
-                <span className="text-sm">Room number (Z → A)</span>
-              </label>
-
-              {/* Monthly rent directions */}
-              <label className="flex items-center gap-2">
-                <input type="radio" name="roomSort" value="rentLowHigh" checked={sortOption === 'rentLowHigh'} onChange={() => setSortOption('rentLowHigh')} />
-                <span className="text-sm">Monthly rent (Low → High)</span>
-              </label>
-              <label className="flex items-center gap-2">
-                <input type="radio" name="roomSort" value="rentHighLow" checked={sortOption === 'rentHighLow'} onChange={() => setSortOption('rentHighLow')} />
-                <span className="text-sm">Monthly rent (High → Low)</span>
-              </label>
-
-              {/* Capacity directions */}
-              <label className="flex items-center gap-2">
-                <input type="radio" name="roomSort" value="capacityLowHigh" checked={sortOption === 'capacityLowHigh'} onChange={() => setSortOption('capacityLowHigh')} />
-                <span className="text-sm">Capacity (Low → High)</span>
-              </label>
-              <label className="flex items-center gap-2">
-                <input type="radio" name="roomSort" value="capacityHighLow" checked={sortOption === 'capacityHighLow'} onChange={() => setSortOption('capacityHighLow')} />
-                <span className="text-sm">Capacity (High → Low)</span>
-              </label>
-
-              {/* Updated directions */}
-              <label className="flex items-center gap-2">
-                <input type="radio" name="roomSort" value="updatedNewOld" checked={sortOption === 'updatedNewOld'} onChange={() => setSortOption('updatedNewOld')} />
-                <span className="text-sm">Last updated (New → Old)</span>
-              </label>
-              <label className="flex items-center gap-2">
-                <input type="radio" name="roomSort" value="updatedOldNew" checked={sortOption === 'updatedOldNew'} onChange={() => setSortOption('updatedOldNew')} />
-                <span className="text-sm">Last updated (Old → New)</span>
+                <input type="radio" name="roomSort" value="descending" checked={sortOption === 'descending'} onChange={() => setSortOption('descending')} />
+                <span className="text-sm">Descending</span>
               </label>
             </div>
 
