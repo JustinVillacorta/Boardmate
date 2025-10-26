@@ -70,5 +70,10 @@ export const reportService = {
   async deleteReport(id: string) {
     const res = await api.delete(`/reports/${id}`);
     return res.data;
+  },
+
+  async followUpReport(id: string) {
+    const res = await api.put(`/reports/${id}/follow-up`, {});
+    return res.data;
   }
 };

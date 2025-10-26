@@ -9,8 +9,6 @@ interface ConfirmDialogProps {
   cancelLabel?: string;
   // optional status to style the confirm button (e.g., 'Resolved' -> green)
   confirmStatus?: 'Resolved' | 'In Progress' | 'Pending' | 'Rejected';
-  // optional variant for special confirm styling (e.g., reopen uses primary blue)
-  confirmVariant?: 'reopen';
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -22,7 +20,6 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   confirmLabel = 'Confirm',
   cancelLabel = 'Cancel',
   confirmStatus,
-  confirmVariant,
   onConfirm,
   onCancel,
 }) => {
@@ -74,7 +71,6 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
           <button
             onClick={onConfirm}
             className={`px-4 py-2 text-white rounded-lg transition-colors ${(
-              (confirmVariant === 'reopen' && 'bg-blue-600 hover:bg-blue-700') ||
               (confirmStatus === 'Resolved' && 'bg-green-600 hover:bg-green-700') ||
               (confirmStatus === 'Rejected' && 'bg-red-600 hover:bg-red-700') ||
               (confirmStatus === 'In Progress' && 'bg-blue-600 hover:bg-blue-700') ||

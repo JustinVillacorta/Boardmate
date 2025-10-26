@@ -178,7 +178,7 @@ export const getReports = catchAsync(async (req, res, next) => {
   const totalReports = await Report.countDocuments(queryObj);
   const totalPages = Math.ceil(totalReports / limit);
 
-  // Calculate stats for admins/staff
+  // Calculate stats for admins/staff including follow-up data
   let stats = null;
   if (req.userType !== 'tenant') {
     const statusStats = await Report.aggregate([
@@ -191,8 +191,19 @@ export const getReports = catchAsync(async (req, res, next) => {
       }
     ]);
 
+    const followUpStats = await Report.aggregate([
+      { $match: queryObj },
+      {
+        $group: {
+          _id: '$followUp',
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
     stats = {
       status: statusStats,
+      followUp: followUpStats,
       total: totalReports
     };
   }
@@ -306,5 +317,54 @@ export const deleteReport = catchAsync(async (req, res, next) => {
   res.status(200).json({
     success: true,
     message: 'Report deleted successfully'
+  });
+});
+
+// @desc    Tenant follow-up on resolved report
+// @route   PUT /api/reports/:id/follow-up
+// @access  Private (Tenant only for own reports)
+export const createFollowUp = catchAsync(async (req, res, next) => {
+  const report = await Report.findById(req.params.id);
+
+  if (!report) {
+    return next(new AppError('Report not found', 404));
+  }
+
+  // Check if user is a tenant and owns this report
+  if (req.userType !== 'tenant' || report.tenant.toString() !== req.user.id) {
+    return next(new AppError('You can only follow up on your own reports', 403));
+  }
+
+  // Check if report is pending
+  if (report.status !== 'pending') {
+    return next(new AppError('You can only follow up on pending reports', 400));
+  }
+
+  // Check if already followed up
+  if (report.followUp) {
+    return next(new AppError('This report has already been followed up', 400));
+  }
+
+  // Update report with follow-up (no status change)
+  report.followUp = true;
+  report.followUpDate = new Date();
+
+  await report.save();
+
+  // Populate the report data
+  await report.populate([
+    { path: 'tenant', select: 'firstName lastName email phoneNumber' },
+    { path: 'room', select: 'roomNumber roomType floor' }
+  ]);
+
+  // Create notification for follow-up
+  await NotificationService.createFollowUpNotification(report, req.user.id);
+
+  res.status(200).json({
+    success: true,
+    message: 'Follow-up submitted successfully',
+    data: {
+      report
+    }
   });
 });

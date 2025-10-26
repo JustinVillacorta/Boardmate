@@ -681,7 +681,7 @@ export const validateReportCreate = [
     .withMessage('Valid room ID is required'),
 
   body('type')
-    .isIn(['maintenance', 'complaint'])
+    .isIn(['maintenance', 'complaint', 'other'])
     .withMessage('Type must be either maintenance or complaint'),
 
   body('title')

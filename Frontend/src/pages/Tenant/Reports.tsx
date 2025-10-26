@@ -45,7 +45,9 @@ const TenantReports: React.FC<ReportsProps> = ({ currentPage, onNavigate }) => {
             case 'rejected': return 'Rejected';
             default: return 'Pending';
           }
-        })(r.status || 'pending') as any
+        })(r.status || 'pending') as any,
+        followUp: r.followUp || false,
+        followUpDate: r.followUpDate ? new Date(r.followUpDate).toLocaleDateString() : undefined
       }));
       setReports(mapped);
 
@@ -95,6 +97,15 @@ const TenantReports: React.FC<ReportsProps> = ({ currentPage, onNavigate }) => {
     }
   };
 
+  const handleFollowUp = async (reportId: string) => {
+    try {
+      await reportService.followUpReport(reportId);
+      await fetchReports(); // Refresh to show updated follow-up status
+    } catch (err: any) {
+      alert(err?.response?.data?.message || 'Failed to follow up on report');
+    }
+  };
+
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar currentPage={currentPage} onNavigate={onNavigate} userRole="tenant" />
@@ -129,7 +140,13 @@ const TenantReports: React.FC<ReportsProps> = ({ currentPage, onNavigate }) => {
                 )}
 
                 {!loading && !error && reports.map(r => (
-                  <ReportCard key={r.id} report={r} selected={r.id === selectedReportId} />
+                  <ReportCard 
+                    key={r.id} 
+                    report={r} 
+                    selected={r.id === selectedReportId} 
+                    userRole="tenant"
+                    onFollowUp={handleFollowUp}
+                  />
                 ))}
               </div>
             </div>

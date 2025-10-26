@@ -30,6 +30,7 @@ const notificationSchema = new mongoose.Schema({
     enum: [
       'payment_due',
       'report_update',
+      'report_followup',
       'system_alert',
       'maintenance',
       'announcement',
