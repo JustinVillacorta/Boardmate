@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { X, UserPlus, Check, UserMinus } from 'lucide-react';
 import * as roomManagementService from '../../services/roomManagementService';
-import ConfirmDialog from '../ui/ConfirmDialog';
+import RemoveTenantConfirmDialog from './RemoveTenantConfirmDialog';
 
 interface RoomData {
   id: string;
@@ -316,17 +316,11 @@ const ManageTenantsModal: React.FC<Props> = ({ room, onClose, onAddTenant }) => 
       </div>
 
       {/* Confirmation Dialog for Tenant Removal */}
-      <ConfirmDialog
+      <RemoveTenantConfirmDialog
         isOpen={isRemoveOpen}
-        title="Remove Tenant"
-        message={
-          <>
-            <p>Are you sure you want to remove this tenant from the room?</p>
-            <p className="mt-2 text-sm text-gray-600">This action will end their lease and make the room available for new tenants.</p>
-          </>
-        }
-        confirmLabel="Remove Tenant"
-        cancelLabel="Cancel"
+        tenantName={tenantToRemove ? room.tenants?.find(t => t.id === tenantToRemove)?.name : undefined}
+        roomName={room.name}
+        loading={loading}
         onConfirm={confirmRemoveTenant}
         onCancel={() => {
           setIsRemoveOpen(false);

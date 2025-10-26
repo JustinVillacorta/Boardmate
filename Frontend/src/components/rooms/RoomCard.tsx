@@ -1,5 +1,5 @@
 import React from 'react';
-import { Edit, Users, Trash } from 'lucide-react';
+import { Edit, Users } from 'lucide-react';
 
 interface RoomProps {
   room: {
@@ -96,13 +96,6 @@ const RoomCard: React.FC<RoomProps> = ({ room, onDelete, onEdit, onManageTenants
             Tenants
           </button>
         </div>
-
-        {onDelete && (
-          <button onClick={onDelete} className="w-full px-3 py-2 bg-red-50 text-red-600 rounded-lg border border-red-100 hover:bg-red-100 transition-colors text-sm flex items-center justify-center gap-2">
-            <Trash className="w-4 h-4" />
-            Delete
-          </button>
-        )}
       </div>
     </div>
   );
