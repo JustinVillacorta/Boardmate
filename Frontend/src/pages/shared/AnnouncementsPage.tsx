@@ -155,55 +155,42 @@ const AnnouncementsPage: React.FC<AnnouncementsPageProps> = ({
 
         <main className="flex-1 p-4 lg:p-6 overflow-auto">
           <div className="max-w-full">
-            {/* Header */}
-            <div className="mb-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <Megaphone className="w-6 h-6 text-blue-600" />
-                </div>
-                <div>
-                  <h1 className="text-2xl font-semibold text-gray-900">Announcements</h1>
-                  <p className="text-sm text-gray-500">Manage community announcements and communications</p>
-                </div>
+            {/* Search and Actions */}
+            <div className="mb-8 flex flex-col lg:flex-row lg:items-center lg:justify-end gap-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  type="text"
+                  placeholder="Search announcements..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-64 text-base"
+                />
               </div>
 
-              <div className="flex items-center gap-3">
-                {/* Search */}
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <input
-                    type="text"
-                    placeholder="Search announcements..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-64"
-                  />
-                </div>
+              {/* Sort button */}
+              <button
+                onClick={() => setIsSortOpen(true)}
+                className="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-300 rounded-lg bg-white text-base hover:bg-gray-50"
+              >
+                <SortAsc className="w-5 h-5" />
+                Sort
+              </button>
 
-                {/* Sort button */}
+              {/* Create button */}
+              {userRole === 'admin' && (
                 <button
-                  onClick={() => setIsSortOpen(true)}
-                  className="inline-flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm hover:bg-gray-50"
+                  onClick={() => setShowCreateModal(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
-                  <SortAsc className="w-4 h-4" />
-                  Sort
+                  <Plus className="w-4 h-4" />
+                  <span>Create</span>
                 </button>
-
-                {/* Create button */}
-                {userRole === 'admin' && (
-                  <button
-                    onClick={() => setShowCreateModal(true)}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>Create</span>
-                  </button>
-                )}
-              </div>
+              )}
             </div>
 
             {/* Stats */}
-            <div className="mb-6 grid grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="mb-8 grid grid-cols-2 lg:grid-cols-5 gap-6">
               {(() => {
                 const priorities = sortedAnnouncements.reduce((acc, announcement) => {
                   acc[announcement.priority] = (acc[announcement.priority] || 0) + 1;
@@ -219,55 +206,55 @@ const AnnouncementsPage: React.FC<AnnouncementsPageProps> = ({
                   <>
                     {/* Total Announcements */}
                     <div className="bg-white p-4 rounded-lg border border-gray-200 flex items-center gap-3">
-                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                        <Megaphone className="w-4 h-4 text-blue-600" />
+                      <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                        <Megaphone className="w-5 h-5 text-blue-600" />
                       </div>
                       <div>
-                        <div className="text-sm text-gray-600">Total Announcements</div>
+                        <div className="text-base text-gray-600">Total Announcements</div>
                         <div className="text-2xl font-semibold text-gray-900">{sortedAnnouncements.length}</div>
                       </div>
                     </div>
 
                     {/* Urgent */}
                     <div className="bg-white p-4 rounded-lg border border-gray-200 flex items-center gap-3">
-                      <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
-                        <div className="w-4 h-4 bg-red-500 rounded-full"></div>
+                      <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                        <div className="w-5 h-5 bg-red-500 rounded-full"></div>
                       </div>
                       <div>
-                        <div className="text-sm text-gray-600">Urgent</div>
+                        <div className="text-base text-gray-600">Urgent</div>
                         <div className="text-2xl font-semibold text-gray-900">{urgentCount}</div>
                       </div>
                     </div>
 
                     {/* High */}
                     <div className="bg-white p-4 rounded-lg border border-gray-200 flex items-center gap-3">
-                      <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
-                        <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
+                      <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+                        <div className="w-4 h-4 bg-orange-500 rounded-full"></div>
                       </div>
                       <div>
-                        <div className="text-sm text-gray-600">High</div>
+                        <div className="text-base text-gray-600">High</div>
                         <div className="text-2xl font-semibold text-gray-900">{highCount}</div>
                       </div>
                     </div>
 
                     {/* Medium */}
                     <div className="bg-white p-4 rounded-lg border border-gray-200 flex items-center gap-3">
-                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                      <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                        <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
                       </div>
                       <div>
-                        <div className="text-sm text-gray-600">Medium</div>
+                        <div className="text-base text-gray-600">Medium</div>
                         <div className="text-2xl font-semibold text-gray-900">{mediumCount}</div>
                       </div>
                     </div>
 
                     {/* Low */}
                     <div className="bg-white p-4 rounded-lg border border-gray-200 flex items-center gap-3">
-                      <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
-                        <div className="w-1 h-1 bg-gray-500 rounded-full"></div>
+                      <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+                        <div className="w-2 h-2 bg-gray-500 rounded-full"></div>
                       </div>
                       <div>
-                        <div className="text-sm text-gray-600">Low</div>
+                        <div className="text-base text-gray-600">Low</div>
                         <div className="text-2xl font-semibold text-gray-900">{lowCount}</div>
                       </div>
                     </div>
@@ -278,7 +265,7 @@ const AnnouncementsPage: React.FC<AnnouncementsPageProps> = ({
 
             {/* Content */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-              <div className="p-6">
+              <div className="p-8">
                 {loading && (
                   <div className="py-8 text-center text-gray-500">Loading announcements...</div>
                 )}
@@ -316,7 +303,7 @@ const AnnouncementsPage: React.FC<AnnouncementsPageProps> = ({
                 {!loading && !error && sortedAnnouncements.length > 0 && (
                   <div className="space-y-4">
                     {/* All announcements */}
-                    <div className="grid gap-4">
+                    <div className="grid gap-6">
                       {filteredAnnouncements.map((announcement) => (
                         <AnnouncementCard
                           key={announcement._id}

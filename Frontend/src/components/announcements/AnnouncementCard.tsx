@@ -50,13 +50,13 @@ const AnnouncementCard: React.FC<AnnouncementCardProps> = ({
   const getPriorityIcon = (priority: string) => {
     switch (priority) {
       case 'urgent':
-        return <AlertCircle className="w-4 h-4 text-red-600" />;
+        return <AlertCircle className="w-5 h-5 text-red-600" />;
       case 'high':
-        return <AlertCircle className="w-4 h-4 text-orange-600" />;
+        return <AlertCircle className="w-5 h-5 text-orange-600" />;
       case 'medium':
-        return <Calendar className="w-4 h-4 text-blue-600" />;
+        return <Calendar className="w-5 h-5 text-blue-600" />;
       case 'low':
-        return <Calendar className="w-4 h-4 text-gray-600" />;
+        return <Calendar className="w-5 h-5 text-gray-600" />;
       default:
         return null;
     }
@@ -123,7 +123,7 @@ const AnnouncementCard: React.FC<AnnouncementCardProps> = ({
         ${getPriorityColor(announcement.priority)}
         ${selected ? 'ring-2 ring-blue-300 shadow-md' : 'hover:shadow-md'}
         shadow-sm
-        ${compact ? 'p-3' : 'p-4'}
+        ${compact ? 'p-3' : 'p-5'}
       `}
       role="button"
       tabIndex={0}
@@ -134,29 +134,29 @@ const AnnouncementCard: React.FC<AnnouncementCardProps> = ({
       }}
     >
       {/* Status indicators */}
-      <div className="flex items-start justify-between mb-2">
+      <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2 flex-wrap">
           {/* Priority */}
           <div className="flex items-center gap-1">
             {getPriorityIcon(announcement.priority)}
-            <span className={`text-xs px-2 py-1 rounded-full font-medium ${getPriorityLabel(announcement.priority)}`}>
+            <span className={`text-sm px-3 py-1.5 rounded-full font-medium ${getPriorityLabel(announcement.priority)}`}>
               {announcement.priority.toUpperCase()}
             </span>
           </div>
 
           {/* Audience */}
-          <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-700">
+          <span className="text-sm px-3 py-1.5 rounded-full bg-gray-100 text-gray-700">
             {getAudienceLabel(announcement.audience)}
           </span>
 
           {/* Status indicators */}
           {isScheduled && (
-            <span className="text-xs px-2 py-1 rounded-full bg-yellow-100 text-yellow-800">
+            <span className="text-sm px-3 py-1.5 rounded-full bg-yellow-100 text-yellow-800">
               Scheduled
             </span>
           )}
           {announcement.isArchived && (
-            <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-600">
+            <span className="text-sm px-3 py-1.5 rounded-full bg-gray-100 text-gray-600">
               Archived
             </span>
           )}
@@ -164,12 +164,12 @@ const AnnouncementCard: React.FC<AnnouncementCardProps> = ({
       </div>
 
       {/* Title */}
-      <h3 className={`font-semibold text-gray-900 mb-2 ${compact ? 'text-sm' : 'text-base'}`}>
+      <h3 className={`font-semibold text-gray-900 mb-3 ${compact ? 'text-sm' : 'text-xl'}`}>
         {announcement.title}
       </h3>
 
       {/* Content preview */}
-      <p className={`text-gray-600 mb-3 ${compact ? 'text-xs' : 'text-sm'} line-clamp-2`}>
+      <p className={`text-gray-600 mb-4 ${compact ? 'text-xs' : 'text-base'} line-clamp-2`}>
         {announcement.content.length > 150 
           ? `${announcement.content.substring(0, 150)}...` 
           : announcement.content
@@ -178,7 +178,7 @@ const AnnouncementCard: React.FC<AnnouncementCardProps> = ({
 
       {/* Attachments indicator */}
       {announcement.attachments && announcement.attachments.length > 0 && (
-        <div className="flex items-center gap-1 mb-3">
+        <div className="flex items-center gap-1 mb-4">
           <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
           </svg>
@@ -189,19 +189,19 @@ const AnnouncementCard: React.FC<AnnouncementCardProps> = ({
       )}
 
       {/* Footer */}
-      <div className="flex items-center justify-between text-xs text-gray-500">
+      <div className="flex items-center justify-between text-sm text-gray-500 pt-3 border-t border-gray-200">
         <div className="flex items-center gap-4">
           {/* Author */}
           {showAuthor && (
             <div className="flex items-center gap-1">
-              <User className="w-3 h-3" />
+              <User className="w-4 h-4" />
               <span>{announcement.author.name}</span>
             </div>
           )}
 
           {/* Publish date */}
           <div className="flex items-center gap-1">
-            <Calendar className="w-3 h-3" />
+            <Calendar className="w-4 h-4" />
             <span>{getDaysAgo(announcement.publishDate)}</span>
           </div>
         </div>
