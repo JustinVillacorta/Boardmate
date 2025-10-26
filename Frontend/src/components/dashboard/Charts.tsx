@@ -44,7 +44,9 @@ const Charts: React.FC<ChartsProps> = ({ data }) => {
   const pieDataForRender = totalOccupancy > 0 ? workLogData : [{ name: "No Data", value: 1, color: "#e5e7eb" }];
 
   const trendData = data.payments?.monthlyTrends || [];
-  const latest = trendData.length > 0 ? trendData[trendData.length - 1] : { collected: 0, overdue: 0 } as any;
+  // Calculate totals across all months
+  const totalCollected = trendData.reduce((sum, month) => sum + (month.collected || 0), 0);
+  const totalOverdue = trendData.reduce((sum, month) => sum + (month.overdue || 0), 0);
 
   return (
     <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6">
@@ -142,12 +144,12 @@ const Charts: React.FC<ChartsProps> = ({ data }) => {
         {/* Summary */}
         <div className="flex flex-col sm:flex-row justify-center gap-3 lg:gap-6 mt-4 lg:mt-6">
           <div className="px-4 lg:px-6 py-2 lg:py-3 bg-blue-50 rounded-lg text-center">
-            <p className="text-blue-600 font-semibold text-sm lg:text-base">₱ {latest.collected?.toLocaleString?.() || 0}</p>
-            <p className="text-xs lg:text-sm text-gray-600">Collected</p>
+            <p className="text-blue-600 font-semibold text-sm lg:text-base">₱ {totalCollected.toLocaleString()}</p>
+            <p className="text-xs lg:text-sm text-gray-600">Total Collected</p>
           </div>
           <div className="px-4 lg:px-6 py-2 lg:py-3 bg-red-50 rounded-lg text-center">
-            <p className="text-red-600 font-semibold text-sm lg:text-base">₱ {latest.overdue?.toLocaleString?.() || 0}</p>
-            <p className="text-xs lg:text-sm text-gray-600">Overdue</p>
+            <p className="text-red-600 font-semibold text-sm lg:text-base">₱ {totalOverdue.toLocaleString()}</p>
+            <p className="text-xs lg:text-sm text-gray-600">Total Overdue</p>
           </div>
         </div>
       </div>
