@@ -107,6 +107,13 @@ const TenantAnnouncementsPage: React.FC<TenantAnnouncementsPageProps> = ({
           title="Announcements"
           subtitle="Stay updated with community news and important information"
           onNotificationOpen={() => onNavigate && onNavigate('notifications')} 
+          onAnnouncementOpen={(announcement) => { 
+            if (announcement) { 
+              // Handle specific announcement click if needed
+            } else { 
+              // "View All" was clicked - already on announcements page
+            } 
+          }}
         />
 
         <main className="flex-1 p-4 lg:p-6 overflow-auto">
