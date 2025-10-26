@@ -5,6 +5,8 @@ import UserCard from '../../components/users/UserCard';
 import Sidebar from '../../components/layout/Sidebar';
 import TopNavbar from '../../components/layout/TopNavbar';
 import PaymentCard from '../../components/payments/PaymentCard';
+import ExportButton from '../../components/ui/ExportButton';
+import { exportToExcel, formatDate } from '../../utils/excelExport';
 
 interface TenantRow {
   id: string;
@@ -26,6 +28,7 @@ const PaymentPage: React.FC<PaymentPageProps> = ({ currentPage, onNavigate, user
   const [loading, setLoading] = React.useState(false);
   const [isSortOpen, setIsSortOpen] = React.useState(false);
   const [sortOption, setSortOption] = React.useState<'tenantAZ'|'tenantZA'|'roomAZ'|'roomZA'>('tenantAZ');
+  const [isExporting, setIsExporting] = React.useState(false);
 
   React.useEffect(() => {
     const load = async () => {
@@ -67,6 +70,83 @@ const PaymentPage: React.FC<PaymentPageProps> = ({ currentPage, onNavigate, user
     if (sortOption === 'roomZA') return -roomCompare || tenantCompare || a.id.localeCompare(b.id);
     return 0;
   });
+
+  // Export functionality
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      // Fetch all tenants
+      const tenantsRes = await userManagementService.getStaffAndTenants({ 
+        userType: 'tenant', 
+        tenantStatus: 'active', 
+        hasRoom: true, 
+        limit: 1000 
+      });
+      
+      const tenantRecords = tenantsRes?.data?.records || [];
+      const outstandingPayments: any[] = [];
+      const paidPayments: any[] = [];
+      
+      // Fetch payments for each tenant
+      for (const tenant of tenantRecords) {
+        const tenantId = tenant._id;
+        try {
+          const paymentsData = await PaymentService.tenantPayments(tenantId, { 
+            sortBy: 'dueDate', 
+            sortOrder: 'asc', 
+            limit: 1000 
+          });
+          
+          const payments = paymentsData?.data?.payments || [];
+          const tenantName = tenant.fullName || `${tenant.firstName || ''} ${tenant.lastName || ''}`.trim() || tenant.email;
+          const roomNumber = tenant.room?.roomNumber || '-';
+          
+          payments.forEach((p: any) => {
+            const paymentRow = {
+              'Tenant Name': tenantName,
+              'Room Number': roomNumber,
+              'Description': p.description || `${p.paymentType || ''} - ${p.periodCovered?.startDate ? new Date(p.periodCovered.startDate).toLocaleDateString() : ''}`,
+              'Amount': `₱${(p.amount + (p.lateFee?.amount || 0)).toLocaleString()}`,
+              'Due Date': p.dueDate ? formatDate(p.dueDate) : '-',
+              'Paid Date': p.paymentDate ? formatDate(p.paymentDate) : '-',
+              'Status': p.status === 'paid' ? 'Paid' : (p.status === 'overdue' ? 'Overdue' : 'Due'),
+              'Payment Method': p.paymentMethod || '-',
+              'Transaction Reference': p.transactionReference || '-',
+              'Notes': p.notes || '-'
+            };
+            
+            if (p.status === 'paid') {
+              paidPayments.push(paymentRow);
+            } else {
+              outstandingPayments.push(paymentRow);
+            }
+          });
+        } catch (err) {
+          console.error(`Error fetching payments for tenant ${tenantId}:`, err);
+        }
+      }
+      
+      // Prepare multi-sheet data
+      const sheetsData = [
+        outstandingPayments.length > 0 ? outstandingPayments.map(p => Object.values(p)) : [],
+        paidPayments.length > 0 ? paidPayments.map(p => Object.values(p)) : []
+      ];
+      
+      // Add headers
+      const headers = ['Tenant Name', 'Room Number', 'Description', 'Amount', 'Due Date', 'Paid Date', 'Status', 'Payment Method', 'Transaction Reference', 'Notes'];
+      sheetsData[0] = [headers, ...sheetsData[0]];
+      sheetsData[1] = [headers, ...sheetsData[1]];
+      
+      await exportToExcel(sheetsData, 'payments_export', { 
+        sheetNames: ['Outstanding Payments', 'Payment History']
+      });
+    } catch (error) {
+      console.error('Export error:', error);
+      alert('Failed to export payments. Please try again.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
   
   return (
     <>
@@ -94,8 +174,9 @@ const PaymentPage: React.FC<PaymentPageProps> = ({ currentPage, onNavigate, user
                       {userRole === 'staff' ? 'Manage tenant payments and dues' : 'Manage tenant payments and dues'}
                     </p>
                   </div>
-                  <div className="w-full sm:w-96 flex gap-2 justify-end">
-                    <div className="relative">
+
+                  <div className="flex flex-col sm:flex-row gap-3 items-stretch">
+                    <div className="relative w-full sm:w-96">
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -108,12 +189,14 @@ const PaymentPage: React.FC<PaymentPageProps> = ({ currentPage, onNavigate, user
                         className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                       />
                     </div>
+
                     <button
                       onClick={() => setIsSortOpen(true)}
-                      className="inline-flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm hover:bg-gray-50 ml-2"
+                      className="inline-flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm hover:bg-gray-50"
                     >
                       Sort
                     </button>
+                    <ExportButton onClick={handleExport} loading={isExporting} />
                   </div>
                 </div>
               </div>

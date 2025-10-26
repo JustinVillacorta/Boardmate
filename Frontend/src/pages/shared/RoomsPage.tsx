@@ -6,9 +6,11 @@ import CreateRoomModal from '../../components/rooms/CreateRoomModal';
 import ManageTenantsModal from '../../components/rooms/ManageTenantsModal';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import EditRoomModal from '../../components/rooms/EditRoomModal';
+import ExportButton from '../../components/ui/ExportButton';
 import { RefreshCw, Plus } from 'lucide-react';
 import * as roomManagementService from '../../services/roomManagementService';
 import { RoomDisplayData, RoomFilters } from '../../types/room';
+import { exportToExcel, formatDate, formatCurrency } from '../../utils/excelExport';
 
 interface RoomData {
   id: string;
@@ -170,6 +172,7 @@ const RoomsPage: React.FC<RoomsPageProps> = ({ currentPage, onNavigate, userRole
   };
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   const handleCreate = async (data: any) => {
     try {
@@ -199,6 +202,41 @@ const RoomsPage: React.FC<RoomsPageProps> = ({ currentPage, onNavigate, userRole
   const handleAddTenant = async (roomId: string) => {
     // Refresh rooms after tenant assignment
     await fetchRooms();
+  };
+
+  // Export functionality
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      // Fetch all rooms without filters
+      const response = await roomManagementService.getRooms({ limit: 1000 });
+      const allRooms = response.data.rooms.map(roomManagementService.transformRoom);
+      
+      // Prepare data for export
+      const exportData = allRooms.map(room => ({
+        'Room Number': room.name,
+        'Type': room.type,
+        'Rent': room.rent,
+        'Capacity': room.capacity,
+        'Occupancy': room.occupancy,
+        'Status': room.status,
+        'Floor': room.floor || '-',
+        'Area': room.area || '-',
+        'Security Deposit': room.securityDeposit || '-',
+        'Description': room.description || '-',
+        'Last Updated': formatDate(room.updatedAt)
+      }));
+      
+      await exportToExcel(exportData, 'rooms_export', { 
+        sheetNames: ['Rooms'],
+        columnWidths: [15, 15, 15, 12, 12, 12, 10, 10, 20, 40, 15]
+      });
+    } catch (error) {
+      console.error('Export error:', error);
+      alert('Failed to export rooms. Please try again.');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   // Role-based functionality
@@ -246,6 +284,7 @@ const RoomsPage: React.FC<RoomsPageProps> = ({ currentPage, onNavigate, userRole
                   >
                     Sort
                   </button>
+                  <ExportButton onClick={handleExport} loading={isExporting} />
                   {canCreateRooms && (
                     <div className="flex items-center gap-2">
                       <button onClick={() => setIsCreateOpen(true)} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2">

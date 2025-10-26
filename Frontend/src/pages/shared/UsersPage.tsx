@@ -5,8 +5,10 @@ import UserCard from '../../components/users/UserCard';
 import CreateUserModal from '../../components/users/CreateUserModal';
 import EditUserModal from '../../components/users/EditUserModal';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
+import ExportButton from '../../components/ui/ExportButton';
 import { userManagementService, StaffAndTenantData } from '../../services/userManagementService';
 import { User, UserPlus, Loader2 } from 'lucide-react';
+import { exportToExcel, formatDate } from '../../utils/excelExport';
 
 interface UserData {
   id: string;
@@ -42,6 +44,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ currentPage, onNavigate, userRole
   const isStaffUser = String(userRole).toLowerCase() === 'staff'; // Staff can only create tenants
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [isExporting, setIsExporting] = useState(false);
 
   // Fetch users data on component mount
   useEffect(() => {
@@ -234,6 +237,48 @@ const UsersPage: React.FC<UsersPageProps> = ({ currentPage, onNavigate, userRole
     return false; // Staff cannot archive other staff
   };
 
+  // Export functionality
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      // Fetch all users without filters
+      const response = await userManagementService.getStaffAndTenants({
+        limit: 1000,
+        userType: isStaffUser ? 'tenant' : 'all'
+      });
+      
+      // Transform backend data to export format
+      const exportData = response.data.records.map((record: StaffAndTenantData) => ({
+        'Name': record.type === 'staff' 
+          ? record.name || 'Unknown Staff'
+          : record.fullName || `${record.firstName || ''} ${record.lastName || ''}`.trim() || 'Unknown Tenant',
+        'Email': record.email,
+        'Role': record.type === 'staff' ? (record.role === 'admin' ? 'Admin' : 'Staff') : 'Tenant',
+        'Status': record.isArchived ? 'Archived' : 'Active',
+        'Start Date': new Date(record.createdAt).toLocaleDateString('en-US', { 
+          month: 'short', 
+          day: 'numeric', 
+          year: 'numeric' 
+        }),
+        'Room Number': record.room?.roomNumber || '-',
+        'Room Type': record.room?.roomType || '-',
+        'Monthly Rent': record.room?.monthlyRent ? `₱${record.room.monthlyRent.toLocaleString()}` : '-',
+        'Created Date': formatDate(record.createdAt),
+        'Last Login': record.lastLoginAt ? formatDate(record.lastLoginAt) : '-'
+      }));
+      
+      await exportToExcel(exportData, 'users_export', { 
+        sheetNames: ['Users'],
+        columnWidths: [25, 30, 12, 12, 15, 12, 15, 15, 15, 15]
+      });
+    } catch (error) {
+      console.error('Export error:', error);
+      alert('Failed to export users. Please try again.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <div className="flex min-h-screen bg-gray-50">
       {/* Sidebar */}
@@ -292,6 +337,8 @@ const UsersPage: React.FC<UsersPageProps> = ({ currentPage, onNavigate, userRole
                   >
                     Sort
                   </button>
+                  
+                  <ExportButton onClick={handleExport} loading={isExporting} />
                   
                   {/* Create User Button */}
                   {canCreateUsers && (

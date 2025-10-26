@@ -5,8 +5,10 @@ import SummaryCard from '../../components/reports/SummaryCard';
 import { AlertCircle, CheckCircle2, Play, Clock, AlertTriangle } from 'lucide-react';
 import ReportCard from '../../components/reports/ReportCard';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
+import ExportButton from '../../components/ui/ExportButton';
 import { ReportItem } from '../../types/report';
 import { reportService } from '../../services/reportService';
+import { exportToExcel, formatDate } from '../../utils/excelExport';
 
 interface ReportsPageProps {
   currentPage?: string;
@@ -21,6 +23,7 @@ const ReportsPage: React.FC<ReportsPageProps> = ({ currentPage, onNavigate, user
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [selectedReportId, setSelectedReportId] = React.useState<string | null>(null);
+  const [isExporting, setIsExporting] = React.useState(false);
 
   const fetchReports = async () => {
     setLoading(true);
@@ -147,6 +150,56 @@ const ReportsPage: React.FC<ReportsPageProps> = ({ currentPage, onNavigate, user
     setPendingChange(null);
   };
 
+  // Export functionality
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      // Fetch all reports without filters
+      const res = await reportService.getReports({ page: 1, limit: 10000 });
+      
+      // Map backend status values to UI labels
+      const mapStatusToLabel = (s: string) => {
+        if (!s) return 'Pending';
+        switch (s.toLowerCase()) {
+          case 'in-progress':
+          case 'in progress':
+            return 'In Progress';
+          case 'resolved':
+            return 'Resolved';
+          case 'rejected':
+            return 'Rejected';
+          case 'pending':
+          default:
+            return 'Pending';
+        }
+      };
+      
+      const exportData = (res.data.reports || []).map((r: any) => ({
+        'Title': r.title,
+        'Type': r.type || '-',
+        'Description': r.description || '-',
+        'Reporter': r.tenant ? `${r.tenant.firstName || ''} ${r.tenant.lastName || ''}`.trim() : '-',
+        'Room': r.room ? (r.room.roomNumber || r.room) : '-',
+        'Status': mapStatusToLabel(r.status || 'pending'),
+        'Days Open': r.submittedAt ? Math.floor((Date.now() - new Date(r.submittedAt).getTime()) / (1000 * 60 * 60 * 24)) : '-',
+        'Created Date': r.submittedAt ? formatDate(r.submittedAt) : formatDate(r.createdAt),
+        'Updated Date': formatDate(r.updatedAt),
+        'Follow-up': r.followUp ? 'Yes' : 'No',
+        'Follow-up Date': r.followUpDate ? formatDate(r.followUpDate) : '-'
+      }));
+      
+      await exportToExcel(exportData, 'reports_export', { 
+        sheetNames: ['Reports'],
+        columnWidths: [25, 15, 40, 20, 12, 12, 12, 15, 15, 12, 15]
+      });
+    } catch (error) {
+      console.error('Export error:', error);
+      alert('Failed to export reports. Please try again.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   // Role-based functionality
   const canCreateReports = userRole === 'admin'; // Only admin can create reports
   const canModifyReports = userRole === 'admin' || userRole === 'staff'; // Admin and staff can modify reports
@@ -190,13 +243,14 @@ const ReportsPage: React.FC<ReportsPageProps> = ({ currentPage, onNavigate, user
                   <h1 className="text-2xl font-semibold">Reports</h1>
                   <p className="text-sm text-gray-500">Showing {filtered.length} reports</p>
                 </div>
-                <div className="w-full md:w-1/2">
+                <div className="flex items-center gap-2 w-full md:w-1/2">
                   <input
                     value={query}
                     onChange={e => setQuery(e.target.value)}
                     placeholder="Search for anything..."
-                    className="w-full border rounded-md px-4 py-2 shadow-sm bg-white"
+                    className="flex-1 border rounded-md px-4 py-2 shadow-sm bg-white"
                   />
+                  <ExportButton onClick={handleExport} loading={isExporting} />
                 </div>
               </div>
             </div>
