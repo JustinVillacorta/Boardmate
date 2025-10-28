@@ -462,18 +462,6 @@ export const validateTenantAssignment = [
     .withMessage('Contract file must have .pdf extension'),
 ];
 
-export const validateRoomStatusUpdate = [
-  body('status')
-    .isIn(['available', 'occupied', 'maintenance', 'unavailable'])
-    .withMessage('Status must be one of: available, occupied, maintenance, unavailable'),
-
-  body('notes')
-    .optional()
-    .trim()
-    .isLength({ max: 1000 })
-    .withMessage('Notes must not exceed 1000 characters'),
-];
-
 export const validatePaymentCreate = [
   body('tenant')
     .isMongoId()

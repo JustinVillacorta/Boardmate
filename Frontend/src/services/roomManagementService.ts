@@ -84,14 +84,6 @@ export const getRooms = async (filters: RoomFilters = {}): Promise<RoomsResponse
 };
 
 /**
- * Get single room by ID
- */
-export const getRoom = async (roomId: string): Promise<RoomResponse> => {
-  const response = await api.get<RoomResponse>(`/rooms/${roomId}`);
-  return response.data;
-};
-
-/**
  * Create new room
  */
 export const createRoom = async (formData: any): Promise<RoomResponse> => {
@@ -134,34 +126,10 @@ export const removeTenant = async (roomId: string, tenantId: string): Promise<Ro
 };
 
 /**
- * Get available rooms
- */
-export const getAvailableRooms = async (filters: Partial<RoomFilters> = {}): Promise<RoomsResponse> => {
-  const queryParams = new URLSearchParams();
-  
-  Object.entries(filters).forEach(([key, value]) => {
-    if (value !== undefined && value !== null && value !== '') {
-      queryParams.append(key, value.toString());
-    }
-  });
-
-  const response = await api.get<RoomsResponse>(`/rooms/available?${queryParams.toString()}`);
-  return response.data;
-};
-
-/**
  * Get room statistics
  */
 export const getRoomStats = async (): Promise<RoomStatsResponse> => {
   const response = await api.get<RoomStatsResponse>('/rooms/stats');
-  return response.data;
-};
-
-/**
- * Update room status
- */
-export const updateRoomStatus = async (roomId: string, status: string, notes?: string): Promise<RoomResponse> => {
-  const response = await api.patch<RoomResponse>(`/rooms/${roomId}/status`, { status, notes });
   return response.data;
 };
 
