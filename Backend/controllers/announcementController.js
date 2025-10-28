@@ -1,7 +1,5 @@
 import { validationResult } from 'express-validator';
 import Announcement from '../models/Announcement.js';
-import User from '../models/User.js';
-import Tenant from '../models/Tenant.js';
 import { AppError } from '../utils/AppError.js';
 import { catchAsync } from '../utils/catchAsync.js';
 
@@ -39,12 +37,15 @@ export const getAnnouncements = catchAsync(async (req, res, next) => {
   const userId = req.user._id || req.user.id;
   const userModel = req.userType === 'tenant' ? 'Tenant' : 'User';
 
-  let query = {};
+  const query = {};
   const now = new Date();
   const thirtyDaysAgo = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
 
 
   query.publishDate = { $lte: now };
+  if (!options.includeArchived) {
+    query.isArchived = false;
+  }
   
 
   if (!options.includeExpired) {

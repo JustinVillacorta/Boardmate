@@ -70,11 +70,7 @@ const announcementSchema = new mongoose.Schema({
     url: String,
     size: Number,
     type: String
-  }],
-  metadata: {
-    type: mongoose.Schema.Types.Mixed,
-    default: {}
-  }
+  }]
 }, {
   timestamps: true,
   toJSON: { virtuals: true },
@@ -96,13 +92,6 @@ announcementSchema.virtual('isActive').get(function() {
          this.publishDate > thirtyDaysAgo;
 });
 
-announcementSchema.virtual('shouldArchive').get(function() {
-  const now = new Date();
-  const thirtyDaysAgo = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
-  
-  return !this.isArchived && this.publishDate <= thirtyDaysAgo;
-});
-
 announcementSchema.methods.isReadBy = function(userId, userModel = 'User') {
   return this.readBy.some(read => 
     read.user.toString() === userId.toString() && read.userModel === userModel
@@ -119,71 +108,6 @@ announcementSchema.methods.markAsRead = function(userId, userModel = 'User') {
     return this.save();
   }
   return Promise.resolve(this);
-};
-
-announcementSchema.statics.getForAudience = function(audienceType, userId = null, userModel = 'User', options = {}) {
-  const {
-    includeExpired = false,
-    includeArchived = false,
-    limit = 20,
-    page = 1
-  } = options;
-
-  const now = new Date();
-  const thirtyDaysAgo = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
-  const query = {};
-
-  if (!includeArchived) {
-    query.isArchived = false;
-  }
-
-  query.publishDate = { $lte: now };
-  
-  if (!includeExpired) {
-    query.publishDate = { $gte: thirtyDaysAgo, $lte: now };
-  }
-
-  if (audienceType !== 'all') {
-    query.$or = [
-      { audience: 'all' },
-      { audience: audienceType }
-    ];
-
-    if (userId) {
-      query.$or.push({
-        audience: 'custom',
-        'targetUsers.user': userId,
-        'targetUsers.userModel': userModel
-      });
-    }
-  }
-
-  const skip = (page - 1) * limit;
-
-  return this.find(query)
-    .populate('author', 'name email role')
-    .populate('targetRooms', 'roomNumber roomType')
-    .sort({ publishDate: -1 })
-    .skip(skip)
-    .limit(limit);
-};
-
-announcementSchema.statics.getActiveCount = function(audienceType = 'all') {
-  const now = new Date();
-  const thirtyDaysAgo = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
-  const query = {
-    isArchived: false,
-    publishDate: { $gte: thirtyDaysAgo, $lte: now }
-  };
-
-  if (audienceType !== 'all') {
-    query.$or = [
-      { audience: 'all' },
-      { audience: audienceType }
-    ];
-  }
-
-  return this.countDocuments(query);
 };
 
 announcementSchema.statics.archiveOldAnnouncements = function() {
