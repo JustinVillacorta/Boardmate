@@ -1,4 +1,3 @@
-import crypto from 'crypto';
 import { sendEmail } from '../utils/emailService.js';
 import jwt from 'jsonwebtoken';
 import { validationResult } from 'express-validator';
@@ -9,19 +8,17 @@ import { AppError } from '../utils/AppError.js';
 import { catchAsync } from '../utils/catchAsync.js';
 import { cleanupArchivedTenants, verifyRoomTenantIntegrity } from '../utils/tenantCleanup.js';
 
-// Generate JWT Token
 const generateToken = (userId, userType = 'user') => {
   return jwt.sign({ userId, userType }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRE || '30d',
   });
 };
 
-// Send response with token
 const sendTokenResponse = (user, statusCode, res, userType = 'user') => {
   const token = generateToken(user._id, userType);
   
   const cookieOptions = {
-    expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+    expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict',
