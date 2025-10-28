@@ -284,298 +284,67 @@ npm run lint         # Run ESLint
 
 ## API Endpoints
 
-### Authentication Routes (`/api/auth`)
-
-#### Public Routes
+### Authentication (`/api/auth`)
 - `POST /api/auth/register` - Register a new user (Admin/Staff)
 - `POST /api/auth/login` - Login user (Admin/Staff)
 - `POST /api/auth/universal-login` - Universal login (Users & Tenants)
 - `POST /api/auth/tenant/register` - Register a new tenant
 - `POST /api/auth/tenant/login` - Login tenant
-
-#### Shared Protected Routes (Users & Tenants)
 - `POST /api/auth/logout` - Logout user/tenant
 - `GET /api/auth/me` - Get current user/tenant profile
-
-#### User-Only Protected Routes (Admin/Staff)
+- `GET /api/auth/tenant/me` - Get tenant profile with room info
 - `PUT /api/auth/updatedetails` - Update user details
 - `PUT /api/auth/updatepassword` - Update user password
-- `DELETE /api/auth/archive` - Archive user account
-
-#### Tenant-Only Protected Routes
-- `GET /api/auth/tenant/me` - Get tenant profile with room info
 - `PUT /api/auth/tenant/updatedetails` - Update tenant details
 - `PUT /api/auth/tenant/updatepassword` - Update tenant password
+- `DELETE /api/auth/archive` - Archive user account
 - `DELETE /api/auth/tenant/archive` - Archive tenant account
 
-### Room Management Routes (`/api/rooms`)
-
-#### Shared Routes (Authenticated Access)
-- `GET /api/rooms/contracts/:tenantId` - Download a tenant contract (tenant can request their own; staff/admin can request any tenant)
-
-#### Admin/Staff Routes
+### Room Management (`/api/rooms`)
 - `GET /api/rooms` - Get all rooms with filtering & pagination
 - `POST /api/rooms` - Create new room
-- `GET /api/rooms/stats` - Get room occupancy statistics
+- `GET /api/rooms/:id` - Get room details
 - `PUT /api/rooms/:id` - Update room details
 - `DELETE /api/rooms/:id` - Delete room (Admin only)
 - `POST /api/rooms/:id/assign-tenant` - Assign tenant to room
 - `DELETE /api/rooms/:id/remove-tenant/:tenantId` - Remove tenant from room
+- `GET /api/rooms/stats` - Get room occupancy statistics
 - `POST /api/rooms/generate-contract` - Generate a lease agreement PDF
+- `GET /api/rooms/contracts/:tenantId` - Download tenant contract
 
-### Other Routes
+### Payment Management (`/api/payments`)
+- `GET /api/payments` - List payments with filters
+- `POST /api/payments` - Create payment record
+- `GET /api/payments/:id` - Get payment details
+- `PUT /api/payments/:id` - Update payment
+- `DELETE /api/payments/:id` - Delete payment
+- `PUT /api/payments/:id/mark-paid` - Mark payment as paid
+- `GET /api/payments/overdue` - List overdue payments
+- `GET /api/payments/stats` - Payment statistics overview
+- `POST /api/payments/generate-monthly` - Generate monthly rent charges
+- `POST /api/payments/backfill-deposits` - Seed missing deposit entries
+- `GET /api/payments/tenant/:tenantId` - Tenant payment history
+- `GET /api/payments/tenant/:tenantId/summary` - Tenant payment summary by type
+- `GET /api/payments/:id/receipt` - Download receipt PDF
+- `GET /api/payments/:id/receipt-data` - Receipt JSON payload
+- `GET /api/payments/:id/receipt-html` - Receipt HTML template
+
+### Report Management (`/api/reports`)
+- `GET /api/reports` - List reports with filtering & pagination
+- `POST /api/reports` - Create maintenance/complaint report
+- `GET /api/reports/:id` - Get report by ID
+- `PUT /api/reports/:id` - Update report status
+- `DELETE /api/reports/:id` - Delete report
+- `PUT /api/reports/:id/follow-up` - Tenant follow-up on pending report
+
+### Notification Management (`/api/notifications`)
+- `GET /api/notifications` - List notifications for current user
+- `PUT /api/notifications/:id/read` - Mark notification as read
+- `PUT /api/notifications/read-all` - Mark all notifications as read
+- `DELETE /api/notifications/:id` - Delete notification
+
+### Utilities
 - `GET /api/health` - Health check endpoint
-
-## API Usage Examples
-
-### Register User
-```javascript
-POST /api/auth/register
-Content-Type: application/json
-
-{
-  "name": "John Doe",
-  "email": "john@example.com",
-  "password": "Password123",
-  "role": "admin"
-}
-```
-
-### Login User
-```javascript
-POST /api/auth/login
-Content-Type: application/json
-
-{
-  "email": "john@example.com",
-  "password": "Password123"
-}
-```
-
-### Get Current User (Protected)
-```javascript
-GET /api/auth/me
-Authorization: Bearer <your-jwt-token>
-```
-
-### Update User Details (Protected)
-```javascript
-PUT /api/auth/updatedetails
-Authorization: Bearer <your-jwt-token>
-Content-Type: application/json
-
-{
-  "name": "John Smith",
-  "email": "johnsmith@example.com"
-}
-```
-
-### Update Password (Protected)
-```javascript
-PUT /api/auth/updatepassword
-Authorization: Bearer <your-jwt-token>
-Content-Type: application/json
-
-{
-  "currentPassword": "Password123",
-  "newPassword": "NewPassword123",
-  "confirmPassword": "NewPassword123"
-}
-```
-
-### Register Tenant
-```javascript
-POST /api/auth/tenant/register
-Content-Type: application/json
-
-{
-  "firstName": "John",
-  "lastName": "Doe",
-  "email": "john.doe@example.com",
-  "password": "Tenant123",
-  "phoneNumber": "+1234567890",
-  "dateOfBirth": "1995-05-15",
-  "occupation": "Software Developer",
-  "address": {
-    "street": "123 Main St",
-    "city": "Anytown",
-    "province": "Province",
-    "zipCode": "12345"
-  },
-  "idType": "drivers_license",
-  "idNumber": "DL123456789",
-  "emergencyContact": {
-    "name": "Jane Doe",
-    "relationship": "Sister",
-    "phoneNumber": "+0987654321"
-  }
-}
-```
-
-### Login Tenant
-```javascript
-POST /api/auth/tenant/login
-Content-Type: application/json
-
-{
-  "email": "john.doe@example.com",
-  "password": "Tenant123"
-}
-```
-
-### Universal Login (Users & Tenants)
-```javascript
-POST /api/auth/universal-login
-Content-Type: application/json
-
-{
-  "email": "user-or-tenant@example.com",
-  "password": "Password123"
-}
-```
-
-### Get Tenant Profile (Protected)
-```javascript
-GET /api/auth/tenant/me
-Authorization: Bearer <your-jwt-token>
-```
-
-### Update Tenant Details (Protected)
-```javascript
-PUT /api/auth/tenant/updatedetails
-Authorization: Bearer <your-jwt-token>
-Content-Type: application/json
-
-{
-  "firstName": "John",
-  "lastName": "Smith",
-  "phoneNumber": "+1234567890",
-  "occupation": "Senior Developer",
-  "address": {
-    "street": "456 New St",
-    "city": "New City"
-  },
-  "emergencyContact": {
-    "name": "Jane Smith",
-    "relationship": "Sister",
-    "phoneNumber": "+0987654321"
-  }
-}
-```
-
-### Create Room (Admin/Staff)
-```javascript
-POST /api/rooms
-Authorization: Bearer <admin-jwt-token>
-Content-Type: application/json
-
-{
-  "roomNumber": "101",
-  "roomType": "double",
-  "capacity": 2,
-  "monthlyRent": 500,
-  "securityDeposit": 250,
-  "description": "Spacious double room with city view",
-  "amenities": ["WiFi", "Air Conditioning", "Private Bathroom"],
-  "floor": 1,
-  "area": 25.5,
-  "images": ["https://example.com/room1.jpg"]
-}
-```
-
-### Assign Tenant to Room (Admin/Staff)
-```javascript
-POST /api/rooms/507f1f77bcf86cd799439011/assign-tenant
-Authorization: Bearer <admin-jwt-token>
-Content-Type: application/json
-
-{
-  "tenantId": "507f1f77bcf86cd799439012",
-  "leaseStartDate": "2023-12-01",
-  "leaseEndDate": "2024-11-30",
-  "monthlyRent": 550,
-  "securityDeposit": 275
-}
-```
-
-### Get Room Statistics (Admin/Staff)
-```javascript
-GET /api/rooms/stats
-Authorization: Bearer <admin-jwt-token>
-```
-
-## Response Format
-
-### Success Response (User)
-```javascript
-{
-  "success": true,
-  "message": "Operation successful",
-  "data": {
-    "user": {
-      "_id": "user_id",
-      "name": "John Admin",
-      "email": "john@example.com",
-      "role": "admin",
-      "isArchived": false,
-      "createdAt": "2023-01-01T00:00:00.000Z",
-      "updatedAt": "2023-01-01T00:00:00.000Z"
-    },
-    "token": "jwt_token_here",
-    "userType": "user"
-  }
-}
-```
-
-### Success Response (Tenant)
-```javascript
-{
-  "success": true,
-  "message": "Tenant registered successfully",
-  "data": {
-    "tenant": {
-      "_id": "tenant_id",
-      "firstName": "John",
-      "lastName": "Doe",
-      "fullName": "John Doe",
-      "email": "john.doe@example.com",
-      "phoneNumber": "+1234567890",
-      "dateOfBirth": "1995-05-15T00:00:00.000Z",
-      "occupation": "Software Developer",
-      "address": {
-        "street": "123 Main St",
-        "city": "Anytown",
-        "province": "Province",
-        "zipCode": "12345"
-      },
-      "idType": "drivers_license",
-      "idNumber": "DL123456789",
-      "emergencyContact": {
-        "name": "Jane Doe",
-        "relationship": "Sister",
-        "phoneNumber": "+0987654321"
-      },
-      "room": null,
-      "tenantStatus": "pending",
-      "isArchived": false,
-      "isVerified": false,
-      "createdAt": "2023-01-01T00:00:00.000Z",
-      "updatedAt": "2023-01-01T00:00:00.000Z"
-    },
-    "token": "jwt_token_here",
-    "userType": "tenant"
-  }
-}
-```
-
-### Error Response
-```javascript
-{
-  "success": false,
-  "error": "Error message here",
-  "details": [] // Validation errors if any
-}
-```
 
 ## User Model Schema (Admin/Staff)
 
