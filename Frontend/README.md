@@ -1,214 +1,199 @@
-# Boardmate Frontend
+# Boardmate Frontend (React + Vite + TypeScript)
 
-A modern, responsive React + TypeScript frontend for the Boardmate boarding house management system.
+A modern, responsive frontend for the Boardmate boarding house management system. Built with React, Vite, TypeScript, Tailwind CSS, and Axios.
 
-## 🎯 Project Overview
+## Overview
 
-This frontend is designed to work with your existing MERN stack backend and provides a clean, professional interface for managing boarding house operations.
+This app connects to the Boardmate Express/MongoDB backend and provides role‑based dashboards and management tools for Admin, Staff, and Tenants.
 
-## 🏗️ Architecture
+Highlights:
+- Clean, responsive UI using Tailwind CSS
+- Role‑aware navigation and pages (Admin, Staff, Tenant)
+- Centralized Axios client with JWT support (`src/config/api.ts`)
+- Reusable dashboards with metric cards and charts
+- Polished loading experience via `LoadingState` component
 
-### **Recommended Architecture: Component-Based with Feature Modules**
+## Quick start
 
-```
-src/
-├── components/           # Reusable UI components
-│   ├── ui/              # Basic UI components (Button, Input, Modal, etc.)
-│   ├── forms/           # Form-specific components
-│   ├── layout/          # Layout components (Header, Sidebar, etc.)
-│   └── common/          # Common shared components
-├── pages/               # Page-level components
-│   ├── auth/            # Authentication pages
-│   ├── dashboard/       # Dashboard pages
-│   ├── rooms/           # Room management pages
-│   ├── tenants/         # Tenant management pages
-│   ├── payments/        # Payment management pages
-│   └── reports/         # Reports pages
-├── hooks/               # Custom React hooks
-├── services/            # API services and HTTP clients
-├── context/             # React Context for state management
-├── types/               # TypeScript type definitions
-├── utils/               # Utility functions
-├── styles/              # Global styles and CSS modules
-└── assets/              # Static assets (images, icons, etc.)
+1) Install dependencies
+```bash
+cd Frontend
+npm install
 ```
 
-This architecture aligns perfectly with your backend structure:
-- **Frontend routes** mirror your **backend API routes**
-- **Component structure** matches your **controller/model organization**
-- **Type definitions** correspond to your **backend models**
+2) Configure API base URL
+Create a `.env` file in `Frontend/` (same folder as `package.json`):
+```env
+VITE_API_URL=http://localhost:8000/api
+```
+If omitted, the app falls back to `http://localhost:8000/api`.
 
-## 🚀 Quick Start
-
-### Option 1: Static HTML Version (Ready to Use)
-Open `login.html` in your browser to see the immediate result. This version includes:
-- ✅ Responsive design matching your screenshot
-- ✅ Purple gradient background with decorative elements
-- ✅ Professional login form with icons
-- ✅ Password visibility toggle
-- ✅ Loading states and animations
-- ✅ Mobile-responsive design
-
-### Option 2: React + TypeScript Setup
-
-1. **Install Dependencies**
-   ```bash
-   cd Frontend
-   npm install
-   ```
-
-2. **Start Development Server**
-   ```bash
-   npm start
-   ```
-
-3. **Build for Production**
-   ```bash
-   npm run build
-   ```
-
-## 📱 Responsive Design Features
-
-- **Desktop (1024px+)**: Split-screen layout with gradient sidebar
-- **Tablet (768px-1023px)**: Centered form with simplified header
-- **Mobile (< 768px)**: Full-width form with compact header
-
-## 🎨 Design System
-
-### Colors
-- **Primary**: #4F46E5 (Blue)
-- **Gradient**: Linear gradient from #667eea to #764ba2
-- **Text**: Various gray shades for hierarchy
-- **Background**: Light gray (#F9FAFB)
-
-### Typography
-- **Font**: Inter (Google Fonts)
-- **Weights**: 300, 400, 500, 600, 700
-
-### Components
-- **Consistent spacing** using Tailwind CSS classes
-- **Smooth transitions** for interactive elements
-- **Focus states** for accessibility
-- **Loading states** for better UX
-
-## 🔗 Backend Integration
-
-The frontend is structured to easily integrate with your existing backend:
-
-### API Endpoints Mapping
-```typescript
-// Authentication
-POST /api/auth/login          → LoginForm component
-POST /api/auth/register       → RegisterForm component
-GET  /api/auth/me            → useAuth hook
-
-// Rooms Management
-GET  /api/rooms              → RoomsList component
-POST /api/rooms              → CreateRoom component
-PUT  /api/rooms/:id          → EditRoom component
-
-// Tenants Management
-GET  /api/tenant             → TenantsList component
-POST /api/tenant/register    → TenantRegistration component
-
-// Payments
-GET  /api/payments           → PaymentsList component
-POST /api/payments           → PaymentForm component
-
-// Reports
-GET  /api/reports            → ReportsPage component
+3) Run the dev server
+```bash
+npm run dev
 ```
 
-### State Management
-```typescript
-// Context structure aligning with your backend models
-interface AppState {
-  auth: {
-    user: User | Tenant | null;
-    isAuthenticated: boolean;
-    role: 'admin' | 'staff' | 'tenant';
-  };
-  rooms: Room[];
-  tenants: Tenant[];
-  payments: Payment[];
-  notifications: Notification[];
-}
+4) Build and preview
+```bash
+npm run build
+npm run preview
 ```
 
-## 🛠️ Next Steps for Full Implementation
+## Available scripts
+- `npm run dev` – start Vite dev server
+- `npm run build` – type‑check and build for production
+- `npm run preview` – preview the production build locally
+- `npm run lint` – run ESLint on ts/tsx files
 
-1. **Set up proper TypeScript environment**
-   ```bash
-   npm install @types/react @types/react-dom
-   ```
+## Tech stack
+- React 18 + TypeScript
+- Vite 5
+- Tailwind CSS 3
+- Axios for HTTP
+- React Router 6
+- Recharts for charts
+- Lucide Icons
 
-2. **Add state management**
-   - React Context for simple state
-   - Redux Toolkit for complex state
-   - React Query for server state
+## Project structure
+```
+Frontend/
+├── public/
+│   ├── index.html                # Legacy/placeholder static HTML (not used by Vite app)
+│   ├── manifest.json             # PWA manifest (if/when enabled)
+│   └── vite.svg                  # Vite icon asset
+├── src/
+│   ├── App.tsx                   # Root app component and routing shell
+│   ├── index.tsx                 # React DOM entry; mounts <App />
+│   ├── main.tsx                  # App bootstrap (providers/setup)
+│   ├── vite-env.d.ts             # Vite TypeScript types
+│   ├── styles/
+│   │   └── globals.css           # Tailwind directives and global styles
+│   ├── config/
+│   │   └── api.ts                # Axios instance, base URL, and auth interceptors
+│   ├── components/
+│   │   ├── announcements/
+│   │   │   ├── AnnouncementCard.tsx         # Card UI for a single announcement
+│   │   │   ├── AnnouncementDetailModal.tsx  # Modal to view full announcement details
+│   │   │   └── CreateAnnouncementModal.tsx  # Modal to compose a new announcement
+│   │   ├── auth/
+│   │   │   ├── ForgotPasswordForm.tsx       # Form for requesting password reset
+│   │   │   ├── ForgotPasswordModal.tsx      # Modal wrapper for the form
+│   │   │   └── LoginForm.tsx                # Login form (uses API auth service)
+│   │   ├── dashboard/
+│   │   │   ├── Charts.tsx                   # Recharts-based visualizations
+│   │   │   ├── DashboardHeader.tsx          # Dashboard title/toolbar row
+│   │   │   ├── MetricCards.tsx              # Stat cards (icon+title, centered value, subtitle)
+│   │   │   ├── QuickActions.tsx             # Shortcut actions block
+│   │   │   └── RecentTenancyChanges.tsx     # Recent changes list
+│   │   ├── layout/
+│   │   │   ├── Sidebar.tsx                  # Left navigation (role-aware)
+│   │   │   └── TopNavbar.tsx                # Top bar with notifications and user menu
+│   │   ├── tenant/
+│   │   │   ├── ConfirmationDialog.tsx       # Confirm actions dialog for tenant flows
+│   │   │   ├── SubmitMaintenanceForm.tsx    # Form to submit maintenance/report
+│   │   │   ├── TenantInfoCards.tsx          # Tenant info and next payment widgets
+│   │   │   ├── TenantNotificationCard.tsx   # Notification list item for tenant
+│   │   │   ├── TenantPaymentSummary.tsx     # Tenant payments summary
+│   │   │   ├── TenantQuickActions.tsx       # Quick actions panel for tenant
+│   │   │   └── TenantRecentActivity.tsx     # Combined recent tenant activity
+│   │   ├── ui/
+│   │   │   ├── Button.tsx                   # Primary button component
+│   │   │   ├── ConfirmDialog.tsx            # Generic confirm dialog
+│   │   │   ├── DownloadDialog.tsx           # Download receipt/dialog shell
+│   │   │   ├── ExportButton.tsx             # Helper for exporting data
+│   │   │   ├── Input.tsx                    # Text input component
+│   │   │   ├── LoadingState.tsx             # Animated loading card used across dashboards
+│   │   │   └── RoleBadge.tsx                # Small badge showing user role
+│   │   ├── notifications/                   # Role-specific notification components (placeholder)
+│   │   ├── payments/                        # Payment UI components (placeholder)
+│   │   ├── reports/                         # Report UI components (placeholder)
+│   │   ├── rooms/                           # Room UI components (placeholder)
+│   │   └── users/                           # User admin components (placeholder)
+│   ├── pages/
+│   │   ├── Admin/
+│   │   │   └── Dashboard.tsx                # Admin dashboard container
+│   │   ├── Staff/
+│   │   │   └── Dashboard.tsx                # Staff dashboard container
+│   │   ├── Tenant/
+│   │   │   └── Dashboard.tsx                # Tenant dashboard container
+│   │   └── shared/                          # Shared page-level components (placeholder)
+│   ├── services/
+│   │   ├── announcementService.ts           # Announcement API calls
+│   │   ├── authService.ts                   # Auth/login/logout helpers
+│   │   ├── dashboardService.ts              # Dashboard data aggregation calls
+│   │   ├── notificationService.ts           # Notification API calls
+│   │   ├── paymentService.ts                # Payment API calls (tenant + staff/admin)
+│   │   ├── registerService.ts               # Registration flows
+│   │   ├── reportService.ts                 # Report API calls
+│   │   ├── roomManagementService.ts         # Room management API calls
+│   │   ├── tenantDashboardService.ts        # Tenant dashboard data fetcher
+│   │   └── userManagementService.ts         # User admin API calls
+│   ├── types/
+│   │   ├── announcement.ts                  # TS types for announcement domain
+│   │   ├── index.ts                         # Common/shared types
+│   │   ├── notification.ts                  # Notification types
+│   │   ├── payment.ts                       # Payment types and DTOs
+│   │   ├── report.ts                        # Report types
+│   │   └── room.ts                          # Room and occupancy types
+│   ├── utils/
+│   │   ├── excelExport.ts                   # Export tabular data to XLSX
+│   │   ├── receiptPdfGenerator.ts           # Generate receipt PDFs on client
+│   │   ├── userUtils.ts                     # Small helpers for user display/logic
+│   │   └── validation.ts                    # Shared client-side validation helpers
+│   └── hooks/
+│       └── useFormValidation.ts             # Basic form validation hook
+├── index.html                               # Main Vite HTML entry (mounts app)
+├── vite.config.ts                           # Vite configuration
+├── tailwind.config.js                       # Tailwind configuration
+├── postcss.config.cjs                       # PostCSS configuration
+├── tsconfig.json                            # TypeScript compiler settings
+├── tsconfig.node.json                       # TS settings for tools/scripts
+├── package.json                             # Frontend dependencies and scripts
+└── README.md                                # This documentation
+```
 
-3. **Add routing**
-   ```bash
-   npm install react-router-dom @types/react-router-dom
-   ```
+## File structure explanation
+- public/: Static assets served as‑is by Vite (HTML, manifest, icons)
+- src/index.tsx, src/main.tsx, src/App.tsx: Application bootstrap and root component
+- src/config/api.ts: Axios instance with base URL and auth interceptors
+- src/components/: Reusable UI and feature components
+	- announcements/, auth/: Feature‑specific UI blocks
+	- dashboard/: Metric cards, charts, and quick actions
+	- layout/: App shell (Sidebar, TopNavbar)
+	- tenant/: Widgets for the tenant dashboard
+	- ui/: Generic UI primitives (Button, Input, LoadingState, etc.)
+- src/pages/: Page‑level screens grouped by role (Admin/Staff/Tenant) + shared
+- src/services/: Typed API wrappers for feature areas (payments, rooms, reports, etc.)
+- src/types/: Shared TypeScript interfaces matching backend models
+- src/utils/: Helpers (Excel export, PDF receipt generator, validation)
+- src/styles/: Global CSS (Tailwind base and app styles)
+- src/hooks/: Custom hooks (form validation, etc.)
+- vite.config.ts, tailwind.config.js, postcss.config.cjs: Tooling configuration
+- index.html (root): Vite mount point (in addition to public/index.html for static)
 
-4. **Add form validation**
-   ```bash
-   npm install react-hook-form @hookform/resolvers yup
-   ```
+## Features in this repo
+- Admin/Staff/Tenant dashboards wired to backend services
+- Metric cards layout with centered value and subtitle
+- New animated loading screen (`components/ui/LoadingState.tsx`)
+- Auth token handling via Axios interceptors
+- Typed service layer and DTOs (e.g., `paymentService.ts`)
 
-5. **Add HTTP client**
-   ```bash
-   npm install axios
-   ```
+## Configuration notes
+- API base URL is read from `VITE_API_URL` in `src/config/api.ts`.
+- Auth token is read from `localStorage` and added as `Authorization: Bearer <token>` automatically.
+- 401 responses clear auth data and redirect to `/login`.
 
-6. **Add UI component library** (optional)
-   ```bash
-   npm install @headlessui/react @heroicons/react
-   ```
+## Contributing
+1) Create a feature branch off `main` or your working branch
+2) Keep components small and reusable
+3) Prefer typed service methods over inline axios calls
+4) Run `npm run lint` before pushing
 
-## 📂 File Structure Explanation
+## Troubleshooting
+- Blank screen on startup: verify `VITE_API_URL` and backend server status.
+- 401 loops: clear browser storage and log in again.
+- CORS errors: ensure backend CORS allows the Vite dev origin.
 
-- **`components/ui/`**: Reusable components like Button, Input, Modal
-- **`pages/`**: Full page components corresponding to routes
-- **`types/`**: TypeScript interfaces matching your backend models
-- **`styles/`**: Global CSS and component-specific styles
-- **`services/`**: API calls and HTTP configuration
+---
 
-## 🔄 Development Workflow
-
-1. **Create components** that match your backend functionality
-2. **Define TypeScript types** based on your backend models
-3. **Build pages** by composing smaller components
-4. **Add API integration** using your existing backend endpoints
-5. **Test responsive design** across different screen sizes
-
-## 📋 Features Implemented
-
-### Login Page ✅
-- Responsive split-screen design
-- Purple gradient background matching your design
-- Email and password fields with icons
-- Password visibility toggle
-- Loading states
-- Mobile-responsive layout
-
-### Ready for Implementation
-- Dashboard with stats cards
-- Room management (CRUD operations)
-- Tenant management
-- Payment tracking
-- Notification system
-- Reports generation
-- User profile management
-
-## 🎯 Why This Architecture?
-
-1. **Scalable**: Easy to add new features and pages
-2. **Maintainable**: Clear separation of concerns
-3. **Reusable**: Components can be shared across pages
-4. **Type-safe**: TypeScript ensures fewer runtime errors
-5. **Backend-aligned**: Structure mirrors your API organization
-6. **Modern**: Uses current React best practices
-
-This setup provides a solid foundation for building out the complete boarding house management system while maintaining consistency with your backend architecture.
+This README reflects the current codebase (Vite + React TS) and removes legacy references to a separate static HTML demo.
