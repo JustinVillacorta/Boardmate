@@ -7,6 +7,8 @@ import Sidebar from '../../components/layout/Sidebar';
 import TopNavbar from '../../components/layout/TopNavbar';
 import PaymentCard from '../../components/payments/PaymentCard';
 import ExportButton from '../../components/ui/ExportButton';
+import LoadingState from '../../components/ui/LoadingState';
+import ListPageSkeleton from '../../components/skeletons/ListPageSkeleton';
 import { exportToExcel, formatDate } from '../../utils/excelExport';
 
 interface TenantRow {
@@ -225,7 +227,9 @@ const PaymentPage: React.FC<PaymentPageProps> = ({ currentPage, onNavigate, user
                   ))}
                 </div>
                 {loading && (
-                  <div className="text-sm text-gray-500 mt-4">Loading tenants...</div>
+                  <LoadingState message="Loading tenants">
+                    <ListPageSkeleton cardsPerRow={3} rows={2} />
+                  </LoadingState>
                 )}
                 {!loading && filtered.length === 0 && (
                   <div className="text-sm text-gray-500 mt-4">No tenants found.</div>

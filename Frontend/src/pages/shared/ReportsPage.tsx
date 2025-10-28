@@ -2,6 +2,8 @@ import React from 'react';
 import Sidebar from '../../components/layout/Sidebar';
 import TopNavbar from '../../components/layout/TopNavbar';
 import SummaryCard from '../../components/reports/SummaryCard';
+import LoadingState from '../../components/ui/LoadingState';
+import ListPageSkeleton from '../../components/skeletons/ListPageSkeleton';
 import { AlertCircle, CheckCircle2, Play, Clock, AlertTriangle } from 'lucide-react';
 import ReportCard from '../../components/reports/ReportCard';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
@@ -334,7 +336,11 @@ const ReportsPage: React.FC<ReportsPageProps> = ({ currentPage, onNavigate, user
 
             {/* Report list - floating cards (each ReportCard is a floating card) */}
             <div className="space-y-4">
-              {loading && <div className="py-8 text-center text-gray-500">Loading reports...</div>}
+              {loading && (
+                <LoadingState message="Loading reports">
+                  <ListPageSkeleton cardsPerRow={2} rows={2} />
+                </LoadingState>
+              )}
               {error && <div className="py-4 text-center text-red-500">{error}</div>}
 
               {!loading && !error && filtered.length === 0 && (

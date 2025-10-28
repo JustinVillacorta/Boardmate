@@ -2,6 +2,8 @@ import React from 'react';
 import Sidebar from '../../components/layout/Sidebar';
 import TopNavbar from '../../components/layout/TopNavbar';
 import DownloadDialog from '../../components/ui/DownloadDialog';
+import LoadingState from '../../components/ui/LoadingState';
+import ListPageSkeleton from '../../components/skeletons/ListPageSkeleton';
 import CreatePaymentForm, { PaymentPayload } from '../../components/payments/CreatePaymentForm';
 import MarkAsPaidForm, { default as _MarkAsPaidForm } from '../../components/payments/MarkAsPaidForm';
 import PaymentService from '../../services/paymentService';
@@ -139,7 +141,18 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ currentPage, on
 
             <section className="bg-white rounded-xl shadow p-6 mb-6">
               <h3 className="text-lg font-semibold mb-3">Current Outstanding Payments</h3>
-              {loading && <div className="text-sm text-gray-500">Loading...</div>}
+              {loading && (
+                <LoadingState message="Loading payments">
+                  <div className="space-y-3">
+                    <div className="rounded-md border border-gray-200 bg-white p-4">
+                      <div className="animate-pulse h-4 w-1/3 bg-slate-200 rounded" />
+                    </div>
+                    <div className="rounded-md border border-gray-200 bg-white p-4">
+                      <div className="animate-pulse h-4 w-1/2 bg-slate-200 rounded" />
+                    </div>
+                  </div>
+                </LoadingState>
+              )}
               {!loading && outstanding.length === 0 && (
                 <div className="text-sm text-gray-500 py-4">No outstanding payments</div>
               )}

@@ -2,6 +2,8 @@ import React from 'react';
 import Sidebar from '../../components/layout/Sidebar';
 import TopNavbar from '../../components/layout/TopNavbar';
 import NotificationCard from '../../components/notifications/NotificationCard';
+import LoadingState from '../../components/ui/LoadingState';
+import ListPageSkeleton from '../../components/skeletons/ListPageSkeleton';
 import { notificationService } from '../../services/notificationService';
 
 type NotificationItem = {
@@ -241,7 +243,11 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ currentPage, onNa
             </div>
 
             <div className="space-y-4">
-              {loading && <div className="py-8 text-center text-gray-500">Loading notifications...</div>}
+              {loading && (
+                <LoadingState message="Loading notifications">
+                  <ListPageSkeleton cardsPerRow={1} rows={4} />
+                </LoadingState>
+              )}
               {error && <div className="py-4 text-center text-red-500">{error}</div>}
                 {!loading && !error && displayed.map(n => (
                   <NotificationCard key={n.id} n={n} onOpen={handleOpenNotification} selected={n.id === selectedId} />

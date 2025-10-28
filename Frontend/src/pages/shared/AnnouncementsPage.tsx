@@ -3,6 +3,8 @@ import { Plus, Search, SortAsc, Megaphone } from 'lucide-react';
 import Sidebar from '../../components/layout/Sidebar';
 import TopNavbar from '../../components/layout/TopNavbar';
 import AnnouncementCard from '../../components/announcements/AnnouncementCard';
+import LoadingState from '../../components/ui/LoadingState';
+import ListPageSkeleton from '../../components/skeletons/ListPageSkeleton';
 import CreateAnnouncementModal from '../../components/announcements/CreateAnnouncementModal';
 import { announcementService } from '../../services/announcementService';
 import { Announcement, AnnouncementFilters } from '../../types/announcement';
@@ -274,7 +276,9 @@ const AnnouncementsPage: React.FC<AnnouncementsPageProps> = ({
             <div className="bg-white rounded-xl shadow-sm border border-gray-200">
               <div className="p-8">
                 {loading && (
-                  <div className="py-8 text-center text-gray-500">Loading announcements...</div>
+                  <LoadingState message="Loading announcements">
+                    <ListPageSkeleton cardsPerRow={1} rows={3} />
+                  </LoadingState>
                 )}
 
                 {error && (
