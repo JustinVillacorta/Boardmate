@@ -75,24 +75,6 @@ export const getRooms = catchAsync(async (req, res, next) => {
   });
 });
 
-// @desc    Get single room
-// @route   GET /api/rooms/:id
-// @access  Private (Admin/Staff/Tenant)
-export const getRoom = catchAsync(async (req, res, next) => {
-  const room = await Room.findById(req.params.id)
-    .populate('tenants', 'firstName lastName email phoneNumber tenantStatus leaseStartDate leaseEndDate')
-    .populate('createdBy updatedBy', 'name email');
-
-  if (!room || !room.isActive) {
-    return next(new AppError('Room not found', 404));
-  }
-
-  res.status(200).json({
-    success: true,
-    data: { room }
-  });
-});
-
 // @desc    Create new room
 // @route   POST /api/rooms
 // @access  Private (Admin/Staff)
@@ -336,28 +318,6 @@ export const removeTenant = catchAsync(async (req, res, next) => {
   }
 });
 
-// @desc    Get available rooms
-// @route   GET /api/rooms/available
-// @access  Private (Admin/Staff/Tenant)
-export const getAvailableRooms = catchAsync(async (req, res, next) => {
-  const { roomType, floor, minArea, maxRent } = req.query;
-
-  const rooms = await Room.findAvailable({
-    roomType,
-    floor: floor ? parseInt(floor) : undefined,
-    minArea: minArea ? parseInt(minArea) : undefined,
-    maxRent: maxRent ? parseInt(maxRent) : undefined
-  });
-
-  res.status(200).json({
-    success: true,
-    data: { 
-      rooms,
-      count: rooms.length
-    }
-  });
-});
-
 // @desc    Get room occupancy statistics
 // @route   GET /api/rooms/stats
 // @access  Private (Admin/Staff)
@@ -405,65 +365,6 @@ export const getRoomStats = catchAsync(async (req, res, next) => {
       byType: roomsByType,
       byFloor: roomsByFloor
     }
-  });
-});
-
-// @desc    Update room status
-// @route   PATCH /api/rooms/:id/status
-// @access  Private (Admin/Staff)
-export const updateRoomStatus = catchAsync(async (req, res, next) => {
-  // Check validation errors
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return next(new AppError('Validation failed', 400, errors.array()));
-  }
-
-  const { status, notes } = req.body;
-
-  const room = await Room.findById(req.params.id);
-  if (!room || !room.isActive) {
-    return next(new AppError('Room not found', 404));
-  }
-
-  // Validate status change
-  if (status === 'available' && room.tenants.length > 0) {
-    return next(new AppError('Cannot set room as available when tenants are assigned', 400));
-  }
-
-  room.status = status;
-  if (notes) room.notes = notes;
-  room.updatedBy = req.user.id;
-
-  await room.save();
-
-  res.status(200).json({
-    success: true,
-    message: 'Room status updated successfully',
-    data: { room }
-  });
-});
-
-// @desc    Get tenant's room (for tenant access)
-// @route   GET /api/rooms/my-room
-// @access  Private (Tenant only)
-export const getMyRoom = catchAsync(async (req, res, next) => {
-  // This should only be accessible by tenants
-  if (req.userType !== 'tenant') {
-    return next(new AppError('This endpoint is for tenants only', 403));
-  }
-
-  const tenant = await Tenant.findById(req.user.id).populate('room');
-  
-  if (!tenant.room) {
-    return next(new AppError('You are not assigned to any room', 404));
-  }
-
-  const room = await Room.findById(tenant.room._id)
-    .populate('tenants', 'firstName lastName phoneNumber tenantStatus');
-
-  res.status(200).json({
-    success: true,
-    data: { room }
   });
 });
 

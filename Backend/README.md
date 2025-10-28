@@ -310,22 +310,18 @@ npm run lint         # Run ESLint
 
 ### Room Management Routes (`/api/rooms`)
 
-#### Shared Routes (Admin/Staff/Tenant Access)
-- `GET /api/rooms/available` - Get available rooms with filters
-
-#### Tenant-Only Routes
-- `GET /api/rooms/my-room` - Get tenant's assigned room
+#### Shared Routes (Authenticated Access)
+- `GET /api/rooms/contracts/:tenantId` - Download a tenant contract (tenant can request their own; staff/admin can request any tenant)
 
 #### Admin/Staff Routes
 - `GET /api/rooms` - Get all rooms with filtering & pagination
 - `POST /api/rooms` - Create new room
 - `GET /api/rooms/stats` - Get room occupancy statistics
-- `GET /api/rooms/:id` - Get single room details
 - `PUT /api/rooms/:id` - Update room details
 - `DELETE /api/rooms/:id` - Delete room (Admin only)
-- `PATCH /api/rooms/:id/status` - Update room status
 - `POST /api/rooms/:id/assign-tenant` - Assign tenant to room
 - `DELETE /api/rooms/:id/remove-tenant/:tenantId` - Remove tenant from room
+- `POST /api/rooms/generate-contract` - Generate a lease agreement PDF
 
 ### Other Routes
 - `GET /api/health` - Health check endpoint
@@ -487,12 +483,6 @@ Content-Type: application/json
 }
 ```
 
-### Get Available Rooms
-```javascript
-GET /api/rooms/available?roomType=double&maxRent=600
-Authorization: Bearer <your-jwt-token>
-```
-
 ### Assign Tenant to Room (Admin/Staff)
 ```javascript
 POST /api/rooms/507f1f77bcf86cd799439011/assign-tenant
@@ -512,24 +502,6 @@ Content-Type: application/json
 ```javascript
 GET /api/rooms/stats
 Authorization: Bearer <admin-jwt-token>
-```
-
-### Update Room Status (Admin/Staff)
-```javascript
-PATCH /api/rooms/507f1f77bcf86cd799439011/status
-Authorization: Bearer <admin-jwt-token>
-Content-Type: application/json
-
-{
-  "status": "maintenance",
-  "notes": "Plumbing repair scheduled for next week"
-}
-```
-
-### Get My Room (Tenant)
-```javascript
-GET /api/rooms/my-room
-Authorization: Bearer <tenant-jwt-token>
 ```
 
 ## Response Format
