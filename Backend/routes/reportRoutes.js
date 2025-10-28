@@ -15,18 +15,16 @@ import {
 
 const router = express.Router();
 
-// Basic CRUD operations
 router.route('/')
-  .get(protect, getReports) // Both tenants and staff can get reports (filtered in controller)
+  .get(protect, getReports)
   .post(protect, validateReportCreate, createReport);
 
 router.route('/:id')
-  .get(protect, getReport) // Allow tenants to view their own reports
-  .put(protect, staffOrAdmin, validateReportUpdate, updateReport) // Only staff can update status
-  .delete(protect, staffOrAdmin, deleteReport); // Only staff can delete
+  .get(protect, getReport)
+  .put(protect, staffOrAdmin, validateReportUpdate, updateReport)
+  .delete(protect, staffOrAdmin, deleteReport);
 
-// Follow-up route for tenants
 router.route('/:id/follow-up')
-  .put(protect, createFollowUp); // Tenants can follow up on their resolved reports
+  .put(protect, createFollowUp);
 
 export default router;

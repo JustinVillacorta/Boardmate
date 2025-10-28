@@ -3,7 +3,6 @@ import PDFDocument from 'pdfkit';
 export const generateReceiptPDF = async (payment) => {
   return new Promise((resolve, reject) => {
     try {
-      // Create a new PDF document
       const doc = new PDFDocument({ 
         size: 'A4',
         margin: 50,
@@ -18,7 +17,6 @@ export const generateReceiptPDF = async (payment) => {
 
       const chunks = [];
 
-      // Collect PDF data
       doc.on('data', (chunk) => {
         chunks.push(chunk);
       });
@@ -32,10 +30,8 @@ export const generateReceiptPDF = async (payment) => {
         reject(error);
       });
 
-      // PDF Content Generation
       generateReceiptContent(doc, payment);
 
-      // Finalize the PDF
       doc.end();
     } catch (error) {
       reject(error);
@@ -48,19 +44,16 @@ const generateReceiptContent = (doc, payment) => {
   const margin = doc.page.margins.left;
   const contentWidth = pageWidth - (margin * 2);
 
-  // Header
   doc.fontSize(24)
      .font('Helvetica-Bold')
      .text('PAYMENT RECEIPT', margin, 50, { align: 'center' });
 
-  // Company/System Info
   doc.fontSize(12)
      .font('Helvetica')
      .text('Boardmate Management System', margin, 90, { align: 'center' })
      .text(`Receipt #: ${payment.receiptNumber}`, margin, 110, { align: 'center' })
      .text(`Issue Date: ${new Date().toLocaleDateString()}`, margin, 125, { align: 'center' });
 
-  // Draw a line
   doc.strokeColor('#cccccc')
      .lineWidth(1)
      .moveTo(margin, 150)
@@ -69,7 +62,6 @@ const generateReceiptContent = (doc, payment) => {
 
   let yPosition = 170;
 
-  // Tenant Information
   doc.fontSize(14)
      .font('Helvetica-Bold')
      .text('TENANT INFORMATION', margin, yPosition);
@@ -81,7 +73,6 @@ const generateReceiptContent = (doc, payment) => {
      .text(`Email: ${payment.tenant.email}`, margin, yPosition + 15)
      .text(`Phone: ${payment.tenant.phoneNumber}`, margin, yPosition + 30);
 
-  // Tenant Address (if available)
   if (payment.tenant.address && payment.tenant.address.street) {
     const address = [
       payment.tenant.address.street,
@@ -96,7 +87,6 @@ const generateReceiptContent = (doc, payment) => {
 
   yPosition += 60;
 
-  // Room Information
   doc.fontSize(14)
      .font('Helvetica-Bold')
      .text('ROOM INFORMATION', margin, yPosition);
@@ -114,14 +104,12 @@ const generateReceiptContent = (doc, payment) => {
 
   yPosition += 60;
 
-  // Payment Details
   doc.fontSize(14)
      .font('Helvetica-Bold')
      .text('PAYMENT DETAILS', margin, yPosition);
 
   yPosition += 25;
 
-  // Payment info table-like structure
   const leftColumn = margin;
   const rightColumn = margin + 200;
 
@@ -142,7 +130,6 @@ const generateReceiptContent = (doc, payment) => {
   doc.text('Due Date:', leftColumn, yPosition)
      .text(payment.dueDate.toLocaleDateString(), rightColumn, yPosition);
 
-  // Period Covered (if available)
   if (payment.periodCovered && payment.periodCovered.startDate) {
     yPosition += 18;
     const startDate = new Date(payment.periodCovered.startDate).toLocaleDateString();
@@ -154,7 +141,6 @@ const generateReceiptContent = (doc, payment) => {
        .text(`${startDate} - ${endDate}`, rightColumn, yPosition);
   }
 
-  // Transaction Reference (if available)
   if (payment.transactionReference) {
     yPosition += 18;
     doc.text('Transaction Ref:', leftColumn, yPosition)
@@ -163,7 +149,6 @@ const generateReceiptContent = (doc, payment) => {
 
   yPosition += 35;
 
-  // Amount breakdown
   doc.strokeColor('#cccccc')
      .lineWidth(1)
      .moveTo(margin, yPosition)
@@ -178,13 +163,11 @@ const generateReceiptContent = (doc, payment) => {
 
   yPosition += 25;
 
-  // Payment amount
   doc.fontSize(11)
      .font('Helvetica')
      .text('Payment Amount:', leftColumn, yPosition)
      .text(`₱${payment.amount.toFixed(2)}`, rightColumn, yPosition);
 
-  // Late fee (if any)
   if (payment.lateFee && payment.lateFee.amount > 0) {
     yPosition += 18;
     doc.text('Late Fee:', leftColumn, yPosition)
@@ -199,7 +182,6 @@ const generateReceiptContent = (doc, payment) => {
 
   yPosition += 25;
 
-  // Total amount
   doc.strokeColor('#000000')
      .lineWidth(2)
      .moveTo(leftColumn, yPosition)
@@ -214,7 +196,6 @@ const generateReceiptContent = (doc, payment) => {
      .text('TOTAL PAID:', leftColumn, yPosition)
      .text(`₱${totalAmount.toFixed(2)}`, rightColumn, yPosition);
 
-  // Description and Notes
   if (payment.description || payment.notes) {
     yPosition += 40;
     
@@ -244,8 +225,7 @@ const generateReceiptContent = (doc, payment) => {
     }
   }
 
-  // Footer
-  yPosition = doc.page.height - 120; // Position from bottom
+  yPosition = doc.page.height - 120;
 
   doc.strokeColor('#cccccc')
      .lineWidth(1)
@@ -255,7 +235,6 @@ const generateReceiptContent = (doc, payment) => {
 
   yPosition += 20;
 
-  // Recorded by (if available)
   if (payment.recordedBy) {
     doc.fontSize(9)
        .font('Helvetica')
@@ -266,7 +245,6 @@ const generateReceiptContent = (doc, payment) => {
      .text(`Generated on: ${new Date().toLocaleString()}`, margin, yPosition + 15)
      .text('This is a computer-generated receipt.', margin, yPosition + 30, { align: 'center' });
 
-  // Status stamp
   doc.fontSize(18)
      .font('Helvetica-Bold')
      .fillColor('#009900')
@@ -275,7 +253,6 @@ const generateReceiptContent = (doc, payment) => {
        width: 60
      });
 
-  // Draw border around PAID
   doc.rect(pageWidth - margin - 70, 195, 80, 30)
      .strokeColor('#009900')
      .lineWidth(2)

@@ -2,7 +2,6 @@ export const generateReceiptHTML = (payment) => {
   const tenantName = `${payment.tenant.firstName} ${payment.tenant.lastName}`;
   const totalAmount = payment.amount + (payment.lateFee?.amount || 0);
   
-  // Format address if available
   let tenantAddress = '';
   if (payment.tenant.address && payment.tenant.address.street) {
     const address = [
@@ -14,7 +13,6 @@ export const generateReceiptHTML = (payment) => {
     tenantAddress = address;
   }
 
-  // Format period covered
   let periodCovered = '';
   if (payment.periodCovered && payment.periodCovered.startDate) {
     const startDate = new Date(payment.periodCovered.startDate).toLocaleDateString();
@@ -361,7 +359,6 @@ export const generateReceiptHTML = (payment) => {
     </div>
     
     <script>
-        // Auto-print functionality for downloaded receipts
         if (window.location.search.includes('print=true')) {
             window.onload = function() {
                 window.print();

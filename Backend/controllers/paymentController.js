@@ -8,11 +8,7 @@ import { generateReceiptPDF } from '../utils/receiptGenerator.js';
 import { generateReceiptHTML } from '../utils/receiptHTMLGenerator.js';
 import NotificationService from '../utils/notificationService.js';
 
-// @desc    Create new payment record
-// @route   POST /api/payments
-// @access  Private (Admin/Staff)
 export const createPayment = catchAsync(async (req, res, next) => {
-  // Check validation errors
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return next(new AppError('Validation failed', 400, errors.array()));
@@ -34,28 +30,23 @@ export const createPayment = catchAsync(async (req, res, next) => {
     lateFee
   } = req.body;
 
-  // Verify room exists
   const roomExists = await Room.findById(room).populate('tenants');
   if (!roomExists) {
     return next(new AppError('Room not found', 404));
   }
 
-  // If tenant is specified, verify tenant exists and belongs to the room
   if (tenant) {
     const tenantExists = await Tenant.findById(tenant);
     if (!tenantExists) {
       return next(new AppError('Tenant not found', 404));
     }
-    // Check if tenant belongs to the room (handle both ObjectId and populated objects)
     const tenantIds = roomExists.tenants.map(t => t._id ? t._id.toString() : t.toString());
     if (!tenantIds.includes(tenant.toString())) {
       return next(new AppError('Tenant does not belong to this room', 400));
     }
   }
 
-  // If tenant is not specified, divide payment among all active tenants in the room
   if (!tenant) {
-    // Get all active tenants for the room
     const activeTenants = await Tenant.find({
       _id: { $in: roomExists.tenants },
       isArchived: false,
@@ -64,16 +55,13 @@ export const createPayment = catchAsync(async (req, res, next) => {
     if (!activeTenants.length) {
       return next(new AppError('No active tenants found for this room', 400));
     }
-    // If paymentType is 'rent' and amount is not provided, use room's monthlyRent
     let totalAmount = amount;
     if ((amount === undefined || amount === null) && paymentType === 'rent') {
       totalAmount = roomExists.monthlyRent;
     }
-    // If still no amount, error
     if (totalAmount === undefined || totalAmount === null) {
       return next(new AppError('Amount is required (or room must have monthlyRent)', 400));
     }
-    // Divide totalAmount equally
     const share = Math.round((totalAmount / activeTenants.length) * 100) / 100;
     const payments = [];
     for (const t of activeTenants) {
@@ -110,8 +98,6 @@ export const createPayment = catchAsync(async (req, res, next) => {
     });
   }
 
-  // If tenant is specified, proceed as before
-  // Auto defaults for amount when not provided: rent -> monthlyRent, deposit -> securityDeposit
   const tenantExists = await Tenant.findById(tenant);
   if ((amount === undefined || amount === null) && paymentType) {
     if (paymentType === 'rent') {
@@ -157,7 +143,6 @@ export const createPayment = catchAsync(async (req, res, next) => {
   });
 });
 
-// Utility to compute period start/end for a month
 function getMonthPeriod(date) {
   const year = date.getFullYear();
   const month = date.getMonth();
@@ -166,16 +151,11 @@ function getMonthPeriod(date) {
   return { startDate, endDate };
 }
 
-// @desc    Generate monthly rent charges for active tenants
-// @route   POST /api/payments/generate-monthly?date=YYYY-MM
-// @access  Private (Admin/Staff)
-// Helper: check if tenant has paid deposit
 async function hasDepositPaid(tenantId) {
   const deposit = await Payment.findOne({ tenant: tenantId, paymentType: 'deposit', status: 'paid' });
   return !!deposit;
 }
 
-// Generate monthly rent for a single tenant (deposit-gated)
 export async function generateMonthlyForTenant(tenantId, target = new Date(), recordedBy = null) {
   const depositPaid = await hasDepositPaid(tenantId);
   if (!depositPaid) {
@@ -229,7 +209,6 @@ export async function generateMonthlyRentChargesInternal(target, recordedBy = nu
 
   let created = 0;
   for (const t of activeTenants) {
-    // Check deposit paid before generating
     const depositPaid = await hasDepositPaid(t._id);
     if (!depositPaid) continue;
 
@@ -273,9 +252,6 @@ function yearMonthDay(d) {
   return `${y}-${m}-${day}T00:00:00`;
 }
 
-// @desc    Tenant payment summary by type
-// @route   GET /api/payments/tenant/:tenantId/summary
-// @access  Private (Admin/Staff/Tenant)
 export const getTenantPaymentSummaryByType = catchAsync(async (req, res, next) => {
   const { tenantId } = req.params;
   const tenant = await Tenant.findById(tenantId);
@@ -294,7 +270,6 @@ export const getTenantPaymentSummaryByType = catchAsync(async (req, res, next) =
     }
   ]);
 
-  // Derive deposit status
   const deposit = summary.find(s => s._id === 'deposit') || { totalAmount: 0, paidAmount: 0, count: 0, paidCount: 0 };
 
   res.status(200).json({
@@ -306,9 +281,6 @@ export const getTenantPaymentSummaryByType = catchAsync(async (req, res, next) =
   });
 });
 
-// @desc    Create missing deposit records for all active tenants with rooms
-// @route   POST /api/payments/backfill-deposits
-// @access  Private (Admin only)
 export const backfillDeposits = catchAsync(async (req, res, next) => {
   const tenants = await Tenant.find({
     isArchived: false,
@@ -345,9 +317,6 @@ export const backfillDeposits = catchAsync(async (req, res, next) => {
   });
 });
 
-// @desc    Get all payments with filtering and pagination
-// @route   GET /api/payments
-// @access  Private (Admin/Staff)
 export const getPayments = catchAsync(async (req, res, next) => {
   const {
     page = 1,
@@ -366,7 +335,6 @@ export const getPayments = catchAsync(async (req, res, next) => {
     sortOrder = 'desc'
   } = req.query;
 
-  // Build query
   const query = {};
 
   if (tenant) query.tenant = tenant;
@@ -375,23 +343,19 @@ export const getPayments = catchAsync(async (req, res, next) => {
   if (paymentMethod) query.paymentMethod = paymentMethod;
   if (status) query.status = status;
 
-  // Date filters for payment date
   if (dateFrom || dateTo) {
     query.paymentDate = {};
     if (dateFrom) query.paymentDate.$gte = new Date(dateFrom);
     if (dateTo) query.paymentDate.$lte = new Date(dateTo);
   }
 
-  // Date filters for due date
   if (dueFrom || dueTo) {
     query.dueDate = {};
     if (dueFrom) query.dueDate.$gte = new Date(dueFrom);
     if (dueTo) query.dueDate.$lte = new Date(dueTo);
   }
 
-  // Search functionality
   if (search) {
-    // We'll search in populated fields via aggregation
     const searchRegex = new RegExp(search, 'i');
     query.$or = [
       { description: searchRegex },
@@ -401,14 +365,11 @@ export const getPayments = catchAsync(async (req, res, next) => {
     ];
   }
 
-  // Pagination
   const skip = (parseInt(page) - 1) * parseInt(limit);
 
-  // Sort options
   const sort = {};
   sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
 
-  // Execute query with population
   const payments = await Payment.find(query)
     .populate('tenant', 'firstName lastName email phoneNumber')
     .populate('room', 'roomNumber roomType monthlyRent')
@@ -417,10 +378,8 @@ export const getPayments = catchAsync(async (req, res, next) => {
     .skip(skip)
     .limit(parseInt(limit));
 
-  // Get total count
   const total = await Payment.countDocuments(query);
 
-  // Get payment statistics
   const stats = await Payment.aggregate([
     { $match: query },
     {
@@ -455,9 +414,6 @@ export const getPayments = catchAsync(async (req, res, next) => {
   });
 });
 
-// @desc    Get single payment by ID
-// @route   GET /api/payments/:id
-// @access  Private (Admin/Staff)
 export const getPayment = catchAsync(async (req, res, next) => {
   const payment = await Payment.findById(req.params.id)
     .populate('tenant', 'firstName lastName email phoneNumber address occupation')
@@ -476,11 +432,7 @@ export const getPayment = catchAsync(async (req, res, next) => {
   });
 });
 
-// @desc    Update payment record
-// @route   PUT /api/payments/:id
-// @access  Private (Admin/Staff)
 export const updatePayment = catchAsync(async (req, res, next) => {
-  // Check validation errors
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return next(new AppError('Validation failed', 400, errors.array()));
@@ -506,7 +458,6 @@ export const updatePayment = catchAsync(async (req, res, next) => {
     lateFee
   } = req.body;
 
-  // Build update object
   const updateFields = {};
   if (amount !== undefined) updateFields.amount = amount;
   if (paymentType) updateFields.paymentType = paymentType;
@@ -520,7 +471,6 @@ export const updatePayment = catchAsync(async (req, res, next) => {
   if (notes !== undefined) updateFields.notes = notes;
   if (lateFee) updateFields.lateFee = lateFee;
 
-  // If marking as paid, ensure payment date is set
   if (status === 'paid' && !updateFields.paymentDate && !payment.paymentDate) {
     updateFields.paymentDate = new Date();
   }
@@ -547,9 +497,6 @@ export const updatePayment = catchAsync(async (req, res, next) => {
   });
 });
 
-// @desc    Delete payment record
-// @route   DELETE /api/payments/:id
-// @access  Private (Admin/Staff)
 export const deletePayment = catchAsync(async (req, res, next) => {
   const payment = await Payment.findById(req.params.id);
 
@@ -565,9 +512,6 @@ export const deletePayment = catchAsync(async (req, res, next) => {
   });
 });
 
-// @desc    Mark payment as paid
-// @route   PATCH /api/payments/:id/mark-paid
-// @access  Private (Admin/Staff)
 export const markPaymentAsPaid = catchAsync(async (req, res, next) => {
   const { transactionReference, notes } = req.body;
 
@@ -584,16 +528,13 @@ export const markPaymentAsPaid = catchAsync(async (req, res, next) => {
   const wasDeposit = payment.paymentType === 'deposit';
   const tenantId = payment.tenant;
 
-  // Use the model method to mark as paid
   await payment.markAsPaid(req.user.id, transactionReference);
 
-  // Update notes if provided
   if (notes) {
     payment.notes = notes;
     await payment.save();
   }
 
-  // If deposit was paid, auto-generate current month's rent
   if (wasDeposit) {
     try {
       await generateMonthlyForTenant(tenantId, new Date(), req.user.id);
@@ -602,7 +543,6 @@ export const markPaymentAsPaid = catchAsync(async (req, res, next) => {
     }
   }
 
-  // Populate and return updated payment
   await payment.populate([
     { path: 'tenant', select: 'firstName lastName email phoneNumber' },
     { path: 'room', select: 'roomNumber roomType monthlyRent' },
@@ -618,9 +558,6 @@ export const markPaymentAsPaid = catchAsync(async (req, res, next) => {
   });
 });
 
-// @desc    Get tenant payment history
-// @route   GET /api/payments/tenant/:tenantId
-// @access  Private (Admin/Staff/Tenant)
 export const getTenantPayments = catchAsync(async (req, res, next) => {
   const { tenantId } = req.params;
   const {
@@ -632,25 +569,20 @@ export const getTenantPayments = catchAsync(async (req, res, next) => {
     sortOrder = 'desc'
   } = req.query;
 
-  // Check if tenant exists
   const tenant = await Tenant.findById(tenantId);
   if (!tenant) {
     return next(new AppError('Tenant not found', 404));
   }
 
-  // Build query
   const query = { tenant: tenantId };
   if (paymentType) query.paymentType = paymentType;
   if (status) query.status = status;
 
-  // Pagination
   const skip = (parseInt(page) - 1) * parseInt(limit);
 
-  // Sort options
   const sort = {};
   sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
 
-  // Get payments
   const payments = await Payment.find(query)
     .populate('room', 'roomNumber roomType monthlyRent')
     .populate('recordedBy', 'name email role')
@@ -658,10 +590,8 @@ export const getTenantPayments = catchAsync(async (req, res, next) => {
     .skip(skip)
     .limit(parseInt(limit));
 
-  // Get total count
   const total = await Payment.countDocuments(query);
 
-  // Get payment summary for this tenant
   const summary = await Payment.getTenantPaymentSummary(tenantId);
 
   res.status(200).json({
@@ -686,9 +616,6 @@ export const getTenantPayments = catchAsync(async (req, res, next) => {
   });
 });
 
-// @desc    Get overdue payments
-// @route   GET /api/payments/overdue
-// @access  Private (Admin/Staff)
 export const getOverduePayments = catchAsync(async (req, res, next) => {
   const overduePayments = await Payment.getOverduePayments();
 
@@ -701,13 +628,9 @@ export const getOverduePayments = catchAsync(async (req, res, next) => {
   });
 });
 
-// @desc    Get payment statistics
-// @route   GET /api/payments/stats
-// @access  Private (Admin/Staff)
 export const getPaymentStats = catchAsync(async (req, res, next) => {
   const { year, month } = req.query;
   
-  // Build date filter
   let dateFilter = {};
   if (year) {
     const startDate = new Date(year, month ? month - 1 : 0, 1);
@@ -723,7 +646,6 @@ export const getPaymentStats = catchAsync(async (req, res, next) => {
     };
   }
 
-  // Get comprehensive statistics
   const stats = await Payment.aggregate([
     { $match: dateFilter },
     {
@@ -741,7 +663,6 @@ export const getPaymentStats = catchAsync(async (req, res, next) => {
     }
   ]);
 
-  // Get payment by type
   const paymentsByType = await Payment.aggregate([
     { $match: dateFilter },
     {
@@ -753,7 +674,6 @@ export const getPaymentStats = catchAsync(async (req, res, next) => {
     }
   ]);
 
-  // Get payment by method
   const paymentsByMethod = await Payment.aggregate([
     { $match: dateFilter },
     {
@@ -786,9 +706,6 @@ export const getPaymentStats = catchAsync(async (req, res, next) => {
   });
 });
 
-// @desc    Download receipt for a payment
-// @route   GET /api/payments/:id/receipt
-// @access  Private (Admin/Staff/Tenant - own receipts only)
 export const downloadReceipt = catchAsync(async (req, res, next) => {
   const payment = await Payment.findById(req.params.id)
     .populate('tenant', 'firstName lastName email phoneNumber address')
@@ -799,28 +716,23 @@ export const downloadReceipt = catchAsync(async (req, res, next) => {
     return next(new AppError('Payment not found', 404));
   }
 
-  // Check if payment is paid (only paid payments can have receipts downloaded)
   if (payment.status !== 'paid') {
     return next(new AppError('Receipt can only be downloaded for paid payments', 400));
   }
 
-  // If user is a tenant, they can only download their own receipts
   if (req.userType === 'tenant' && payment.tenant._id.toString() !== req.user.id) {
     return next(new AppError('Access denied: You can only download your own receipts', 403));
   }
 
   try {
-    // Generate PDF receipt
     const pdfBuffer = await generateReceiptPDF(payment);
 
-    // Set response headers for PDF download
     res.set({
       'Content-Type': 'application/pdf',
       'Content-Disposition': `attachment; filename="receipt-${payment.receiptNumber}.pdf"`,
       'Content-Length': pdfBuffer.length,
     });
 
-    // Send the PDF buffer
     res.status(200).send(pdfBuffer);
   } catch (error) {
     console.error('Receipt generation error:', error);
@@ -828,9 +740,6 @@ export const downloadReceipt = catchAsync(async (req, res, next) => {
   }
 });
 
-// @desc    Get receipt data (JSON format for preview)
-// @route   GET /api/payments/:id/receipt-data
-// @access  Private (Admin/Staff/Tenant - own receipts only)
 export const getReceiptData = catchAsync(async (req, res, next) => {
   const payment = await Payment.findById(req.params.id)
     .populate('tenant', 'firstName lastName email phoneNumber address')
@@ -841,17 +750,14 @@ export const getReceiptData = catchAsync(async (req, res, next) => {
     return next(new AppError('Payment not found', 404));
   }
 
-  // Check if payment is paid
   if (payment.status !== 'paid') {
     return next(new AppError('Receipt data can only be viewed for paid payments', 400));
   }
 
-  // If user is a tenant, they can only view their own receipts
   if (req.userType === 'tenant' && payment.tenant._id.toString() !== req.user.id) {
     return next(new AppError('Access denied: You can only view your own receipts', 403));
   }
 
-  // Format receipt data
   const receiptData = {
     receiptInfo: {
       receiptNumber: payment.receiptNumber,
@@ -897,9 +803,6 @@ export const getReceiptData = catchAsync(async (req, res, next) => {
   });
 });
 
-// @desc    Get receipt as HTML (for web preview)
-// @route   GET /api/payments/:id/receipt-html
-// @access  Private (Admin/Staff/Tenant - own receipts only)
 export const getReceiptHTML = catchAsync(async (req, res, next) => {
   const payment = await Payment.findById(req.params.id)
     .populate('tenant', 'firstName lastName email phoneNumber address')
@@ -910,27 +813,22 @@ export const getReceiptHTML = catchAsync(async (req, res, next) => {
     return next(new AppError('Payment not found', 404));
   }
 
-  // Check if payment is paid
   if (payment.status !== 'paid') {
     return next(new AppError('Receipt can only be viewed for paid payments', 400));
   }
 
-  // If user is a tenant, they can only view their own receipts
   if (req.userType === 'tenant' && payment.tenant._id.toString() !== req.user.id) {
     return next(new AppError('Access denied: You can only view your own receipts', 403));
   }
 
   try {
-    // Generate HTML receipt
     const htmlContent = generateReceiptHTML(payment);
 
-    // Set response headers for HTML
     res.set({
       'Content-Type': 'text/html',
       'Content-Disposition': `inline; filename="receipt-${payment.receiptNumber}.html"`,
     });
 
-    // Send the HTML content
     res.status(200).send(htmlContent);
   } catch (error) {
     console.error('HTML receipt generation error:', error);

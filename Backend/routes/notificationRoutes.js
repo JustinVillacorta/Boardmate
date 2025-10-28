@@ -11,25 +11,19 @@ import { protect, adminOnly } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Public routes (for authenticated users)
-router.use(protect); // All routes require authentication
+router.use(protect);
 
-// Get user's notifications and unread count
 router.get('/', getNotifications);
 router.get('/unread-count', getUnreadCount);
 
-// Mark all as read
 router.put('/mark-all-read', markAllAsRead);
 
-// Single notification operations
 router.route('/:id')
   .get(getNotification)
   .delete(deleteNotification);
 
-// Mark single notification as read
 router.put('/:id/read', markAsRead);
 
-// Manual trigger routes (for testing - Admin only)
 router.post('/trigger/payment-reminders', adminOnly, async (req, res) => {
   try {
     const CronJobs = (await import('../utils/cronJobs.js')).default;
