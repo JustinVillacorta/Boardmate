@@ -6,6 +6,7 @@ import RecentTenancyChanges from "../../components/dashboard/RecentTenancyChange
 import QuickActions from "../../components/dashboard/QuickActions";
 import CreateUserModal from "../../components/users/CreateUserModal";
 import LoadingState from "../../components/ui/LoadingState";
+import DashboardSkeleton from "../../components/skeletons/DashboardSkeleton";
 import { dashboardService, type DashboardData } from "../../services/dashboardService";
 
 interface DashboardProps {
@@ -83,10 +84,9 @@ const Dashboard: React.FC<DashboardProps> = ({ currentPage, onNavigate, onLogout
         <main className="flex-1 p-4 lg:p-6 overflow-auto space-y-4 lg:space-y-6">
           {/* Loading / Error states */}
           {loading && (
-            <LoadingState
-              message="Preparing your dashboard"
-              description="We are compiling the latest building activity for you."
-            />
+            <LoadingState message="Preparing your dashboard" description="We are compiling the latest building activity for you.">
+              <DashboardSkeleton />
+            </LoadingState>
           )}
           {error && !loading && (
             <div className="text-red-600">{error}</div>

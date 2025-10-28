@@ -7,7 +7,9 @@ import EditUserModal from '../../components/users/EditUserModal';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import ExportButton from '../../components/ui/ExportButton';
 import { userManagementService, StaffAndTenantData } from '../../services/userManagementService';
-import { User, UserPlus, Loader2, SortAsc } from 'lucide-react';
+import { User, UserPlus, SortAsc } from 'lucide-react';
+import LoadingState from '../../components/ui/LoadingState';
+import ListPageSkeleton from '../../components/skeletons/ListPageSkeleton';
 import { exportToExcel, formatDate } from '../../utils/excelExport';
 
 interface UserData {
@@ -350,12 +352,9 @@ const UsersPage: React.FC<UsersPageProps> = ({ currentPage, onNavigate, userRole
             {/* Users Grid */}
             <div className="p-4 lg:p-6">
               {isLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="flex items-center gap-3 text-gray-600">
-                    <Loader2 className="w-6 h-6 animate-spin" />
-                    <span>Loading users...</span>
-                  </div>
-                </div>
+                <LoadingState message="Loading users">
+                  <ListPageSkeleton cardsPerRow={3} rows={2} />
+                </LoadingState>
               ) : error ? (
                 <div className="text-center py-12">
                   <div className="text-red-500 mb-4">

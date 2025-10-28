@@ -1,30 +1,56 @@
 import React from 'react';
-import { Loader2 } from 'lucide-react';
+import { SkeletonCard, SkeletonLine } from './Skeleton';
 
 interface LoadingStateProps {
   message?: string;
   description?: string;
+  children?: React.ReactNode;
 }
 
 const LoadingState: React.FC<LoadingStateProps> = ({
   message = 'Loading... please wait.',
   description,
+  children,
 }) => {
   return (
-  <div className="mx-auto flex w-full max-w-xl flex-col items-center justify-center gap-4 rounded-2xl border border-sky-100 bg-white/80 p-10 text-center shadow-sm">
-      <div className="relative">
-        <div className="h-20 w-20 rounded-full border-4 border-sky-100"></div>
-        <div className="absolute inset-0 flex items-center justify-center">
-          <Loader2 className="h-10 w-10 text-sky-500 animate-spin" />
+    <div className="mx-auto w-full max-w-7xl p-4 lg:p-6">
+      {/* Optional header copy */}
+      {(message || description) && (
+        <div className="mb-4">
+          {message && <p className="text-sm font-medium text-gray-700">{message}</p>}
+          {description && <p className="text-sm text-gray-500">{description}</p>}
         </div>
-        <div className="absolute inset-0 animate-pulse rounded-full bg-sky-100/40"></div>
-      </div>
-      <div className="space-y-1">
-        <p className="text-lg font-semibold text-sky-700">{message}</p>
-        {description && (
-          <p className="text-sm text-sky-500">{description}</p>
-        )}
-      </div>
+      )}
+      {/* Render provided skeletons or a generic fallback */}
+      {children ? (
+        <>{children}</>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
+          <SkeletonCard className="p-4 space-y-3">
+            <SkeletonLine className="h-6 w-1/3" />
+            <SkeletonLine className="h-4 w-2/3" />
+            <SkeletonLine className="h-4 w-1/2" />
+          </SkeletonCard>
+          <SkeletonCard className="p-4 space-y-3">
+            <SkeletonLine className="h-6 w-1/3" />
+            <SkeletonLine className="h-4 w-2/3" />
+            <SkeletonLine className="h-4 w-1/2" />
+          </SkeletonCard>
+          <SkeletonCard className="p-4 space-y-3">
+            <SkeletonLine className="h-6 w-1/3" />
+            <SkeletonLine className="h-4 w-2/3" />
+            <SkeletonLine className="h-4 w-1/2" />
+          </SkeletonCard>
+          <SkeletonCard className="lg:col-span-3 p-4 space-y-4">
+            <SkeletonLine className="h-5 w-1/4" />
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <SkeletonLine key={i} className="h-24 w-full" />
+              ))}
+            </div>
+          </SkeletonCard>
+        </div>
+      )}
     </div>
   );
 };

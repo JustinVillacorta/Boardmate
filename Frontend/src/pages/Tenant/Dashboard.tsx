@@ -5,6 +5,7 @@ import TenantInfoCards from "../../components/tenant/TenantInfoCards";
 import TenantQuickActions from "../../components/tenant/TenantQuickActions";
 import TenantRecentActivity from "../../components/tenant/TenantRecentActivity";
 import LoadingState from "../../components/ui/LoadingState";
+import TenantDashboardSkeleton from "../../components/skeletons/TenantDashboardSkeleton";
 import { tenantDashboardService, type TenantDashboardData } from "../../services/tenantDashboardService";
 
 interface DashboardProps {
@@ -76,10 +77,9 @@ const Dashboard: React.FC<DashboardProps> = ({ currentPage, onNavigate, onLogout
         <main className="flex-1 p-4 lg:p-6 overflow-auto space-y-4 lg:space-y-6">
           {/* Loading / Error states */}
           {loading && (
-            <LoadingState
-              message="Loading your dashboard"
-              description="We are retrieving your room, payment, and activity updates."
-            />
+            <LoadingState message="Loading your dashboard" description="We are retrieving your room, payment, and activity updates.">
+              <TenantDashboardSkeleton />
+            </LoadingState>
           )}
           {error && !loading && (
             <div className="text-red-600">{error}</div>

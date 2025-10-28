@@ -8,6 +8,8 @@ import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import EditRoomModal from '../../components/rooms/EditRoomModal';
 import ExportButton from '../../components/ui/ExportButton';
 import { RefreshCw, Plus, SortAsc } from 'lucide-react';
+import LoadingState from '../../components/ui/LoadingState';
+import ListPageSkeleton from '../../components/skeletons/ListPageSkeleton';
 import * as roomManagementService from '../../services/roomManagementService';
 import { RoomDisplayData, RoomFilters } from '../../types/room';
 import { exportToExcel, formatDate, formatCurrency } from '../../utils/excelExport';
@@ -258,12 +260,9 @@ const RoomsPage: React.FC<RoomsPageProps> = ({ currentPage, onNavigate, userRole
 
             <div className="p-4 lg:p-6">
               {loading ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="flex items-center gap-2 text-gray-600">
-                    <RefreshCw className="w-5 h-5 animate-spin" />
-                    <span>Loading rooms...</span>
-                  </div>
-                </div>
+                <LoadingState message="Loading rooms">
+                  <ListPageSkeleton cardsPerRow={3} rows={2} />
+                </LoadingState>
               ) : error ? (
                 <div className="text-center py-12">
                   <div className="text-red-600 mb-4">
