@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, User, Mail, Phone, Home, Eye, EyeOff } from 'lucide-react';
 import { userManagementService, UpdateStaffData, UpdateTenantData } from '../../services/userManagementService';
+import { validateEditUser, withPH, sanitizeDigits } from '../../utils/validation';
 
 interface UserData {
   id: string;
@@ -68,6 +69,9 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ user, onClose, onUpdate }
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [generalError, setGeneralError] = useState('');
+  const [phoneDigits, setPhoneDigits] = useState('');
+  const [emergencyPhoneDigits, setEmergencyPhoneDigits] = useState('');
+  const [errorSummary, setErrorSummary] = useState<string[]>([]);
 
   useEffect(() => {
     // Initialize form data based on user role
@@ -83,50 +87,17 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ user, onClose, onUpdate }
   }, [user]);
 
   const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {};
-
-    if (user.role === 'Staff' || user.role === 'Admin') {
-      // Staff validation - both fields are optional, but if provided, must be valid
-      if (formData.name.trim() && formData.name.trim().length < 2) {
-        newErrors.name = 'Name must be at least 2 characters';
+    const composed: any = {
+      ...formData,
+      phoneNumber: user.role === 'Tenant' && phoneDigits ? withPH(phoneDigits) : formData.phoneNumber,
+      emergencyContact: {
+        ...formData.emergencyContact,
+        phoneNumber: user.role === 'Tenant' && emergencyPhoneDigits ? withPH(emergencyPhoneDigits) : formData.emergencyContact.phoneNumber,
       }
-      if (formData.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-        newErrors.email = 'Please enter a valid email address';
-      }
-      
-      // At least one field must be provided
-      if (!formData.name.trim() && !formData.email.trim()) {
-        newErrors.general = 'Please provide at least one field to update';
-      }
-    } else {
-      // Tenant validation
-      if (!formData.firstName.trim()) {
-        newErrors.firstName = 'First name is required';
-      }
-      if (!formData.lastName.trim()) {
-        newErrors.lastName = 'Last name is required';
-      }
-      if (!formData.email.trim()) {
-        newErrors.email = 'Email is required';
-      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-        newErrors.email = 'Please enter a valid email address';
-      }
-      if (!formData.phoneNumber.trim()) {
-        newErrors.phoneNumber = 'Phone number is required';
-      } else if (!/^[\+]?[0-9]{10,15}$/.test(formData.phoneNumber.replace(/\s/g, ''))) {
-        newErrors.phoneNumber = 'Please enter a valid phone number (10-15 digits)';
-      }
-      if (!formData.emergencyContact.name.trim()) {
-        newErrors.emergencyContactName = 'Emergency contact name is required';
-      }
-      if (!formData.emergencyContact.phoneNumber.trim()) {
-        newErrors.emergencyContactPhone = 'Emergency contact phone is required';
-      } else if (!/^[\+]?[0-9]{10,15}$/.test(formData.emergencyContact.phoneNumber.replace(/\s/g, ''))) {
-        newErrors.emergencyContactPhone = 'Please enter a valid emergency contact phone number (10-15 digits)';
-      }
-    }
-
+    };
+    const newErrors = validateEditUser(composed, user.role);
     setErrors(newErrors);
+    setErrorSummary(Object.values(newErrors));
     return Object.keys(newErrors).length === 0;
   };
 
@@ -157,7 +128,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ user, onClose, onUpdate }
         const tenantData: UpdateTenantData = {
           firstName: formData.firstName,
           lastName: formData.lastName,
-          phoneNumber: formData.phoneNumber,
+          phoneNumber: withPH(phoneDigits),
           occupation: formData.occupation || undefined,
           address: Object.keys(formData.address).some(key => formData.address[key as keyof typeof formData.address]) 
             ? formData.address 
@@ -165,7 +136,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ user, onClose, onUpdate }
           emergencyContact: {
             name: formData.emergencyContact.name,
             relationship: formData.emergencyContact.relationship,
-            phoneNumber: formData.emergencyContact.phoneNumber
+            phoneNumber: withPH(emergencyPhoneDigits)
           }
         };
         await userManagementService.updateTenant(user.id, tenantData);
@@ -229,6 +200,17 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ user, onClose, onUpdate }
             {generalError && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                 <p className="text-red-600 text-sm">{generalError}</p>
+              </div>
+            )}
+            {/* Error Summary */}
+            {errorSummary.length > 0 && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <p className="text-red-700 text-sm font-medium mb-2">Please fix the following:</p>
+                <ul className="list-disc pl-5 space-y-1 text-red-700 text-sm">
+                  {errorSummary.map((msg, idx) => (
+                    <li key={idx}>{msg}</li>
+                  ))}
+                </ul>
               </div>
             )}
 
@@ -348,21 +330,25 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ user, onClose, onUpdate }
                     {/* Phone Number */}
                     <div>
                       <label className="text-sm font-medium text-gray-700 mb-2 block">Phone Number</label>
-                      <div className="relative">
-                        <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <div className="flex items-center gap-2">
+                        <span className="px-3 py-2 border rounded-lg bg-gray-50 text-gray-600 select-none">+63</span>
                         <input
-                          type="tel"
-                          value={formData.phoneNumber}
-                          onChange={(e) => handleChange('phoneNumber', e.target.value)}
-                          className={`w-full pl-10 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                          inputMode="numeric"
+                          pattern="\\d*"
+                          maxLength={10}
+                          value={phoneDigits}
+                          onChange={(e) => setPhoneDigits(sanitizeDigits(e.target.value).slice(0,10))}
+                          className={`w-full pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
                             errors.phoneNumber ? 'border-red-500' : 'border-gray-300'
                           }`}
-                          placeholder="+63 9XX XXX XXXX"
+                          placeholder="9XXXXXXXXX"
+                          aria-invalid={!!errors.phoneNumber}
+                          aria-describedby={errors.phoneNumber ? 'edit-phoneNumber-error' : undefined}
                           disabled={isSubmitting}
                         />
                       </div>
                       {errors.phoneNumber && (
-                        <p className="text-red-500 text-xs mt-1">{errors.phoneNumber}</p>
+                        <p id="edit-phoneNumber-error" className="text-red-500 text-xs mt-1">{errors.phoneNumber}</p>
                       )}
                     </div>
 
@@ -479,21 +465,25 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ user, onClose, onUpdate }
                     {/* Contact Phone */}
                     <div className="md:col-span-2">
                       <label className="text-sm font-medium text-gray-700 mb-2 block">Contact Phone</label>
-                      <div className="relative">
-                        <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <div className="flex items-center gap-2">
+                        <span className="px-3 py-2 border rounded-lg bg-gray-50 text-gray-600 select-none">+63</span>
                         <input
-                          type="tel"
-                          value={formData.emergencyContact.phoneNumber}
-                          onChange={(e) => handleChange('emergencyContact.phoneNumber', e.target.value)}
-                          className={`w-full pl-10 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                          inputMode="numeric"
+                          pattern="\\d*"
+                          maxLength={10}
+                          value={emergencyPhoneDigits}
+                          onChange={(e) => setEmergencyPhoneDigits(sanitizeDigits(e.target.value).slice(0,10))}
+                          className={`w-full pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
                             errors.emergencyContactPhone ? 'border-red-500' : 'border-gray-300'
                           }`}
-                          placeholder="+63 9XX XXX XXXX"
+                          placeholder="9XXXXXXXXX"
+                          aria-invalid={!!errors.emergencyContactPhone}
+                          aria-describedby={errors.emergencyContactPhone ? 'edit-emergencyPhone-error' : undefined}
                           disabled={isSubmitting}
                         />
                       </div>
                       {errors.emergencyContactPhone && (
-                        <p className="text-red-500 text-xs mt-1">{errors.emergencyContactPhone}</p>
+                        <p id="edit-emergencyPhone-error" className="text-red-500 text-xs mt-1">{errors.emergencyContactPhone}</p>
                       )}
                     </div>
                   </div>
