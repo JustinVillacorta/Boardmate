@@ -1,9 +1,4 @@
 import PDFDocument from 'pdfkit';
-
-/**
- * Generate a standard residential lease agreement PDF
- * Returns base64-encoded PDF string
- */
 export const generateContractPDF = async (data) => {
   return new Promise((resolve, reject) => {
     try {
@@ -21,12 +16,10 @@ export const generateContractPDF = async (data) => {
       });
       doc.on('error', reject);
 
-      // Calculate lease end date
       const startDate = new Date(data.leaseStartDate);
       const endDate = new Date(startDate);
       endDate.setMonth(endDate.getMonth() + data.leaseDurationMonths);
 
-      // Title
       doc.fontSize(16).font('Helvetica-Bold')
         .text('RESIDENTIAL LEASE AGREEMENT', { align: 'center' });
       doc.moveDown(0.5);
@@ -34,7 +27,6 @@ export const generateContractPDF = async (data) => {
         .text(`Date of Agreement: ${new Date(data.contractDate || Date.now()).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, { align: 'center' });
       doc.moveDown(1);
 
-      // PARTIES SECTION
       doc.fontSize(12).font('Helvetica-Bold').text('1. PARTIES');
       doc.fontSize(10).font('Helvetica')
         .moveDown(0.3)
@@ -53,7 +45,6 @@ export const generateContractPDF = async (data) => {
         .text(`Address: ${data.tenantAddress || 'As provided'}`)
         .moveDown(1);
 
-      // PROPERTY DESCRIPTION
       doc.addPage();
       doc.fontSize(12).font('Helvetica-Bold').text('2. PROPERTY DESCRIPTION');
       doc.fontSize(10).font('Helvetica')
@@ -67,14 +58,12 @@ export const generateContractPDF = async (data) => {
         .text(`Property Address: ${data.landlordAddress}`)
         .moveDown(1);
 
-      // LEASE TERM
       doc.fontSize(12).font('Helvetica-Bold').text('3. LEASE TERM');
       doc.fontSize(10).font('Helvetica')
         .moveDown(0.3)
         .text(`The lease term shall be ${data.leaseDurationMonths} month(s) commencing on ${startDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} and ending on ${endDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}.`)
         .moveDown(1);
 
-      // RENT PAYMENT
       doc.fontSize(12).font('Helvetica-Bold').text('4. RENT PAYMENT');
       doc.fontSize(10).font('Helvetica')
         .moveDown(0.3)
@@ -87,7 +76,6 @@ export const generateContractPDF = async (data) => {
         .text(`If rent is not received by the 10th of the month, a late fee of ₱500.00 will be charged.`)
         .moveDown(1);
 
-      // SECURITY DEPOSIT
       doc.fontSize(12).font('Helvetica-Bold').text('5. SECURITY DEPOSIT');
       doc.fontSize(10).font('Helvetica')
         .moveDown(0.3)
@@ -98,21 +86,18 @@ export const generateContractPDF = async (data) => {
 
       doc.addPage();
 
-      // USE OF PREMISES
       doc.fontSize(12).font('Helvetica-Bold').text('6. USE OF PREMISES');
       doc.fontSize(10).font('Helvetica')
         .moveDown(0.3)
         .text(`The premises shall be used solely for residential purposes. The Tenant shall not use the premises for any commercial, illegal, or improper purpose.`)
         .moveDown(1);
 
-      // OCCUPANCY LIMIT
       doc.fontSize(12).font('Helvetica-Bold').text('7. OCCUPANCY LIMIT');
       doc.fontSize(10).font('Helvetica')
         .moveDown(0.3)
         .text(`Maximum occupancy for this room: ${data.roomCapacity} person(s). The Tenant shall not allow additional persons to occupy the premises without the Landlord's prior written consent.`)
         .moveDown(1);
 
-      // UTILITIES AND SERVICES
       doc.fontSize(12).font('Helvetica-Bold').text('8. UTILITIES AND SERVICES');
       doc.fontSize(10).font('Helvetica')
         .moveDown(0.3)
@@ -127,7 +112,6 @@ export const generateContractPDF = async (data) => {
         .text(`• Cable or satellite television (if desired)`)
         .moveDown(1);
 
-      // HOUSE RULES
       doc.fontSize(12).font('Helvetica-Bold').text('9. HOUSE RULES AND REGULATIONS');
       doc.fontSize(10).font('Helvetica')
         .moveDown(0.3)
@@ -144,7 +128,6 @@ export const generateContractPDF = async (data) => {
 
       doc.addPage();
 
-      // MAINTENANCE AND REPAIRS
       doc.fontSize(12).font('Helvetica-Bold').text('10. MAINTENANCE AND REPAIRS');
       doc.fontSize(10).font('Helvetica')
         .moveDown(0.3)
@@ -160,28 +143,24 @@ export const generateContractPDF = async (data) => {
         .text(`• Reporting major maintenance issues promptly`)
         .moveDown(1);
 
-      // ALTERATIONS
       doc.fontSize(12).font('Helvetica-Bold').text('11. ALTERATIONS');
       doc.fontSize(10).font('Helvetica')
         .moveDown(0.3)
         .text(`The Tenant shall not make any alterations, additions, or improvements to the premises without the Landlord's prior written consent. Any approved alterations become the property of the Landlord unless otherwise agreed.`)
         .moveDown(1);
 
-      // ENTRY BY LANDLORD
       doc.fontSize(12).font('Helvetica-Bold').text('12. ENTRY BY LANDLORD');
       doc.fontSize(10).font('Helvetica')
         .moveDown(0.3)
         .text(`The Landlord may enter the premises at reasonable times for inspection, repairs, or to show the property to prospective tenants. The Landlord will provide at least 24 hours notice except in case of emergency.`)
         .moveDown(1);
 
-      // TERMINATION
       doc.fontSize(12).font('Helvetica-Bold').text('13. TERMINATION');
       doc.fontSize(10).font('Helvetica')
         .moveDown(0.3)
         .text(`Either party may terminate this Agreement by giving 30 days written notice. If the Tenant terminates early without cause, the Landlord may retain the security deposit as liquidated damages.`)
         .moveDown(1);
 
-      // DEFAULT AND REMEDIES
       doc.fontSize(12).font('Helvetica-Bold').text('14. DEFAULT AND REMEDIES');
       doc.fontSize(10).font('Helvetica')
         .moveDown(0.3)
@@ -190,7 +169,6 @@ export const generateContractPDF = async (data) => {
 
       doc.addPage();
 
-      // SPECIAL TERMS
       if (data.specialTerms && data.specialTerms.trim()) {
         doc.fontSize(12).font('Helvetica-Bold').text('15. SPECIAL TERMS AND CONDITIONS');
         doc.fontSize(10).font('Helvetica')
@@ -199,14 +177,12 @@ export const generateContractPDF = async (data) => {
           .moveDown(1);
       }
 
-      // ENTIRE AGREEMENT
       doc.fontSize(12).font('Helvetica-Bold').text('16. ENTIRE AGREEMENT');
       doc.fontSize(10).font('Helvetica')
         .moveDown(0.3)
         .text(`This Agreement constitutes the entire agreement between the parties and supersedes all prior agreements. No modification shall be binding unless in writing and signed by both parties.`)
         .moveDown(2);
 
-      // SIGNATURES
       doc.fontSize(12).font('Helvetica-Bold').text('SIGNATURES');
       doc.moveDown(1);
 

@@ -3,16 +3,13 @@ import User from '../models/User.js';
 import Tenant from '../models/Tenant.js';
 
 class NotificationService {
-  // Create notification for report creation
   static async createReportNotification(report, createdBy) {
     try {
-      // Get tenant details
       let tenant = null;
       if (report.tenant) {
         tenant = await Tenant.findById(report.tenant);
       }
 
-      // For tenant users (self-created reports), create confirmation notification
       if (tenant && createdBy.toString() === report.tenant.toString()) {
         await Notification.createNotification({
           user: createdBy,
@@ -31,7 +28,6 @@ class NotificationService {
         });
       }
 
-      // Create notifications for all admin/staff users
       const staffUsers = await User.find({ 
         role: { $in: ['admin', 'staff'] },
         isArchived: false 
@@ -66,10 +62,8 @@ class NotificationService {
     }
   }
 
-  // Create notification for report status update
   static async createReportStatusNotification(report, updatedBy, oldStatus) {
     try {
-      // Get tenant details and create notification for them
       if (report.tenant) {
         const statusMessages = {
           'in-progress': 'is now being worked on',
@@ -101,10 +95,8 @@ class NotificationService {
     }
   }
 
-  // Create notification for follow-up reports
   static async createFollowUpNotification(report, createdBy) {
     try {
-      // Create notifications for all admin/staff users about the follow-up
       const staffUsers = await User.find({ 
         role: { $in: ['admin', 'staff'] },
         isArchived: false 
@@ -135,7 +127,6 @@ class NotificationService {
         )
       );
 
-      // Send confirmation to tenant
       await Notification.createNotification({
         user: report.tenant,
         userModel: 'Tenant',
@@ -158,10 +149,8 @@ class NotificationService {
     }
   }
 
-  // Create notification for payment due dates
   static async createPaymentDueNotification(payment) {
     try {
-      // Check if tenant exists
       if (!payment.tenant) return;
 
       const dueDate = new Date(payment.dueDate);
@@ -183,7 +172,7 @@ class NotificationService {
         message = `Reminder: Your ${payment.paymentType} payment of $${payment.amount} is due on ${dueDate.toLocaleDateString()}.`;
         urgency = 'medium';
       } else {
-        return; // Don't send notifications more than 7 days in advance
+        return;
       }
 
       await Notification.createNotification({
@@ -199,7 +188,7 @@ class NotificationService {
           urgency: urgency,
           roomId: payment.room
         },
-        expiresAt: new Date(dueDate.getTime() + 30 * 24 * 60 * 60 * 1000) // Expire 30 days after due date
+        expiresAt: new Date(dueDate.getTime() + 30 * 24 * 60 * 60 * 1000)
       });
 
       console.log(`Created payment due notification for payment ${payment._id}`);
@@ -208,7 +197,6 @@ class NotificationService {
     }
   }
 
-  // Create notification for lease reminders
   static async createLeaseReminderNotification(tenant, daysUntilExpiry) {
     try {
       let tenantUser = null;
@@ -242,7 +230,7 @@ class NotificationService {
           roomId: tenant.room,
           daysUntilExpiry: daysUntilExpiry
         },
-        expiresAt: new Date(leaseEndDate.getTime() + 7 * 24 * 60 * 60 * 1000) // Expire 7 days after lease end
+        expiresAt: new Date(leaseEndDate.getTime() + 7 * 24 * 60 * 60 * 1000)
       });
 
       console.log(`Created lease reminder notification for tenant ${tenant._id}`);
@@ -251,7 +239,6 @@ class NotificationService {
     }
   }
 
-  // Create system announcement
   static async createSystemAnnouncement(title, message, userIds = null, expiresAt = null) {
     try {
       let targets = [];
@@ -259,7 +246,6 @@ class NotificationService {
       if (userIds && userIds.length > 0) {
         targets = userIds.map(id => ({ id, model: 'User' }));
       } else {
-        // Include all active user accounts (admins/staff/users)
         const users = await User.find({ isArchived: false }).select('_id');
         for (const u of users) {
           targets.push({ id: u._id, model: 'User' });
@@ -307,13 +293,11 @@ class NotificationService {
     }
   }
 
-  // Bulk send payment due reminders (for scheduled job)
   static async sendPaymentDueReminders() {
     try {
       const now = new Date();
       const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-      // Find payments due within the next 7 days or overdue
       const Payment = (await import('../models/Payment.js')).default;
       const upcomingPayments = await Payment.find({
         status: { $in: ['pending', 'overdue'] },
@@ -330,7 +314,6 @@ class NotificationService {
     }
   }
 
-  // Bulk send lease expiry reminders (for scheduled job)
   static async sendLeaseExpiryReminders() {
     try {
       const now = new Date();

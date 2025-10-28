@@ -16,16 +16,13 @@ import {
 
 const router = express.Router();
 
-// All routes require authentication
 router.use(protect);
 
-// Public routes (all authenticated users)
 router.get('/', getAnnouncements);
 router.get('/stats', staffOrAdmin, getAnnouncementStats);
 router.get('/:id', getAnnouncement);
 router.put('/:id/read', markAnnouncementAsRead);
 
-// Admin/Staff only routes
 router.post('/', adminOnly, validateAnnouncementCreate, createAnnouncement);
 router.put('/:id', adminOnly, validateAnnouncementUpdate, updateAnnouncement);
 router.delete('/:id', adminOnly, deleteAnnouncement);

@@ -1,6 +1,5 @@
 import { body } from 'express-validator';
 
-// Validation for user registration
 export const validateRegister = [
   body('name')
     .trim()
@@ -26,7 +25,6 @@ export const validateRegister = [
     .withMessage('Role must be either admin or staff'),
 ];
 
-// Validation for user login
 export const validateLogin = [
   body('email')
     .isEmail()
@@ -38,7 +36,6 @@ export const validateLogin = [
     .withMessage('Password is required'),
 ];
 
-// Validation for updating user details
 export const validateUpdateDetails = [
   body('name')
     .optional()
@@ -55,7 +52,6 @@ export const validateUpdateDetails = [
     .withMessage('Please provide a valid email address'),
 ];
 
-// Validation for updating password
 export const validateUpdatePassword = [
   body('currentPassword')
     .notEmpty()
@@ -76,9 +72,6 @@ export const validateUpdatePassword = [
     }),
 ];
 
-// ==================== TENANT VALIDATIONS ====================
-
-// Validation for tenant registration
 export const validateTenantRegister = [
   body('firstName')
     .trim()
@@ -181,10 +174,7 @@ export const validateTenantRegister = [
     .withMessage('Please provide a valid emergency contact phone number (10-15 digits)'),
 ];
 
-// Validation for tenant login (same as user login)
 export const validateTenantLogin = validateLogin;
-
-// Validation for updating tenant details
 export const validateTenantUpdateDetails = [
   body('firstName')
     .optional()
@@ -257,12 +247,7 @@ export const validateTenantUpdateDetails = [
     .withMessage('Please provide a valid emergency contact phone number (10-15 digits)'),
 ];
 
-// Validation for updating tenant password (same as user password update)
 export const validateTenantUpdatePassword = validateUpdatePassword;
-
-// ==================== ROOM VALIDATIONS ====================
-
-// Validation for room creation
 export const validateRoomCreate = [
   body('roomNumber')
     .trim()
@@ -343,7 +328,6 @@ export const validateRoomCreate = [
     .withMessage('Next maintenance date must be a valid date'),
 ];
 
-// Validation for room update
 export const validateRoomUpdate = [
   body('roomNumber')
     .optional()
@@ -423,7 +407,6 @@ export const validateRoomUpdate = [
     .withMessage('Next maintenance date must be a valid date'),
 ];
 
-// Validation for tenant assignment
 export const validateTenantAssignment = [
   body('tenantId')
     .isMongoId()
@@ -454,22 +437,17 @@ export const validateTenantAssignment = [
     .isFloat({ min: 0 })
     .withMessage('Security deposit must be a positive number'),
 
-  // Contract file validation
   body('contractFile')
     .notEmpty()
     .withMessage('Contract file is required')
     .custom((value) => {
-      // Check if it's a valid base64 string
       const base64Regex = /^data:application\/pdf;base64,/
       if (!base64Regex.test(value)) {
         throw new Error('Contract file must be a PDF file in base64 format');
       }
-      
-      // Decode base64 to check size (approximately 4/3 of the string length)
       const base64Data = value.split(',')[1];
       const sizeInBytes = (base64Data.length * 3) / 4;
-      const maxSize = 10 * 1024 * 1024; // 10MB
-      
+      const maxSize = 10 * 1024 * 1024;
       if (sizeInBytes > maxSize) {
         throw new Error('Contract file size must not exceed 10MB');
       }
@@ -486,7 +464,6 @@ export const validateTenantAssignment = [
     .withMessage('Contract file must have .pdf extension'),
 ];
 
-// Validation for room status update
 export const validateRoomStatusUpdate = [
   body('status')
     .isIn(['available', 'occupied', 'maintenance', 'unavailable'])
@@ -499,9 +476,6 @@ export const validateRoomStatusUpdate = [
     .withMessage('Notes must not exceed 1000 characters'),
 ];
 
-// ==================== PAYMENT VALIDATIONS ====================
-
-// Validation for payment creation
 export const validatePaymentCreate = [
   body('tenant')
     .isMongoId()
@@ -594,7 +568,6 @@ export const validatePaymentCreate = [
     .withMessage('Late payment flag must be a boolean'),
 ];
 
-// Validation for payment update
 export const validatePaymentUpdate = [
   body('amount')
     .optional()
@@ -683,7 +656,6 @@ export const validatePaymentUpdate = [
     .withMessage('Late payment flag must be a boolean'),
 ];
 
-// Validation for mark payment as paid
 export const validateMarkPaymentPaid = [
   body('transactionReference')
     .optional()
@@ -698,9 +670,6 @@ export const validateMarkPaymentPaid = [
     .withMessage('Notes must not exceed 1000 characters'),
 ];
 
-// ==================== REPORT VALIDATIONS ====================
-
-// Validation for report creation
 export const validateReportCreate = [
   body('tenant')
     .optional()
@@ -726,17 +695,12 @@ export const validateReportCreate = [
     .withMessage('Description must be between 10 and 1000 characters'),
 ];
 
-// Validation for report update (status change only)
 export const validateReportUpdate = [
   body('status')
     .isIn(['pending', 'in-progress', 'resolved', 'rejected'])
     .withMessage('Status must be one of: pending, in-progress, resolved, rejected'),
 ];
 
-// ==================== NOTIFICATION VALIDATIONS ====================
-
-// Validation for announcement creation
-// Validation for report assignment
 export const validateReportAssignment = [
   body('assignedTo')
     .isMongoId()
@@ -749,7 +713,6 @@ export const validateReportAssignment = [
     .withMessage('Notes must not exceed 500 characters'),
 ];
 
-// Validation for report resolution
 export const validateReportResolution = [
   body('resolutionNotes')
     .trim()
@@ -762,7 +725,6 @@ export const validateReportResolution = [
     .withMessage('Actual cost must be a positive number'),
 ];
 
-// Validation for report rejection
 export const validateReportRejection = [
   body('rejectionReason')
     .trim()
@@ -770,7 +732,6 @@ export const validateReportRejection = [
     .withMessage('Rejection reason must be between 5 and 1000 characters'),
 ];
 
-// Validation for contract generation
 export const validateContractGeneration = [
   body('tenantId')
     .isMongoId()
@@ -815,9 +776,6 @@ export const validateContractGeneration = [
     .withMessage('Special terms must not exceed 1000 characters'),
 ];
 
-// ==================== ANNOUNCEMENT VALIDATIONS ====================
-
-// Validation for announcement creation
 export const validateAnnouncementCreate = [
   body('title')
     .trim()
@@ -886,7 +844,6 @@ export const validateAnnouncementCreate = [
     .withMessage('Attachment URL must be valid'),
 ];
 
-// Validation for announcement update
 export const validateAnnouncementUpdate = [
   body('title')
     .optional()

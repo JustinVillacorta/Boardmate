@@ -90,18 +90,15 @@ const paymentSchema = new mongoose.Schema({
   timestamps: true 
 });
 
-// Indexes for better query performance
 paymentSchema.index({ tenant: 1, paymentDate: -1 });
 paymentSchema.index({ room: 1, paymentDate: -1 });
 paymentSchema.index({ status: 1, dueDate: 1 });
 paymentSchema.index({ paymentType: 1, paymentDate: -1 });
 
-// Virtual for overdue status
 paymentSchema.virtual('isOverdue').get(function() {
   return this.status === 'pending' && this.dueDate < new Date();
 });
 
-// Method to generate receipt number
 paymentSchema.methods.generateReceiptNumber = function() {
   const date = new Date();
   const year = date.getFullYear();
@@ -112,18 +109,15 @@ paymentSchema.methods.generateReceiptNumber = function() {
   return `RCP-${year}${month}${day}-${random}`;
 };
 
-// Pre-save middleware to auto-generate receipt number for paid payments
 paymentSchema.pre('save', function(next) {
   if (this.status === 'paid' && !this.receiptNumber) {
     this.receiptNumber = this.generateReceiptNumber();
   }
   
-  // Auto-set payment date if status is paid and no payment date is set
   if (this.status === 'paid' && !this.paymentDate) {
     this.paymentDate = new Date();
   }
   
-  // Check if payment is overdue and update status
   if (this.status === 'pending' && this.dueDate < new Date()) {
     this.status = 'overdue';
   }
@@ -131,7 +125,6 @@ paymentSchema.pre('save', function(next) {
   next();
 });
 
-// Method to mark as paid
 paymentSchema.methods.markAsPaid = function(recordedBy = null, transactionRef = null) {
   this.status = 'paid';
   this.paymentDate = new Date();
@@ -143,7 +136,6 @@ paymentSchema.methods.markAsPaid = function(recordedBy = null, transactionRef = 
   return this.save();
 };
 
-// Static method to get payment summary for a tenant
 paymentSchema.statics.getTenantPaymentSummary = function(tenantId) {
   return this.aggregate([
     { $match: { tenant: new mongoose.Types.ObjectId(tenantId) } },
@@ -157,7 +149,6 @@ paymentSchema.statics.getTenantPaymentSummary = function(tenantId) {
   ]);
 };
 
-// Static method to get overdue payments
 paymentSchema.statics.getOverduePayments = function() {
   return this.find({
     status: { $in: ['pending', 'overdue'] },
