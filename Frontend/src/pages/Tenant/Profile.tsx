@@ -2,10 +2,12 @@ import React, { useEffect, useState } from "react";
 import Sidebar from "../../components/layout/Sidebar";
 import TopNavbar from "../../components/layout/TopNavbar";
 import ConfirmationDialog from "../../components/tenant/ConfirmationDialog";
+import PhoneInput from "../../components/ui/PhoneInput";
 import { authService } from '../../services/authService';
 import * as roomManagementService from '../../services/roomManagementService';
 import api from '../../config/api';
 import { FileText, Download, Eye } from 'lucide-react';
+import { validatePhoneNumber } from '../../utils/validation';
 
 interface ProfileProps {
   currentPage?: string;
@@ -68,11 +70,20 @@ const Profile: React.FC<ProfileProps> = ({ currentPage, onNavigate }) => {
         if (userData && (userData as any).firstName) {
           // tenant object
           const tenant = userData as any;
+          
+          // Format phone numbers with +63 prefix if they don't have it
+          const formatPhone = (phone: string) => {
+            if (!phone) return '+63 ';
+            if (phone.startsWith('+63')) return phone;
+            if (phone.startsWith('0')) return '+63 ' + phone.slice(1);
+            return '+63 ' + phone;
+          };
+
           setContactForm({
             fullName: `${tenant.firstName} ${tenant.lastName}`.trim(),
             email: tenant.email || '',
-            phone: tenant.phoneNumber || '',
-            emergencyContact: tenant.emergencyContact?.phoneNumber || ''
+            phone: formatPhone(tenant.phoneNumber || ''),
+            emergencyContact: formatPhone(tenant.emergencyContact?.phoneNumber || '')
           });
 
           // Determine room details. tenant.room may be populated object or just an id string
@@ -182,6 +193,21 @@ const Profile: React.FC<ProfileProps> = ({ currentPage, onNavigate }) => {
     }
   };
 
+  const handlePhoneChange = (field: 'phone' | 'emergencyContact', value: string) => {
+    setContactForm(prev => ({
+      ...prev,
+      [field]: value
+    }));
+    
+    // Clear error when user starts typing
+    if (contactErrors[field]) {
+      setContactErrors(prev => ({
+        ...prev,
+        [field]: undefined
+      }));
+    }
+  };
+
   const handlePasswordInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setPasswordForm(prev => ({
@@ -211,16 +237,16 @@ const Profile: React.FC<ProfileProps> = ({ currentPage, onNavigate }) => {
       newErrors.email = 'Please enter a valid email address';
     }
 
-    if (!contactForm.phone.trim()) {
+    if (!contactForm.phone.trim() || contactForm.phone.trim() === '+63') {
       newErrors.phone = 'Phone number is required';
-    } else if (!/^\+?[\d\s\-\(\)]+$/.test(contactForm.phone)) {
-      newErrors.phone = 'Please enter a valid phone number';
+    } else if (!validatePhoneNumber(contactForm.phone.replace(/\s/g, ''))) {
+      newErrors.phone = 'Phone number must start with +63 followed by 10 digits';
     }
 
-    if (!contactForm.emergencyContact.trim()) {
+    if (!contactForm.emergencyContact.trim() || contactForm.emergencyContact.trim() === '+63') {
       newErrors.emergencyContact = 'Emergency contact is required';
-    } else if (!/^\+?[\d\s\-\(\)]+$/.test(contactForm.emergencyContact)) {
-      newErrors.emergencyContact = 'Please enter a valid phone number';
+    } else if (!validatePhoneNumber(contactForm.emergencyContact.replace(/\s/g, ''))) {
+      newErrors.emergencyContact = 'Emergency contact must start with +63 followed by 10 digits';
     }
 
     setContactErrors(newErrors);
@@ -262,8 +288,8 @@ const Profile: React.FC<ProfileProps> = ({ currentPage, onNavigate }) => {
       firstName: contactForm.fullName.split(' ')[0] || '',
       lastName: contactForm.fullName.split(' ').slice(1).join(' ') || '',
       email: contactForm.email,
-      phoneNumber: contactForm.phone,
-      emergencyContact: { phoneNumber: contactForm.emergencyContact }
+      phoneNumber: contactForm.phone.replace(/\s/g, ''),
+      emergencyContact: { phoneNumber: contactForm.emergencyContact.replace(/\s/g, '') }
     };
 
     // Store pending data and show confirmation dialog
@@ -335,8 +361,8 @@ const Profile: React.FC<ProfileProps> = ({ currentPage, onNavigate }) => {
       
       {/* Main Content - Responsive */}
       <div className="flex-1 flex flex-col min-w-0 lg:pl-64">
-  {/* Top Navigation */}
-  <TopNavbar currentPage={currentPage} onNotificationOpen={() => onNavigate && onNavigate('notifications')} onAnnouncementOpen={() => onNavigate && onNavigate('announcements')} />
+        {/* Top Navigation */}
+        <TopNavbar currentPage={currentPage} onNotificationOpen={() => onNavigate && onNavigate('notifications')} onAnnouncementOpen={() => onNavigate && onNavigate('announcements')} />
 
         {/* Profile Content */}
         <main className="flex-1 p-4 lg:p-6 overflow-auto">
@@ -367,7 +393,6 @@ const Profile: React.FC<ProfileProps> = ({ currentPage, onNavigate }) => {
                       {tenancyInfo.roomType}
                     </div>
                   </div>
-
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -509,39 +534,22 @@ const Profile: React.FC<ProfileProps> = ({ currentPage, onNavigate }) => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Phone Number
-                    </label>
-                    <input
-                      type="tel"
-                      name="phone"
+                    <PhoneInput
                       value={contactForm.phone}
-                      onChange={handleContactInputChange}
-                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                        contactErrors.phone ? 'border-red-500' : 'border-gray-300'
-                      }`}
+                      onChange={(val: string) => handlePhoneChange('phone', val)}
+                      error={contactErrors.phone}
+                      label="Phone Number"
                     />
-                    {contactErrors.phone && (
-                      <p className="text-red-500 text-xs mt-1">{contactErrors.phone}</p>
-                    )}
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Emergency Contact
-                    </label>
-                    <input
-                      type="tel"
-                      name="emergencyContact"
+                    <PhoneInput
                       value={contactForm.emergencyContact}
-                      onChange={handleContactInputChange}
-                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                        contactErrors.emergencyContact ? 'border-red-500' : 'border-gray-300'
-                      }`}
+                      onChange={(val: string) => handlePhoneChange('emergencyContact', val)}
+                      error={contactErrors.emergencyContact}
+                      label="Emergency Contact"
+                      name="emergencyContact"
                     />
-                    {contactErrors.emergencyContact && (
-                      <p className="text-red-500 text-xs mt-1">{contactErrors.emergencyContact}</p>
-                    )}
                   </div>
                 </div>
 

@@ -1,5 +1,8 @@
+// EditUserModal.tsx
 import React, { useState, useEffect } from 'react';
 import { X, User, Mail, Phone, Home, Eye, EyeOff } from 'lucide-react';
+import PhoneInput from '../../components/ui/PhoneInput';
+import { validatePhoneNumber } from '../../utils/validation';
 import { userManagementService, UpdateStaffData, UpdateTenantData } from '../../services/userManagementService';
 
 interface UserData {
@@ -111,18 +114,18 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ user, onClose, onUpdate }
       } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
         newErrors.email = 'Please enter a valid email address';
       }
-      if (!formData.phoneNumber.trim()) {
+      if (!formData.phoneNumber.trim() || formData.phoneNumber.trim() === '+63') {
         newErrors.phoneNumber = 'Phone number is required';
-      } else if (!/^[\+]?[0-9]{10,15}$/.test(formData.phoneNumber.replace(/\s/g, ''))) {
-        newErrors.phoneNumber = 'Please enter a valid phone number (10-15 digits)';
+      } else if (!validatePhoneNumber(formData.phoneNumber)) {
+        newErrors.phoneNumber = 'Phone number must start with +63 followed by 10 digits';
       }
       if (!formData.emergencyContact.name.trim()) {
         newErrors.emergencyContactName = 'Emergency contact name is required';
       }
-      if (!formData.emergencyContact.phoneNumber.trim()) {
+      if (!formData.emergencyContact.phoneNumber.trim() || formData.emergencyContact.phoneNumber.trim() === '+63') {
         newErrors.emergencyContactPhone = 'Emergency contact phone is required';
-      } else if (!/^[\+]?[0-9]{10,15}$/.test(formData.emergencyContact.phoneNumber.replace(/\s/g, ''))) {
-        newErrors.emergencyContactPhone = 'Please enter a valid emergency contact phone number (10-15 digits)';
+      } else if (!validatePhoneNumber(formData.emergencyContact.phoneNumber)) {
+        newErrors.emergencyContactPhone = 'Emergency contact phone must start with +63 followed by 10 digits';
       }
     }
 
@@ -345,25 +348,14 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ user, onClose, onUpdate }
                       )}
                     </div>
 
-                    {/* Phone Number */}
+                    {/* Phone Number - Using PhoneInput component */}
                     <div>
-                      <label className="text-sm font-medium text-gray-700 mb-2 block">Phone Number</label>
-                      <div className="relative">
-                        <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        <input
-                          type="tel"
-                          value={formData.phoneNumber}
-                          onChange={(e) => handleChange('phoneNumber', e.target.value)}
-                          className={`w-full pl-10 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                            errors.phoneNumber ? 'border-red-500' : 'border-gray-300'
-                          }`}
-                          placeholder="+63 9XX XXX XXXX"
-                          disabled={isSubmitting}
-                        />
-                      </div>
-                      {errors.phoneNumber && (
-                        <p className="text-red-500 text-xs mt-1">{errors.phoneNumber}</p>
-                      )}
+                      <PhoneInput
+                        value={formData.phoneNumber}
+                        onChange={(val: string) => handleChange('phoneNumber', val)}
+                        error={errors.phoneNumber}
+                        label="Phone Number"
+                      />
                     </div>
 
                     {/* Occupation - Full width */}
@@ -476,25 +468,14 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ user, onClose, onUpdate }
                       />
                     </div>
 
-                    {/* Contact Phone */}
+                    {/* Contact Phone - Using PhoneInput component */}
                     <div className="md:col-span-2">
-                      <label className="text-sm font-medium text-gray-700 mb-2 block">Contact Phone</label>
-                      <div className="relative">
-                        <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        <input
-                          type="tel"
-                          value={formData.emergencyContact.phoneNumber}
-                          onChange={(e) => handleChange('emergencyContact.phoneNumber', e.target.value)}
-                          className={`w-full pl-10 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                            errors.emergencyContactPhone ? 'border-red-500' : 'border-gray-300'
-                          }`}
-                          placeholder="+63 9XX XXX XXXX"
-                          disabled={isSubmitting}
-                        />
-                      </div>
-                      {errors.emergencyContactPhone && (
-                        <p className="text-red-500 text-xs mt-1">{errors.emergencyContactPhone}</p>
-                      )}
+                      <PhoneInput
+                        value={formData.emergencyContact.phoneNumber}
+                        onChange={(val: string) => handleChange('emergencyContact.phoneNumber', val)}
+                        error={errors.emergencyContactPhone}
+                        label="Contact Phone"
+                      />
                     </div>
                   </div>
                 </div>

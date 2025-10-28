@@ -1,3 +1,4 @@
+// Sidebar.tsx
 import React, { useState } from 'react';
 import { 
   LayoutDashboard, 
@@ -31,6 +32,7 @@ interface NavigationItem {
 const Sidebar: React.FC<SidebarProps> = ({ currentPage = 'dashboard', onNavigate, userRole, onLogout }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   
   // Compute current user role and data robustly from props or localStorage
   const currentUserRole: 'admin' | 'staff' | 'tenant' = (() => {
@@ -128,10 +130,16 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage = 'dashboard', onNavigate
   })();
 
   const handleLogout = async () => {
+    setIsLoggingOut(true);
+    setShowLogoutConfirm(false);
+    
     try {
-      setShowLogoutConfirm(false);
       // Use the authService logout function
       await authService.logout();
+      
+      // Add a small delay to ensure the loading state is visible
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
       // Call the parent logout handler if provided
       if (onLogout) {
         onLogout();
@@ -141,15 +149,14 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage = 'dashboard', onNavigate
       }
     } catch (error) {
       console.error('Logout error:', error);
-      // Even if logout fails, clear local state
-      if (onLogout) {
-        onLogout();
-      } else {
-        window.location.reload();
-      }
+      
+      // Reset the loading state on error
+      setIsLoggingOut(false);
+      
+      // Show error to user (you might want to add error state)
+      alert('Logout failed. Please try again.');
     }
   };
-
   // Role-specific navigation items
   const getNavigationItems = (): NavigationItem[] => {
     if (currentUserRole === 'tenant') {
@@ -272,7 +279,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage = 'dashboard', onNavigate
       </div>
 
       {/* Logout Modal */}
-      {showLogoutConfirm && (
+      {showLogoutConfirm && !isLoggingOut && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50 p-4">
           <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-sm">
             <h2 className="text-lg font-semibold mb-4">Confirm Logout</h2>
@@ -293,6 +300,16 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage = 'dashboard', onNavigate
                 Logout
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Logging Out Animation Overlay */}
+      {isLoggingOut && (
+        <div className="fixed inset-0 flex flex-col items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            <p className="text-white text-xl font-semibold">Logging out...</p>
           </div>
         </div>
       )}
