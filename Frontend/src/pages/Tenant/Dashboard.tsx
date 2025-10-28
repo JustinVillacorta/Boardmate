@@ -4,6 +4,7 @@ import TopNavbar from "../../components/layout/TopNavbar";
 import TenantInfoCards from "../../components/tenant/TenantInfoCards";
 import TenantQuickActions from "../../components/tenant/TenantQuickActions";
 import TenantRecentActivity from "../../components/tenant/TenantRecentActivity";
+import LoadingState from "../../components/ui/LoadingState";
 import { tenantDashboardService, type TenantDashboardData } from "../../services/tenantDashboardService";
 
 interface DashboardProps {
@@ -75,7 +76,10 @@ const Dashboard: React.FC<DashboardProps> = ({ currentPage, onNavigate, onLogout
         <main className="flex-1 p-4 lg:p-6 overflow-auto space-y-4 lg:space-y-6">
           {/* Loading / Error states */}
           {loading && (
-            <div className="text-gray-600">Loading dashboard...</div>
+            <LoadingState
+              message="Loading your dashboard"
+              description="We are retrieving your room, payment, and activity updates."
+            />
           )}
           {error && !loading && (
             <div className="text-red-600">{error}</div>
