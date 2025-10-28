@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
+import { validateRoom } from '../../utils/validation';
 
 interface Props {
   onClose: () => void;
@@ -48,21 +49,7 @@ const CreateRoomModal: React.FC<Props> = ({ onClose, onCreate }) => {
   };
 
   const validate = () => {
-    const e: Record<string,string> = {};
-    if (!form.roomNumber) e.roomNumber = 'Room number is required';
-    if (!form.monthlyRent) e.monthlyRent = 'Monthly rent is required';
-    if (form.monthlyRent && isNaN(parseFloat(form.monthlyRent.replace(/[^\d.]/g, '')))) {
-      e.monthlyRent = 'Please enter a valid amount';
-    }
-    if (form.securityDeposit && isNaN(parseFloat(form.securityDeposit.replace(/[^\d.]/g, '')))) {
-      e.securityDeposit = 'Please enter a valid amount';
-    }
-    if (form.floor && isNaN(parseInt(form.floor))) {
-      e.floor = 'Please enter a valid floor number';
-    }
-    if (form.area && isNaN(parseFloat(form.area))) {
-      e.area = 'Please enter a valid area';
-    }
+    const e = validateRoom(form);
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -111,8 +98,8 @@ const CreateRoomModal: React.FC<Props> = ({ onClose, onCreate }) => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs text-gray-600">Room Number *</label>
-                <input value={form.roomNumber} onChange={e => handleChange('roomNumber', e.target.value)} className="w-full mt-1 px-3 py-2 border rounded-lg text-sm" />
-                {errors.roomNumber && <p className="text-xs text-red-500 mt-1">{errors.roomNumber}</p>}
+                <input value={form.roomNumber} onChange={e => handleChange('roomNumber', e.target.value)} className="w-full mt-1 px-3 py-2 border rounded-lg text-sm" aria-invalid={!!errors.roomNumber} aria-describedby={errors.roomNumber ? 'roomNumber-error' : undefined} />
+                {errors.roomNumber && <p id="roomNumber-error" className="text-xs text-red-500 mt-1">{errors.roomNumber}</p>}
               </div>
 
               <div>
@@ -148,13 +135,13 @@ const CreateRoomModal: React.FC<Props> = ({ onClose, onCreate }) => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs text-gray-600">Monthly Rent *</label>
-                <input value={form.monthlyRent} onChange={e => handleChange('monthlyRent', e.target.value)} className="w-full mt-1 px-3 py-2 border rounded-lg text-sm" />
-                {errors.monthlyRent && <p className="text-xs text-red-500 mt-1">{errors.monthlyRent}</p>}
+                <input value={form.monthlyRent} onChange={e => handleChange('monthlyRent', e.target.value)} className="w-full mt-1 px-3 py-2 border rounded-lg text-sm" aria-invalid={!!errors.monthlyRent} aria-describedby={errors.monthlyRent ? 'monthlyRent-error' : undefined} />
+                {errors.monthlyRent && <p id="monthlyRent-error" className="text-xs text-red-500 mt-1">{errors.monthlyRent}</p>}
               </div>
 
               <div>
                 <label className="block text-xs text-gray-600">Security Deposit</label>
-                <input value={form.securityDeposit} onChange={e => handleChange('securityDeposit', e.target.value)} className="w-full mt-1 px-3 py-2 border rounded-lg text-sm" />
+                <input value={form.securityDeposit} onChange={e => handleChange('securityDeposit', e.target.value)} className="w-full mt-1 px-3 py-2 border rounded-lg text-sm" aria-invalid={!!errors.securityDeposit} aria-describedby={errors.securityDeposit ? 'securityDeposit-error' : undefined} />
               </div>
             </div>
           </section>
@@ -196,11 +183,11 @@ const CreateRoomModal: React.FC<Props> = ({ onClose, onCreate }) => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs text-gray-600">Floor</label>
-                <input value={form.floor} onChange={e => handleChange('floor', e.target.value)} className="w-full mt-1 px-3 py-2 border rounded-lg text-sm" />
+                <input value={form.floor} onChange={e => handleChange('floor', e.target.value)} className="w-full mt-1 px-3 py-2 border rounded-lg text-sm" aria-invalid={!!errors.floor} aria-describedby={errors.floor ? 'floor-error' : undefined} />
               </div>
               <div>
                 <label className="block text-xs text-gray-600">Area (sq. meters)</label>
-                <input value={form.area} onChange={e => handleChange('area', e.target.value)} className="w-full mt-1 px-3 py-2 border rounded-lg text-sm" />
+                <input value={form.area} onChange={e => handleChange('area', e.target.value)} className="w-full mt-1 px-3 py-2 border rounded-lg text-sm" aria-invalid={!!errors.area} aria-describedby={errors.area ? 'area-error' : undefined} />
               </div>
             </div>
           </section>

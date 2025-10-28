@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, User, Mail, Shield, Calendar, MapPin, Phone, Home, CreditCard, Eye, EyeOff } from 'lucide-react';
 import { registerService } from '../../services/registerService';
 import { RegisterStaffData, RegisterTenantData } from '../../types';
+import { validateCreateUser, withPH, sanitizeDigits } from '../../utils/validation';
 
 interface UserData {
   // Personal Information
@@ -99,94 +100,29 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onCreate, is
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [phoneDigits, setPhoneDigits] = useState('');
+  const [contactPhoneDigits, setContactPhoneDigits] = useState('');
+  const [errorSummary, setErrorSummary] = useState<string[]>([]);
 
   const validateForm = (): boolean => {
-    const newErrors: Partial<UserData> = {};
-
-    // Personal Information Validation
-    if (!formData.firstName.trim()) {
-      newErrors.firstName = 'First name is required';
-    }
-    
-    if (!formData.lastName.trim()) {
-      newErrors.lastName = 'Last name is required';
-    }
-
-    if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email address';
-    }
-
-    if (!formData.username.trim()) {
-      newErrors.username = 'Username is required';
-    }
-
-    if (!formData.password.trim()) {
-      newErrors.password = 'Password is required';
-    } else if (formData.password.length < 8) {
-      newErrors.password = 'Password must be at least 8 characters';
-    } else if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) {
-      newErrors.password = 'Password must contain at least one lowercase letter, one uppercase letter, and one number';
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
-    }
-
-    // Tenant specific validation
-    if (formData.role === 'Tenant') {
-      // Date of birth validation (must be 16+)
-      if (!formData.dateOfBirth.trim()) {
-        newErrors.dateOfBirth = 'Date of birth is required';
-      } else {
-        const today = new Date();
-        const dob = new Date(formData.dateOfBirth);
-        const age = today.getFullYear() - dob.getFullYear();
-        const monthDiff = today.getMonth() - dob.getMonth();
-        
-        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
-          if (age < 16) {
-            newErrors.dateOfBirth = 'Tenant must be at least 16 years old';
-          }
-        } else if (age < 16) {
-          newErrors.dateOfBirth = 'Tenant must be at least 16 years old';
-        }
-      }
-
-      // Phone number validation
-      if (!formData.phoneNumber.trim()) {
-        newErrors.phoneNumber = 'Phone number is required';
-      } else if (!/^[\+]?[0-9]{10,15}$/.test(formData.phoneNumber.replace(/\s/g, ''))) {
-        newErrors.phoneNumber = 'Please enter a valid phone number (10-15 digits)';
-      }
-
-      // ID number validation
-      if (!formData.idNumber?.trim()) {
-        newErrors.idNumber = 'ID number is required';
-      }
-
-      // Emergency contact validation
-      if (!formData.contactPhone.trim()) {
-        newErrors.contactPhone = 'Emergency contact phone is required';
-      } else if (!/^[\+]?[0-9]{10,15}$/.test(formData.contactPhone.replace(/\s/g, ''))) {
-        newErrors.contactPhone = 'Please enter a valid emergency contact phone number (10-15 digits)';
-      }
-
-      // Emergency contact name (tenant only)
-      if (!formData.contactName.trim()) {
-        newErrors.contactName = 'Emergency contact name is required';
-      }
-    }
-
+    const composed: any = {
+      ...formData,
+      phoneNumber: formData.role === 'Tenant' && phoneDigits ? withPH(phoneDigits) : formData.phoneNumber,
+      contactPhone: formData.role === 'Tenant' && contactPhoneDigits ? withPH(contactPhoneDigits) : formData.contactPhone,
+    };
+    const newErrors: Partial<UserData> = validateCreateUser(composed);
     setErrors(newErrors);
+    const summary = Object.values(newErrors).filter(Boolean) as string[];
+    setErrorSummary(summary);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      return;
+    }
 
     setIsSubmitting(true);
     
@@ -212,7 +148,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onCreate, is
           lastName: formData.lastName,
           email: formData.email,
           password: formData.password,
-          phoneNumber: formData.phoneNumber,
+          phoneNumber: withPH(phoneDigits),
           dateOfBirth: formData.dateOfBirth,
           occupation: formData.occupation || undefined,
           address: {
@@ -226,7 +162,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onCreate, is
           emergencyContact: {
             name: formData.contactName,
             relationship: formData.relationship,
-            phoneNumber: formData.contactPhone
+            phoneNumber: withPH(contactPhoneDigits)
           }
         };
         
@@ -299,6 +235,9 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onCreate, is
     setShowPassword(false);
     setShowConfirmPassword(false);
     setGeneralError(null);
+    setPhoneDigits('');
+    setContactPhoneDigits('');
+    setErrorSummary([]);
   };
 
   return (
@@ -327,6 +266,17 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onCreate, is
             {generalError && (
               <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg">
                 {generalError}
+              </div>
+            )}
+            {/* Error Summary (Client-side) */}
+            {errorSummary.length > 0 && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                <p className="font-medium mb-2">Please fix the following:</p>
+                <ul className="list-disc pl-5 space-y-1">
+                  {errorSummary.map((msg, idx) => (
+                    <li key={idx} className="text-sm">{msg}</li>
+                  ))}
+                </ul>
               </div>
             )}
             
@@ -610,18 +560,25 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onCreate, is
                     {/* Phone Number */}
                     <div>
                       <label className="text-sm font-medium text-gray-700 mb-2 block">Phone Number</label>
-                      <input
-                        type="tel"
-                        value={formData.phoneNumber}
-                        onChange={(e) => handleChange('phoneNumber', e.target.value)}
-                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                          errors.phoneNumber ? 'border-red-500' : 'border-gray-300'
-                        }`}
-                        placeholder="+63 9XX XXX XXXX"
-                        disabled={isSubmitting}
-                      />
+                      <div className="flex items-center gap-2">
+                        <span className="px-3 py-2 border rounded-lg bg-gray-50 text-gray-600 select-none">+63</span>
+                        <input
+                          inputMode="numeric"
+                          pattern="\\d*"
+                          maxLength={10}
+                          value={phoneDigits}
+                          onChange={(e) => setPhoneDigits(sanitizeDigits(e.target.value).slice(0,10))}
+                          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                            errors.phoneNumber ? 'border-red-500' : 'border-gray-300'
+                          }`}
+                          placeholder="9XXXXXXXXX"
+                          aria-invalid={!!errors.phoneNumber}
+                          aria-describedby={errors.phoneNumber ? 'phoneNumber-error' : undefined}
+                          disabled={isSubmitting}
+                        />
+                      </div>
                       {errors.phoneNumber && (
-                        <p className="text-red-500 text-xs mt-1">{errors.phoneNumber}</p>
+                        <p id="phoneNumber-error" className="text-red-500 text-xs mt-1">{errors.phoneNumber}</p>
                       )}
                     </div>
 
@@ -852,18 +809,25 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onCreate, is
                     {/* Contact Phone */}
                     <div className="md:col-span-2">
                       <label className="text-sm font-medium text-gray-700 mb-2 block">Contact Phone</label>
-                      <input
-                        type="tel"
-                        value={formData.contactPhone}
-                        onChange={(e) => handleChange('contactPhone', e.target.value)}
-                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                          errors.contactPhone ? 'border-red-500' : 'border-gray-300'
-                        }`}
-                        placeholder="+63 9XX XXX XXXX"
-                        disabled={isSubmitting}
-                      />
+                      <div className="flex items-center gap-2">
+                        <span className="px-3 py-2 border rounded-lg bg-gray-50 text-gray-600 select-none">+63</span>
+                        <input
+                          inputMode="numeric"
+                          pattern="\\d*"
+                          maxLength={10}
+                          value={contactPhoneDigits}
+                          onChange={(e) => setContactPhoneDigits(sanitizeDigits(e.target.value).slice(0,10))}
+                          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                            errors.contactPhone ? 'border-red-500' : 'border-gray-300'
+                          }`}
+                          placeholder="9XXXXXXXXX"
+                          aria-invalid={!!errors.contactPhone}
+                          aria-describedby={errors.contactPhone ? 'contactPhone-error' : undefined}
+                          disabled={isSubmitting}
+                        />
+                      </div>
                       {errors.contactPhone && (
-                        <p className="text-red-500 text-xs mt-1">{errors.contactPhone}</p>
+                        <p id="contactPhone-error" className="text-red-500 text-xs mt-1">{errors.contactPhone}</p>
                       )}
                     </div>
                   </div>
