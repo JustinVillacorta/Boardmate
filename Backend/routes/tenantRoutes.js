@@ -1,11 +1,8 @@
 import express from 'express';
 import {
   registerTenant,
-  loginTenant,
-  getTenantProfile,
   updateTenantDetails,
   updateTenantPassword,
-  archiveTenantAccount,
 } from '../controllers/authController.js';
 import {
   getTenantPayments,
@@ -24,7 +21,6 @@ import {
 import { protect, tenantOnly } from '../middleware/auth.js';
 import {
   validateTenantRegister,
-  validateTenantLogin,
   validateTenantUpdateDetails,
   validateTenantUpdatePassword,
 } from '../middleware/validation.js';
@@ -32,14 +28,11 @@ import {
 const router = express.Router();
 
 router.post('/register', validateTenantRegister, registerTenant);
-router.post('/login', validateTenantLogin, loginTenant);
 
 router.use(protect, tenantOnly);
 
-router.get('/me', getTenantProfile);
 router.put('/updatedetails', validateTenantUpdateDetails, updateTenantDetails);
 router.put('/updatepassword', validateTenantUpdatePassword, updateTenantPassword);
-router.delete('/archive', archiveTenantAccount);
 
 router.get('/payments', (req, res, next) => {
   req.params.tenantId = req.user.id;

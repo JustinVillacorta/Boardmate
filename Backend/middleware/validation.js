@@ -173,8 +173,6 @@ export const validateTenantRegister = [
     .matches(/^[\+]?[0-9]{10,15}$/)
     .withMessage('Please provide a valid emergency contact phone number (10-15 digits)'),
 ];
-
-export const validateTenantLogin = validateLogin;
 export const validateTenantUpdateDetails = [
   body('firstName')
     .optional()
