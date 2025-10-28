@@ -242,7 +242,13 @@ const ReportsPage: React.FC<ReportsPageProps> = ({ currentPage, onNavigate, user
       <Sidebar currentPage={currentPage} onNavigate={onNavigate} userRole={userRole} />
 
       <div className="flex-1 flex flex-col min-w-0 lg:pl-64">
-  <TopNavbar currentPage={currentPage} title="Reports" subtitle="Generate and view reports" onNotificationOpen={() => onNavigate && onNavigate('notifications')} />
+  <TopNavbar
+    currentPage={currentPage}
+    title="Reports"
+    subtitle="Generate and view reports"
+    onNotificationOpen={() => onNavigate && onNavigate('notifications')}
+    onAnnouncementOpen={() => onNavigate && onNavigate('announcements')}
+  />
 
         <main className="flex-1 p-4 lg:p-6 overflow-auto">
           <div className="max-w-full">
