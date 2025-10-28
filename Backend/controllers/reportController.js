@@ -261,9 +261,7 @@ export const getReports = catchAsync(async (req, res, next) => {
 export const getReport = catchAsync(async (req, res, next) => {
   const report = await Report.findById(req.params.id)
     .populate('tenant', 'firstName lastName email phoneNumber address isArchived')
-    .populate('room', 'roomNumber roomType floor amenities')
-    .populate('assignedTo', 'name email role')
-    .populate('statusHistory.updatedBy', 'name role');
+    .populate('room', 'roomNumber roomType floor amenities');
 
   if (!report) {
     return next(new AppError('Report not found', 404));

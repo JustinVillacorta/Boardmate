@@ -99,17 +99,6 @@ reportSchema.pre('save', function(next) {
 });
 
 // Static method to get basic reports statistics
-reportSchema.statics.getReportsStats = function() {
-  return this.aggregate([
-    {
-      $group: {
-        _id: '$status',
-        count: { $sum: 1 }
-      }
-    }
-  ]);
-};
-
 // Static method to archive reports with resolved/rejected status older than 30 days
 reportSchema.statics.archiveOldReports = function() {
   const now = new Date();

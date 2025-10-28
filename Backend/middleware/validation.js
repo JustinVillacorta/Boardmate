@@ -687,37 +687,6 @@ export const validateReportUpdate = [
     .withMessage('Status must be one of: pending, in-progress, resolved, rejected'),
 ];
 
-export const validateReportAssignment = [
-  body('assignedTo')
-    .isMongoId()
-    .withMessage('Valid user ID is required for assignment'),
-
-  body('notes')
-    .optional()
-    .trim()
-    .isLength({ max: 500 })
-    .withMessage('Notes must not exceed 500 characters'),
-];
-
-export const validateReportResolution = [
-  body('resolutionNotes')
-    .trim()
-    .isLength({ min: 5, max: 1000 })
-    .withMessage('Resolution notes must be between 5 and 1000 characters'),
-
-  body('actualCost')
-    .optional()
-    .isFloat({ min: 0 })
-    .withMessage('Actual cost must be a positive number'),
-];
-
-export const validateReportRejection = [
-  body('rejectionReason')
-    .trim()
-    .isLength({ min: 5, max: 1000 })
-    .withMessage('Rejection reason must be between 5 and 1000 characters'),
-];
-
 export const validateContractGeneration = [
   body('tenantId')
     .isMongoId()
