@@ -3,6 +3,7 @@ import Sidebar from "../../components/layout/Sidebar";
 import TopNavbar from "../../components/layout/TopNavbar";
 import MetricCards from "../../components/dashboard/MetricCards";
 import Charts from "../../components/dashboard/Charts";
+import LoadingState from "../../components/ui/LoadingState";
 import { dashboardService, type DashboardData } from "../../services/dashboardService";
 
 // Types for data structure
@@ -59,7 +60,10 @@ const Dashboard: React.FC<DashboardProps> = ({ currentPage, onNavigate, onLogout
         <main className="flex-1 p-4 lg:p-6 overflow-auto space-y-4 lg:space-y-6">
           {/* Loading / Error states */}
           {loading && (
-            <div className="text-gray-600">Loading dashboard...</div>
+            <LoadingState
+              message="Preparing your dashboard"
+              description="Hang tight while we gather the latest stats."
+            />
           )}
           {error && !loading && (
             <div className="text-red-600">{error}</div>
