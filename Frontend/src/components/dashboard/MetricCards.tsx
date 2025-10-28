@@ -75,31 +75,27 @@ const MetricCards: React.FC<MetricCardsProps> = ({ data }) => {
       {metrics.map((metric, index) => (
         <div
           key={index}
-          className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 lg:p-6 hover:shadow-md transition-shadow flex flex-col justify-between h-44 lg:h-52"
+          className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 lg:p-6 hover:shadow-md transition-shadow flex flex-col h-44 lg:h-52"
         >
-          {/* Top: Icon and content */}
-          <div className="flex items-start gap-4">
-            {/* Icon */}
+          <div className="flex items-center gap-4">
             <div
               className={`w-12 h-12 lg:w-14 lg:h-14 ${metric.bgColor} rounded-lg flex items-center justify-center flex-shrink-0`}
             >
               <metric.icon className={`w-6 h-6 lg:w-7 lg:h-7 ${metric.iconColor}`} />
             </div>
-            {/* Content */}
-            <div className="flex-1 min-w-0">
-              <p className="text-sm lg:text-base font-medium text-gray-500 mb-1">{metric.title}</p>
-              <p
-                className="text-xl lg:text-2xl font-bold text-gray-900 mb-0"
-                style={{ wordBreak: 'break-word', lineHeight: 1.2 }}
-              >
-                {metric.value}
-              </p>
-            </div>
+            <p className="text-sm lg:text-base font-medium text-gray-500">{metric.title}</p>
           </div>
-          {/* Bottom: Subtitle pinned to bottom */}
-          <div className="flex items-start text-xs lg:text-sm mt-auto pt-2">
-            <Dot className="w-4 h-4 text-gray-400 flex-shrink-0 mt-0.5" />
-            <span className="font-medium text-gray-700 ml-1">{metric.subtitle}</span>
+          <div className="flex-1 flex items-center justify-center">
+            <p
+              className="text-2xl lg:text-3xl font-bold text-gray-900 text-center"
+              style={{ wordBreak: 'break-word', lineHeight: 1.2 }}
+            >
+              {metric.value}
+            </p>
+          </div>
+          <div className="flex items-center justify-center text-xs lg:text-sm pt-2">
+            <Dot className="w-4 h-4 text-gray-400 flex-shrink-0" />
+            <span className="font-medium text-gray-700 ml-1 text-center">{metric.subtitle}</span>
           </div>
         </div>
       ))}

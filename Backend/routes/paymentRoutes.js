@@ -15,7 +15,7 @@ import {
   getReceiptData,
   getReceiptHTML
 } from '../controllers/paymentController.js';
-import { protect, staffOrAdmin, tenantOnly } from '../middleware/auth.js';
+import { protect, staffOrAdmin } from '../middleware/auth.js';
 import {
   validatePaymentCreate,
   validatePaymentUpdate,
