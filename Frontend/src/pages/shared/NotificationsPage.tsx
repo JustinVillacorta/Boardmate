@@ -1,10 +1,7 @@
 import React from 'react';
 import Sidebar from '../../components/layout/Sidebar';
 import TopNavbar from '../../components/layout/TopNavbar';
-import { Bell, X } from 'lucide-react';
 import NotificationCard from '../../components/notifications/NotificationCard';
-import NotificationsSummaryCard from '../../components/notifications/NotificationsSummaryCard';
-import CreateAnnouncementForm from '../../components/notifications/CreateAnnouncementForm';
 import { notificationService } from '../../services/notificationService';
 
 type NotificationItem = {
@@ -38,7 +35,6 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ currentPage, onNa
   const readCount = list.filter(l => l.read).length;
 
   const [filterType, setFilterType] = React.useState<'all' | 'read' | 'unread'>('all');
-  const [creating, setCreating] = React.useState(false);
 
   const markRead = async (id: string) => {
     // optimistic update
@@ -149,9 +145,6 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ currentPage, onNa
       ? filteredByQuery.filter(l => l.read)
       : filteredByQuery.filter(l => !l.read);
 
-  // Role-based functionality
-  const canCreateAnnouncements = userRole === 'admin'; // Only admin can create announcements
-
   React.useEffect(() => {
     fetchNotifications();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -240,15 +233,9 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ currentPage, onNa
               <div className="flex items-center gap-3">
                 <div className="hidden sm:flex items-center gap-3">
                   <button onClick={markAllRead} className="px-4 py-2 bg-green-600 text-white rounded">Mark All Read</button>
-                  {canCreateAnnouncements && (
-                    <button onClick={() => setCreating(true)} className="px-4 py-2 bg-blue-600 text-white rounded">+ Create Announcement</button>
-                  )}
                 </div>
                 <div className="flex sm:hidden flex-col gap-2">
                   <button onClick={markAllRead} className="px-3 py-2 bg-green-600 text-white rounded">Mark All Read</button>
-                  {canCreateAnnouncements && (
-                    <button onClick={() => setCreating(true)} className="px-3 py-2 bg-blue-600 text-white rounded">+ Create</button>
-                  )}
                 </div>
               </div>
             </div>
@@ -260,21 +247,6 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ currentPage, onNa
                   <NotificationCard key={n.id} n={n} onOpen={handleOpenNotification} selected={n.id === selectedId} />
                 ))}
             </div>
-            {canCreateAnnouncements && (
-              <CreateAnnouncementForm
-                open={creating}
-                onCancel={() => setCreating(false)}
-                onCreate={async ({ title, message }) => {
-                    try {
-                      await notificationService.createAnnouncement({ title, message });
-                      await fetchNotifications();
-                      setCreating(false);
-                    } catch (err) {
-                      alert('Failed to create announcement');
-                    }
-                  }}
-              />
-            )}
           </div>
         </main>
       </div>

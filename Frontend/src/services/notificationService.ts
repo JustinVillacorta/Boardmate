@@ -54,10 +54,5 @@ export const notificationService = {
   async deleteNotification(id: string) {
     const res = await api.delete(`/notifications/${id}`);
     return res.data;
-  },
-
-  async createAnnouncement(payload: { title: string; message?: string; userIds?: string[]; expiresAt?: string | null }) {
-    const res = await api.post('/notifications/announcement', payload);
-    return res.data;
   }
 };

@@ -2,7 +2,6 @@ import { validationResult } from 'express-validator';
 import Notification from '../models/Notification.js';
 import { AppError } from '../utils/AppError.js';
 import { catchAsync } from '../utils/catchAsync.js';
-import NotificationService from '../utils/notificationService.js';
 
 // @desc    Get user notifications
 // @route   GET /api/notifications

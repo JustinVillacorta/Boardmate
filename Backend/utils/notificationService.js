@@ -239,60 +239,6 @@ class NotificationService {
     }
   }
 
-  static async createSystemAnnouncement(title, message, userIds = null, expiresAt = null) {
-    try {
-      let targets = [];
-
-      if (userIds && userIds.length > 0) {
-        targets = userIds.map(id => ({ id, model: 'User' }));
-      } else {
-        const users = await User.find({ isArchived: false }).select('_id');
-        for (const u of users) {
-          targets.push({ id: u._id, model: 'User' });
-        }
-        const tenants = await Tenant.find({ isArchived: false }).select('_id user');
-        for (const t of tenants) {
-          if (t.user) {
-            targets.push({ id: t.user, model: 'User' });
-          } else {
-            targets.push({ id: t._id, model: 'Tenant' });
-          }
-        }
-      }
-
-      const seen = new Set();
-      const uniqueTargets = [];
-      for (const t of targets) {
-        const key = `${String(t.model)}::${String(t.id)}`;
-        if (seen.has(key)) continue;
-        seen.add(key);
-        uniqueTargets.push(t);
-      }
-
-      const notifications = uniqueTargets.map(t => ({
-        user: t.id,
-        userModel: t.model,
-        title: title,
-        message: message,
-        type: 'system_alert',
-        metadata: {
-          isSystemAnnouncement: true
-        },
-        expiresAt: expiresAt
-      }));
-
-      await Promise.all(
-        notifications.map(notification => 
-          Notification.createNotification(notification)
-        )
-      );
-
-      console.log(`Created system announcement for ${uniqueTargets.length} targets`);
-    } catch (error) {
-      console.error('Error creating system announcement:', error);
-    }
-  }
-
   static async sendPaymentDueReminders() {
     try {
       const now = new Date();
