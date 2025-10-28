@@ -150,7 +150,11 @@ const Notifications: React.FC<NotificationsProps> = ({ currentPage, onNavigate }
       {/* Main Content - Responsive */}
       <div className="flex-1 flex flex-col min-w-0 lg:pl-64">
   {/* Top Navigation */}
-  <TopNavbar currentPage={currentPage} onNotificationOpen={(n) => { if (n) { /* handle specific */ } else onNavigate && onNavigate('notifications'); }} />
+  <TopNavbar
+    currentPage={currentPage}
+    onNotificationOpen={(n) => { if (n) { /* handle specific */ } else onNavigate && onNavigate('notifications'); }}
+    onAnnouncementOpen={() => onNavigate && onNavigate('announcements')}
+  />
 
         {/* Notifications Content */}
         <main className="flex-1 p-4 lg:p-6 overflow-auto">

@@ -110,7 +110,13 @@ const TenantReports: React.FC<ReportsProps> = ({ currentPage, onNavigate }) => {
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar currentPage={currentPage} onNavigate={onNavigate} userRole="tenant" />
       <div className="flex-1 flex flex-col min-w-0 lg:pl-64">
-  <TopNavbar currentPage={currentPage} title="Reports" subtitle="Your maintenance requests" onNotificationOpen={() => onNavigate && onNavigate('notifications')} />
+  <TopNavbar
+    currentPage={currentPage}
+    title="Reports"
+    subtitle="Your maintenance requests"
+    onNotificationOpen={() => onNavigate && onNavigate('notifications')}
+    onAnnouncementOpen={() => onNavigate && onNavigate('announcements')}
+  />
 
         <main className="flex-1 p-4 lg:p-6 overflow-auto">
           <div className="max-w-full">
