@@ -40,19 +40,13 @@ const sendTokenResponse = (user, statusCode, res, userType = 'user') => {
     });
 };
 
-// @desc    Register user
-// @route   POST /api/auth/register
-// @access  Public
 export const register = catchAsync(async (req, res, next) => {
-  // Check validation errors
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return next(new AppError('Validation failed', 400, errors.array()));
   }
 
   const { name, email, password, role } = req.body;
-
-  // Check if user already exists
   const existingUser = await User.findOne({
     $or: [{ email }, { name }]
   });
@@ -61,8 +55,6 @@ export const register = catchAsync(async (req, res, next) => {
     const field = existingUser.email === email ? 'email' : 'name';
     return next(new AppError(`User with this ${field} already exists`, 409));
   }
-
-  // Create user
   const user = await User.create({
     name,
     email,
@@ -73,9 +65,6 @@ export const register = catchAsync(async (req, res, next) => {
   sendTokenResponse(user, 201, res, 'user');
 });
 
-// @desc    Logout user/tenant
-// @route   POST /api/auth/logout
-// @access  Private
 export const logout = catchAsync(async (req, res, next) => {
   res.cookie('token', 'none', {
     expires: new Date(Date.now() + 10 * 1000), // 10 seconds
@@ -93,9 +82,6 @@ export const logout = catchAsync(async (req, res, next) => {
   });
 });
 
-// @desc    Get current logged in user
-// @route   GET /api/auth/me
-// @access  Private
 export const getMe = catchAsync(async (req, res, next) => {
   let user;
   
@@ -124,9 +110,6 @@ export const getMe = catchAsync(async (req, res, next) => {
   });
 });
 
-// @desc    Update tenant details (Staff/Admin only)
-// @route   PUT /api/auth/staff/update-tenant/:tenantId
-// @access  Private (Staff/Admin - Staff can only update tenants)
 export const updateTenantByStaff = catchAsync(async (req, res, next) => {
   const { tenantId } = req.params;
   const { firstName, lastName, phoneNumber, occupation, address, emergencyContact } = req.body;
@@ -136,8 +119,6 @@ export const updateTenantByStaff = catchAsync(async (req, res, next) => {
   if (!tenant) {
     return next(new AppError('Tenant not found', 404));
   }
-
-  // Update only provided fields
   const updateData = {};
   if (firstName !== undefined) updateData.firstName = firstName;
   if (lastName !== undefined) updateData.lastName = lastName;
@@ -159,14 +140,10 @@ export const updateTenantByStaff = catchAsync(async (req, res, next) => {
   });
 });
 
-// @desc    Update another user's details (Admin only)
-// @route   PUT /api/auth/admin/update-user/:userId
-// @access  Private (Admin only)
 export const updateUserByAdmin = catchAsync(async (req, res, next) => {
   const { userId } = req.params;
   const { name, email } = req.body;
 
-  // Prevent updating yourself
   if (userId === req.user.id) {
     return next(new AppError('Cannot update your own account through this endpoint.', 400));
   }
@@ -177,7 +154,6 @@ export const updateUserByAdmin = catchAsync(async (req, res, next) => {
     return next(new AppError('User not found', 404));
   }
 
-  // Check if name already exists (if provided)
   if (name && name !== user.name) {
     const existingUser = await User.findOne({ name, _id: { $ne: userId } });
     if (existingUser) {
@@ -185,7 +161,6 @@ export const updateUserByAdmin = catchAsync(async (req, res, next) => {
     }
   }
 
-  // Check if email already exists (if provided)
   if (email && email !== user.email) {
     const existingUser = await User.findOne({ email, _id: { $ne: userId } });
     if (existingUser) {
@@ -193,7 +168,6 @@ export const updateUserByAdmin = catchAsync(async (req, res, next) => {
     }
   }
 
-  // Update only provided fields
   const updateData = {};
   if (name !== undefined) updateData.name = name;
   if (email !== undefined) updateData.email = email;
@@ -211,13 +185,9 @@ export const updateUserByAdmin = catchAsync(async (req, res, next) => {
   });
 });
 
-// @desc    Archive another user's account (Admin only)
-// @route   DELETE /api/auth/admin/archive-user/:userId
-// @access  Private (Admin only)
 export const archiveUserByAdmin = catchAsync(async (req, res, next) => {
   const { userId } = req.params;
   
-  // Prevent archiving yourself
   if (userId === req.user.id) {
     return next(new AppError('Cannot archive your own account through this endpoint. Use /api/auth/archive instead', 400));
   }
@@ -232,7 +202,6 @@ export const archiveUserByAdmin = catchAsync(async (req, res, next) => {
     return next(new AppError('User is already archived', 400));
   }
 
-  // Check if this user is also a tenant and handle room removal
   const Tenant = (await import('../models/Tenant.js')).default;
   const tenant = await Tenant.findOne({ user: userId });
   
@@ -249,7 +218,6 @@ export const archiveUserByAdmin = catchAsync(async (req, res, next) => {
       }
     }
     
-    // Archive the associated tenant record as well
     await Tenant.findByIdAndUpdate(
       tenant._id,
       { 
@@ -269,9 +237,6 @@ export const archiveUserByAdmin = catchAsync(async (req, res, next) => {
   });
 });
 
-// @desc    Unarchive a user's account (Admin only)
-// @route   PATCH /api/auth/admin/unarchive-user/:userId
-// @access  Private (Admin only)
 export const unarchiveUserByAdmin = catchAsync(async (req, res, next) => {
   const { userId } = req.params;
   
@@ -293,9 +258,6 @@ export const unarchiveUserByAdmin = catchAsync(async (req, res, next) => {
   });
 });
 
-// @desc    Archive tenant account (Admin only)
-// @route   DELETE /api/auth/admin/archive-tenant/:tenantId
-// @access  Private (Admin only)
 export const archiveTenantByAdmin = catchAsync(async (req, res, next) => {
   const { tenantId } = req.params;
   
@@ -309,19 +271,16 @@ export const archiveTenantByAdmin = catchAsync(async (req, res, next) => {
     return next(new AppError('Tenant is already archived', 400));
   }
 
-  // If tenant is assigned to a room, remove them from the room
   if (tenant.room) {
     const Room = (await import('../models/Room.js')).default;
     const room = await Room.findById(tenant.room);
     
     if (room) {
-      // Use the room's removeTenant method to properly handle the removal
       try {
         await room.removeTenant(tenantId);
         console.log(`Tenant ${tenantId} removed from room ${room.roomNumber} due to archiving`);
       } catch (error) {
         console.error(`Error removing tenant from room during archiving: ${error.message}`);
-        // Continue with archiving even if room removal fails
       }
     }
   }
@@ -342,9 +301,6 @@ export const archiveTenantByAdmin = catchAsync(async (req, res, next) => {
   });
 });
 
-// @desc    Unarchive tenant account (Admin only)
-// @route   PATCH /api/auth/admin/unarchive-tenant/:tenantId
-// @access  Private (Admin only)
 export const unarchiveTenantByAdmin = catchAsync(async (req, res, next) => {
   const { tenantId } = req.params;
   
@@ -370,13 +326,7 @@ export const unarchiveTenantByAdmin = catchAsync(async (req, res, next) => {
   });
 });
 
-// ==================== TENANT AUTHENTICATION ====================
-
-// @desc    Register tenant
-// @route   POST /api/auth/tenant/register
-// @access  Public
 export const registerTenant = catchAsync(async (req, res, next) => {
-  // Check validation errors
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return next(new AppError('Validation failed', 400, errors.array()));
@@ -396,14 +346,12 @@ export const registerTenant = catchAsync(async (req, res, next) => {
     emergencyContact,
   } = req.body;
 
-  // Check if tenant already exists
   const existingTenant = await Tenant.findOne({ email });
 
   if (existingTenant) {
     return next(new AppError('Tenant with this email already exists', 409));
   }
 
-  // Create tenant
   const tenant = await Tenant.create({
     firstName,
     lastName,
@@ -421,11 +369,7 @@ export const registerTenant = catchAsync(async (req, res, next) => {
   sendTokenResponse(tenant, 201, res, 'tenant');
 });
 
-// @desc    Update tenant details
-// @route   PUT /api/auth/tenant/updatedetails
-// @access  Private (Tenant)
 export const updateTenantDetails = catchAsync(async (req, res, next) => {
-  // Check validation errors
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return next(new AppError('Validation failed', 400, errors.array()));
@@ -440,20 +384,15 @@ export const updateTenantDetails = catchAsync(async (req, res, next) => {
     emergencyContact,
   } = req.body;
 
-  // Fetch current tenant so we can safely merge partial nested updates
   const currentTenant = await Tenant.findById(req.user.id);
   if (!currentTenant) {
     return next(new AppError('Tenant not found', 404));
   }
-
-  // Build update object with only provided fields (use !== undefined so empty strings can be sent intentionally)
   const fieldsToUpdate = {};
   if (firstName !== undefined) fieldsToUpdate.firstName = firstName;
   if (lastName !== undefined) fieldsToUpdate.lastName = lastName;
   if (phoneNumber !== undefined) fieldsToUpdate.phoneNumber = phoneNumber;
   if (occupation !== undefined) fieldsToUpdate.occupation = occupation;
-
-  // Address: support partial updates (merge) and explicit null to clear
   if (address !== undefined) {
     if (address === null) {
       fieldsToUpdate.address = null;
@@ -462,8 +401,6 @@ export const updateTenantDetails = catchAsync(async (req, res, next) => {
       fieldsToUpdate.address = { ...existingAddress, ...address };
     }
   }
-
-  // Emergency contact: merge partial updates, or allow explicit null to clear
   if (emergencyContact !== undefined) {
     if (emergencyContact === null) {
       fieldsToUpdate.emergencyContact = null;
@@ -491,11 +428,7 @@ export const updateTenantDetails = catchAsync(async (req, res, next) => {
   });
 });
 
-// @desc    Update tenant password
-// @route   PUT /api/auth/tenant/updatepassword
-// @access  Private (Tenant)
 export const updateTenantPassword = catchAsync(async (req, res, next) => {
-  // Check validation errors
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return next(new AppError('Validation failed', 400, errors.array()));
@@ -503,27 +436,18 @@ export const updateTenantPassword = catchAsync(async (req, res, next) => {
 
   const { currentPassword, newPassword } = req.body;
 
-  // Get tenant with password
   const tenant = await Tenant.findById(req.user.id).select('+password');
-
-  // Check current password
   const isCurrentPasswordValid = await tenant.comparePassword(currentPassword);
   if (!isCurrentPasswordValid) {
     return next(new AppError('Current password is incorrect', 401));
   }
-
-  // Update password
   tenant.password = newPassword;
   await tenant.save();
 
   sendTokenResponse(tenant, 200, res, 'tenant');
 });
 
-// @desc    Universal login (both users and tenants)
-// @route   POST /api/auth/universal-login
-// @access  Public
 export const universalLogin = catchAsync(async (req, res, next) => {
-  // Check validation errors
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return next(new AppError('Validation failed', 400, errors.array()));
@@ -531,22 +455,15 @@ export const universalLogin = catchAsync(async (req, res, next) => {
 
   const { email, password } = req.body;
 
-  // First, try to find user
   let user = await User.findByEmail(email);
   let userType = 'user';
-
-  // If not found as user, try tenant
   if (!user) {
     user = await Tenant.findByEmail(email).populate('room', 'roomNumber roomType monthlyRent');
     userType = 'tenant';
   }
-
-  // Check if user/tenant exists and is not archived
   if (!user || user.isArchived) {
     return next(new AppError('Invalid credentials', 401));
   }
-
-  // Check password
   const isPasswordValid = await user.comparePassword(password);
   if (!isPasswordValid) {
     return next(new AppError('Invalid credentials', 401));
@@ -556,11 +473,6 @@ export const universalLogin = catchAsync(async (req, res, next) => {
   sendTokenResponse(user, 200, res, userType);
 });
 
-// ==================== USER & TENANT MANAGEMENT ====================
-
-// @desc    Get all staff and tenants in one response with filtering and pagination
-// @route   GET /api/auth/staff-and-tenants
-// @access  Private (Admin/Staff)
 export const getStaffAndTenants = catchAsync(async (req, res, next) => {
   const {
     page = 1,
@@ -587,7 +499,6 @@ export const getStaffAndTenants = catchAsync(async (req, res, next) => {
     }
   };
 
-  // If requesting staff or all
   if (!userType || userType === 'all' || userType === 'staff') {
     const staffQuery = { role: 'staff' };
     
@@ -608,7 +519,6 @@ export const getStaffAndTenants = catchAsync(async (req, res, next) => {
       .sort(sort);
   }
 
-  // If requesting tenants or all
   if (!userType || userType === 'all' || userType === 'tenant') {
     const tenantQuery = {};
     
@@ -640,17 +550,12 @@ export const getStaffAndTenants = catchAsync(async (req, res, next) => {
       .sort(sort);
   }
 
-  // Combine and paginate results
   const allRecords = [
     ...results.staff.map(staff => ({ ...staff.toObject(), type: 'staff' })),
     ...results.tenants.map(tenant => ({ ...tenant.toObject(), type: 'tenant' }))
   ];
-
-  // Apply pagination to combined results
   const skip = (parseInt(page) - 1) * parseInt(limit);
   const paginatedRecords = allRecords.slice(skip, skip + parseInt(limit));
-
-  // Update pagination info
   results.pagination.totalRecords = allRecords.length;
   results.pagination.totalPages = Math.ceil(allRecords.length / parseInt(limit));
   results.pagination.hasNextPage = skip + paginatedRecords.length < allRecords.length;
@@ -669,9 +574,6 @@ export const getStaffAndTenants = catchAsync(async (req, res, next) => {
   });
 });
 
-// @desc    Get only tenants (more detailed view for tenant management)
-// @route   GET /api/auth/tenants-only
-// @access  Private (Admin/Staff)
 export const getTenantsOnly = catchAsync(async (req, res, next) => {
   const {
     page = 1,
@@ -688,21 +590,17 @@ export const getTenantsOnly = catchAsync(async (req, res, next) => {
     includePayments = 'false'
   } = req.query;
 
-  // Build query
   const query = {};
 
   if (tenantStatus) query.tenantStatus = tenantStatus;
   if (isArchived !== undefined) query.isArchived = isArchived === 'true';
   if (isVerified !== undefined) query.isVerified = isVerified === 'true';
   
-  // Filter by room assignment
   if (hasRoom === 'true') {
     query.room = { $ne: null };
   } else if (hasRoom === 'false') {
     query.room = null;
   }
-
-  // Filter by active lease
   if (hasActiveLease === 'true') {
     const today = new Date();
     query.leaseStartDate = { $lte: today };
@@ -712,8 +610,6 @@ export const getTenantsOnly = catchAsync(async (req, res, next) => {
       { leaseEndDate: { $gte: today } }
     ];
   }
-
-  // Search functionality
   if (search) {
     query.$or = [
       { firstName: { $regex: search, $options: 'i' } },
@@ -724,15 +620,9 @@ export const getTenantsOnly = catchAsync(async (req, res, next) => {
       { idNumber: { $regex: search, $options: 'i' } }
     ];
   }
-
-  // Pagination
   const skip = (parseInt(page) - 1) * parseInt(limit);
-
-  // Sort options
   const sort = {};
   sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
-
-  // Build population options
   let populateOptions = [];
   if (includeRoom === 'true') {
     populateOptions.push({
@@ -740,15 +630,11 @@ export const getTenantsOnly = catchAsync(async (req, res, next) => {
       select: 'roomNumber roomType monthlyRent securityDeposit status floor amenities'
     });
   }
-
-  // Execute query
   let query_builder = Tenant.find(query)
     .select('-__v -password')
     .sort(sort)
     .skip(skip)
     .limit(parseInt(limit));
-
-  // Add population if requested
   if (populateOptions.length > 0) {
     populateOptions.forEach(pop => {
       query_builder = query_builder.populate(pop);
@@ -757,16 +643,9 @@ export const getTenantsOnly = catchAsync(async (req, res, next) => {
 
   const tenants = await query_builder.exec();
 
-  // Get additional data if payments are requested
   if (includePayments === 'true') {
-    // This would require the Payment model - for now we'll skip this
-    // In a full implementation, you'd populate payment data here
   }
-
-  // Get total count for pagination
   const total = await Tenant.countDocuments(query);
-
-  // Get summary statistics
   const stats = await Tenant.aggregate([
     { $match: query },
     {
@@ -818,9 +697,6 @@ export const getTenantsOnly = catchAsync(async (req, res, next) => {
 });
 
 
-// @desc    Clean up archived tenants from rooms
-// @route   POST /api/auth/admin/cleanup-archived-tenants
-// @access  Private (Admin only)
 export const cleanupArchivedTenantsFromRooms = catchAsync(async (req, res, next) => {
   try {
     const result = await cleanupArchivedTenants();
@@ -835,9 +711,6 @@ export const cleanupArchivedTenantsFromRooms = catchAsync(async (req, res, next)
   }
 });
 
-// @desc    Verify room-tenant data integrity
-// @route   GET /api/auth/admin/verify-room-tenant-integrity
-// @access  Private (Admin only)
 export const verifyRoomTenantDataIntegrity = catchAsync(async (req, res, next) => {
   try {
     const issues = await verifyRoomTenantIntegrity();

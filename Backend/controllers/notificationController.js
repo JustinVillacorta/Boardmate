@@ -3,9 +3,6 @@ import Notification from '../models/Notification.js';
 import { AppError } from '../utils/AppError.js';
 import { catchAsync } from '../utils/catchAsync.js';
 
-// @desc    Get user notifications
-// @route   GET /api/notifications
-// @access  Private
 export const getNotifications = catchAsync(async (req, res, next) => {
   const {
     status,
@@ -25,7 +22,6 @@ export const getNotifications = catchAsync(async (req, res, next) => {
     includeArchived: includeArchived === 'true'
   };
 
-  // Handle both user and tenant types
   const userId = req.user._id || req.user.id;
 
   const notifications = await Notification.getUserNotifications(userId, options);
@@ -57,9 +53,6 @@ export const getNotifications = catchAsync(async (req, res, next) => {
   });
 });
 
-// @desc    Get single notification
-// @route   GET /api/notifications/:id
-// @access  Private
 export const getNotification = catchAsync(async (req, res, next) => {
   const notification = await Notification.findById(req.params.id)
     .populate('createdBy', 'name email role');
@@ -68,7 +61,6 @@ export const getNotification = catchAsync(async (req, res, next) => {
     return next(new AppError('Notification not found', 404));
   }
 
-  // Check if notification belongs to the user (handle both user and tenant types)
   const userId = req.user._id || req.user.id;
   if (notification.user.toString() !== userId.toString()) {
     return next(new AppError('Access denied', 403));
@@ -82,9 +74,6 @@ export const getNotification = catchAsync(async (req, res, next) => {
   });
 });
 
-// @desc    Mark notification as read
-// @route   PUT /api/notifications/:id/read
-// @access  Private
 export const markAsRead = catchAsync(async (req, res, next) => {
   const notification = await Notification.findById(req.params.id);
 
@@ -92,7 +81,6 @@ export const markAsRead = catchAsync(async (req, res, next) => {
     return next(new AppError('Notification not found', 404));
   }
 
-  // Check if notification belongs to the user (handle both user and tenant types)
   const userId = req.user._id || req.user.id;
   if (notification.user.toString() !== userId.toString()) {
     return next(new AppError('Access denied', 403));
@@ -107,11 +95,8 @@ export const markAsRead = catchAsync(async (req, res, next) => {
       notification
     }
   });
-});// @desc    Mark all notifications as read
-// @route   PUT /api/notifications/mark-all-read
-// @access  Private
+});
 export const markAllAsRead = catchAsync(async (req, res, next) => {
-  // Handle both user and tenant types
   const userId = req.user._id || req.user.id;
   const result = await Notification.markAllAsRead(userId);
 
@@ -124,9 +109,6 @@ export const markAllAsRead = catchAsync(async (req, res, next) => {
   });
 });
 
-// @desc    Delete notification
-// @route   DELETE /api/notifications/:id
-// @access  Private
 export const deleteNotification = catchAsync(async (req, res, next) => {
   const notification = await Notification.findById(req.params.id);
 
@@ -134,7 +116,6 @@ export const deleteNotification = catchAsync(async (req, res, next) => {
     return next(new AppError('Notification not found', 404));
   }
 
-  // Check if notification belongs to the user (handle both user and tenant types)
   const userId = req.user._id || req.user.id;
   if (notification.user.toString() !== userId.toString()) {
     return next(new AppError('Access denied', 403));
@@ -148,11 +129,7 @@ export const deleteNotification = catchAsync(async (req, res, next) => {
   });
 });
 
-// @desc    Get unread count
-// @route   GET /api/notifications/unread-count
-// @access  Private
 export const getUnreadCount = catchAsync(async (req, res, next) => {
-  // Handle both user and tenant types
   const userId = req.user._id || req.user.id;
   const unreadCount = await Notification.getUnreadCount(userId);
 
