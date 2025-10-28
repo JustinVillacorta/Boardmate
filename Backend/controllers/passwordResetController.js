@@ -6,9 +6,6 @@ import PasswordOTP from '../models/PasswordOTP.js';
 import { AppError } from '../utils/AppError.js';
 import { catchAsync } from '../utils/catchAsync.js';
 
-// @desc    Request password reset (send OTP) for user or tenant
-// @route   POST /api/auth/forgot-password
-// @access  Public
 export const forgotPassword = catchAsync(async (req, res, next) => {
   const { email } = req.body;
   if (!email) return next(new AppError('Email is required', 400));
@@ -55,9 +52,6 @@ export const forgotPassword = catchAsync(async (req, res, next) => {
   res.status(200).json({ success: true, message: 'OTP sent to email' });
 });
 
-// @desc    Verify OTP for user or tenant
-// @route   POST /api/auth/verify-otp
-// @access  Public
 export const verifyOTP = catchAsync(async (req, res, next) => {
   const { email, otp } = req.body;
   if (!email || !otp) return next(new AppError('Email and OTP are required', 400));
@@ -68,9 +62,6 @@ export const verifyOTP = catchAsync(async (req, res, next) => {
   res.status(200).json({ success: true, message: 'OTP verified' });
 });
 
-// @desc    Reset password with OTP for user or tenant
-// @route   POST /api/auth/reset-password
-// @access  Public
 export const resetPasswordWithOTP = catchAsync(async (req, res, next) => {
   const { email, otp, newPassword, confirmPassword } = req.body;
   if (!email || !otp || !newPassword || !confirmPassword)

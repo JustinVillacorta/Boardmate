@@ -72,7 +72,6 @@ const roomSchema = new mongoose.Schema({
     type: Boolean, 
     default: true 
   },
-  // Additional fields for better management
   images: [{ 
     type: String, 
     trim: true 
@@ -98,7 +97,6 @@ const roomSchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
-// Indexes for performance
 roomSchema.index({ roomNumber: 1 });
 roomSchema.index({ status: 1 });
 roomSchema.index({ roomType: 1 });
@@ -106,40 +104,32 @@ roomSchema.index({ floor: 1 });
 roomSchema.index({ isActive: 1 });
 roomSchema.index({ 'occupancy.current': 1 });
 
-// Virtual for availability status
 roomSchema.virtual('isAvailable').get(function() {
   return this.status === 'available' && 
          this.isActive && 
          this.occupancy.current < this.capacity;
 });
 
-// Virtual for occupancy rate
 roomSchema.virtual('occupancyRate').get(function() {
   return this.capacity > 0 ? (this.occupancy.current / this.capacity) * 100 : 0;
 });
 
-// Virtual for remaining capacity
 roomSchema.virtual('remainingCapacity').get(function() {
   return Math.max(0, this.capacity - this.occupancy.current);
 });
 
-// Pre-save middleware to update occupancy and status
 roomSchema.pre('save', async function(next) {
-  // Update current occupancy based on tenants array
   if (this.isModified('tenants')) {
     this.occupancy.current = this.tenants.length;
-    
-    // Auto-update status based on occupancy
     if (this.occupancy.current === 0) {
       this.status = 'available';
     } else if (this.occupancy.current >= this.capacity) {
       this.status = 'occupied';
     } else if (this.occupancy.current > 0 && this.status === 'available') {
-      this.status = 'occupied'; // Partially occupied
+      this.status = 'occupied';
     }
   }
 
-  // Set max occupancy if not set
   if (!this.occupancy.max) {
     this.occupancy.max = this.capacity;
   }
@@ -147,46 +137,28 @@ roomSchema.pre('save', async function(next) {
   next();
 });
 
-// Instance method to add tenant
 roomSchema.methods.addTenant = async function(tenantId) {
-  // Check if room has capacity
   if (this.occupancy.current >= this.capacity) {
     throw new Error('Room is at full capacity');
   }
-
-  // Check if tenant is already assigned
   if (this.tenants.includes(tenantId)) {
     throw new Error('Tenant is already assigned to this room');
   }
-
-  // Add tenant
   this.tenants.push(tenantId);
-  
-  // Save room (this will trigger pre-save middleware)
   await this.save();
-
-  // Update tenant's room reference
   const Tenant = mongoose.model('Tenant');
   await Tenant.findByIdAndUpdate(tenantId, { room: this._id });
 
   return this;
 };
 
-// Instance method to remove tenant
 roomSchema.methods.removeTenant = async function(tenantId) {
-  // Check if tenant is assigned to this room
   const tenantIndex = this.tenants.indexOf(tenantId);
   if (tenantIndex === -1) {
     throw new Error('Tenant is not assigned to this room');
   }
-
-  // Remove tenant
   this.tenants.splice(tenantIndex, 1);
-  
-  // Save room (this will trigger pre-save middleware)
   await this.save();
-
-  // Update tenant's room reference
   const Tenant = mongoose.model('Tenant');
   await Tenant.findByIdAndUpdate(tenantId, { 
     room: null,
@@ -196,12 +168,10 @@ roomSchema.methods.removeTenant = async function(tenantId) {
   return this;
 };
 
-// Instance method to get room details with tenant info
 roomSchema.methods.getFullDetails = function() {
   return this.populate('tenants', 'firstName lastName email phoneNumber tenantStatus');
 };
 
-// Static method to find available rooms
 roomSchema.statics.findAvailable = function(options = {}) {
   const query = {
     isActive: true,
@@ -226,12 +196,10 @@ roomSchema.statics.findAvailable = function(options = {}) {
   return this.find(query).populate('tenants', 'firstName lastName tenantStatus');
 };
 
-// Static method to find rooms by status
 roomSchema.statics.findByStatus = function(status) {
   return this.find({ status, isActive: true }).populate('tenants');
 };
 
-// Static method to find rooms needing maintenance
 roomSchema.statics.findNeedingMaintenance = function() {
   const today = new Date();
   return this.find({
@@ -243,7 +211,6 @@ roomSchema.statics.findNeedingMaintenance = function() {
   });
 };
 
-// Static method to get occupancy statistics
 roomSchema.statics.getOccupancyStats = async function() {
   const stats = await this.aggregate([
     { $match: { isActive: true } },
@@ -314,33 +281,24 @@ roomSchema.statics.getOccupancyStats = async function() {
   return result;
 };
 
-// Static method to clean up archived tenants from all rooms
 roomSchema.statics.removeArchivedTenants = async function() {
   const Tenant = mongoose.model('Tenant');
-  
-  // Find all archived tenants
   const archivedTenants = await Tenant.find({ isArchived: true }).select('_id');
   const archivedTenantIds = archivedTenants.map(t => t._id);
   
   if (archivedTenantIds.length === 0) {
     return { removedCount: 0, roomsUpdated: 0 };
   }
-  
-  // Remove archived tenants from all rooms
   const result = await this.updateMany(
     { tenants: { $in: archivedTenantIds } },
     { $pull: { tenants: { $in: archivedTenantIds } } }
   );
-  
-  // Update occupancy for affected rooms
   const affectedRooms = await this.find({ 
     _id: { $in: await this.distinct('_id', { tenants: { $in: archivedTenantIds } }) }
   });
   
   for (const room of affectedRooms) {
     room.occupancy.current = room.tenants.length;
-    
-    // Auto-update status based on occupancy
     if (room.occupancy.current === 0) {
       room.status = 'available';
     }

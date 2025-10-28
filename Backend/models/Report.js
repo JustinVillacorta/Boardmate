@@ -61,23 +61,19 @@ const reportSchema = new mongoose.Schema({
   timestamps: true 
 });
 
-// Indexes for better query performance
 reportSchema.index({ tenant: 1, status: 1 });
 reportSchema.index({ room: 1, type: 1 });
 reportSchema.index({ status: 1, submittedAt: -1 });
 reportSchema.index({ followUp: 1, followUpDate: 1 });
 reportSchema.index({ isArchived: 1, status: 1, updatedAt: -1 });
 
-// Method to check if follow-up has expired (after 7 days)
 reportSchema.methods.isFollowUpExpired = function() {
   if (!this.followUp || !this.followUpDate) return false;
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
   return this.followUpDate < sevenDaysAgo;
 };
 
-// Pre-save middleware to track status changes and handle follow-up expiry
 reportSchema.pre('save', function(next) {
-  // Check if follow-up has expired and reset it
   if (this.isFollowUpExpired()) {
     this.followUp = false;
     this.followUpDate = null;
@@ -86,10 +82,6 @@ reportSchema.pre('save', function(next) {
 
   if (this.isModified('status')) {
     console.log(`Report ${this._id} status changed to: ${this.status}`);
-    
-    // Reset follow-up when status is updated by staff
-    // This allows tenants to follow up again if they're still not satisfied
-    // BUT don't reset if tenant just followed up (followUp was just set to true)
     if (!this.isModified('followUp')) {
       this.followUp = false;
       this.followUpDate = null;
@@ -98,8 +90,6 @@ reportSchema.pre('save', function(next) {
   next();
 });
 
-// Static method to get basic reports statistics
-// Static method to archive reports with resolved/rejected status older than 30 days
 reportSchema.statics.archiveOldReports = function() {
   const now = new Date();
   const thirtyDaysAgo = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));

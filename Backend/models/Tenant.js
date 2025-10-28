@@ -127,7 +127,6 @@ const tenantSchema = new mongoose.Schema({
     type: Boolean, 
     default: false 
   },
-  // Contract file storage
   contractFile: {
     type: String, // Base64-encoded PDF
     trim: true,
@@ -145,7 +144,6 @@ const tenantSchema = new mongoose.Schema({
     enum: ['application/pdf'],
     default: 'application/pdf',
   },
-  // Authentication-related fields
   isVerified: {
     type: Boolean,
     default: false,
@@ -159,45 +157,35 @@ const tenantSchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
-// Indexes for performance
 tenantSchema.index({ email: 1 });
 tenantSchema.index({ room: 1 });
 tenantSchema.index({ tenantStatus: 1 });
 tenantSchema.index({ isArchived: 1 });
 tenantSchema.index({ leaseStartDate: 1, leaseEndDate: 1 });
 
-// Virtual for full name
 tenantSchema.virtual('fullName').get(function() {
   return `${this.firstName} ${this.lastName}`;
 });
 
-// Pre-save middleware for password hashing
 tenantSchema.pre('save', async function(next) {
-  // Only hash the password if it has been modified (or is new)
   if (this.isModified('password')) {
     try {
-      // Hash password with cost of 12
       const saltRounds = parseInt(process.env.BCRYPT_SALT_ROUNDS) || 12;
       this.password = await bcrypt.hash(this.password, saltRounds);
     } catch (error) {
       return next(error);
     }
   }
-  
-  // Handle archiving and room removal
   if (this.isModified('isArchived') && this.isArchived && this.room) {
     try {
       const Room = mongoose.model('Room');
       const room = await Room.findById(this.room);
       
       if (room) {
-        // Remove tenant from room's tenants array
         const tenantIndex = room.tenants.indexOf(this._id);
         if (tenantIndex > -1) {
           room.tenants.splice(tenantIndex, 1);
           room.occupancy.current = room.tenants.length;
-          
-          // Auto-update room status based on occupancy
           if (room.occupancy.current === 0) {
             room.status = 'available';
           }
@@ -206,25 +194,20 @@ tenantSchema.pre('save', async function(next) {
           console.log(`Tenant ${this._id} automatically removed from room ${room.roomNumber} due to archiving`);
         }
       }
-      
-      // Clear room reference and set tenant status to inactive
       this.room = null;
       this.tenantStatus = 'inactive';
     } catch (error) {
       console.error(`Error removing tenant from room during archiving: ${error.message}`);
-      // Continue with save even if room removal fails
     }
   }
   
   next();
 });
 
-// Instance method to check password
 tenantSchema.methods.comparePassword = async function(candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
-// Instance method to get tenant without sensitive data
 tenantSchema.methods.toAuthJSON = function() {
   return {
     _id: this._id,
@@ -252,7 +235,6 @@ tenantSchema.methods.toAuthJSON = function() {
   };
 };
 
-// Instance method for public profile (limited data)
 tenantSchema.methods.toPublicJSON = function() {
   return {
     _id: this._id,
@@ -267,22 +249,18 @@ tenantSchema.methods.toPublicJSON = function() {
   };
 };
 
-// Static method to find active tenants
 tenantSchema.statics.findActive = function() {
   return this.find({ isArchived: false, tenantStatus: 'active' });
 };
 
-// Static method to find by email (including password)
 tenantSchema.statics.findByEmail = function(email) {
   return this.findOne({ email }).select('+password');
 };
 
-// Static method to find tenants by room
 tenantSchema.statics.findByRoom = function(roomId) {
   return this.find({ room: roomId, isArchived: false });
 };
 
-// Static method to find tenants with active leases
 tenantSchema.statics.findWithActiveLease = function() {
   const today = new Date();
   return this.find({

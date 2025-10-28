@@ -1,7 +1,6 @@
 import mongoose from 'mongoose';
 
 const notificationSchema = new mongoose.Schema({
-  // polymorphic reference: can point to User (staff/admin) or Tenant
   user: { 
     type: mongoose.Schema.Types.ObjectId, 
     refPath: 'userModel',
@@ -55,7 +54,6 @@ const notificationSchema = new mongoose.Schema({
     type: Date, 
     default: null 
   },
-  // who created the notification (can be a User or a Tenant)
   createdBy: { 
     type: mongoose.Schema.Types.ObjectId, 
     refPath: 'createdByModel', 
@@ -72,21 +70,17 @@ const notificationSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-// Index for efficient querying
 notificationSchema.index({ user: 1, status: 1, createdAt: -1 });
 notificationSchema.index({ expiresAt: 1 });
 notificationSchema.index({ isArchived: 1, createdAt: -1 });
 
-// Auto-remove expired notifications
 notificationSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
-// Instance method to mark as read
 notificationSchema.methods.markAsRead = function() {
   this.status = 'read';
   return this.save();
 };
 
-// Static method to create notification
 notificationSchema.statics.createNotification = async function(notificationData) {
   try {
     const notification = new this(notificationData);
@@ -98,7 +92,6 @@ notificationSchema.statics.createNotification = async function(notificationData)
   }
 };
 
-// Static method to get user notifications
 notificationSchema.statics.getUserNotifications = function(userId, options = {}) {
   const {
     status = null,
@@ -125,7 +118,6 @@ notificationSchema.statics.getUserNotifications = function(userId, options = {})
     .limit(limit);
 };
 
-// Static method to mark all as read for a user
 notificationSchema.statics.markAllAsRead = function(userId) {
   return this.updateMany(
     { user: userId, status: 'unread' },
@@ -133,7 +125,6 @@ notificationSchema.statics.markAllAsRead = function(userId) {
   );
 };
 
-// Static method to get unread count
 notificationSchema.statics.getUnreadCount = function(userId) {
   return this.countDocuments({ 
     user: userId, 
@@ -142,7 +133,6 @@ notificationSchema.statics.getUnreadCount = function(userId) {
   });
 };
 
-// Static method to archive notifications older than 30 days
 notificationSchema.statics.archiveOldNotifications = function() {
   const now = new Date();
   const thirtyDaysAgo = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
