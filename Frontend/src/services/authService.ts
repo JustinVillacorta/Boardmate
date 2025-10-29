@@ -1,14 +1,13 @@
 import api from '../config/api';
 import { LoginFormData, AuthResponse, User, Tenant, UserRole, UserType } from '../types';
 
-// Token management helpers
+// Local storage helpers for auth
 export const tokenStorage = {
   get: () => localStorage.getItem('token'),
   set: (token: string) => localStorage.setItem('token', token),
   remove: () => localStorage.removeItem('token'),
 };
 
-// User data storage helpers
 export const userStorage = {
   get: () => {
     try {
@@ -24,12 +23,7 @@ export const userStorage = {
   remove: () => localStorage.removeItem('userData'),
 };
 
-// Authentication service
 export const authService = {
-  /**
-   * Login user with email and password
-   * Automatically detects if user is admin/staff or tenant
-   */
   async login(credentials: LoginFormData): Promise<{ userData: User | Tenant; role: UserRole; token: string }> {
     try {
       const response = await api.post<AuthResponse>('/auth/login', credentials);
@@ -41,12 +35,11 @@ export const authService = {
       const { data } = response.data;
       const { token, userType } = data;
       
-      // Determine user role based on userType and user data
       let role: UserRole;
       let userData: User | Tenant;
 
       if (userType === 'user' && data.user) {
-        role = data.user.role; // 'admin' or 'staff'
+        role = data.user.role;
         userData = data.user;
       } else if (userType === 'tenant' && data.tenant) {
         role = 'tenant';
@@ -55,19 +48,16 @@ export const authService = {
         throw new Error('Invalid user data received');
       }
 
-      // Store token and user data
       tokenStorage.set(token);
       userStorage.set({ user: data.user, tenant: data.tenant, userType, role });
 
       return { userData, role, token };
     } catch (error: any) {
-      // Clear any existing auth data on error (but don't call logout API)
       tokenStorage.remove();
       userStorage.remove();
       localStorage.removeItem('isAuthenticated');
       localStorage.removeItem('userRole');
       
-      // Handle specific error cases
       if (error.response?.status === 401) {
         throw new Error('Invalid email or password. Please check your credentials and try again.');
       } else if (error.response?.status === 400) {
@@ -90,10 +80,6 @@ export const authService = {
     }
   },
 
-  /**
-   * Get current user data by validating token
-   * Used on app startup to restore session
-   */
   async getCurrentUser(): Promise<{ userData: User | Tenant; role: UserRole } | null> {
     try {
       const token = tokenStorage.get();
@@ -110,12 +96,11 @@ export const authService = {
       const { data } = response.data;
       const { userType } = data;
       
-      // Determine user role based on userType and user data
       let role: UserRole;
       let userData: User | Tenant;
 
       if (userType === 'user' && data.user) {
-        role = data.user.role; // 'admin' or 'staff'
+        role = data.user.role;
         userData = data.user;
       } else if (userType === 'tenant' && data.tenant) {
         role = 'tenant';
@@ -124,29 +109,21 @@ export const authService = {
         throw new Error('Invalid user data received');
       }
 
-      // Update stored user data
       userStorage.set({ user: data.user, tenant: data.tenant, userType, role });
 
       return { userData, role };
     } catch (error) {
-      // Clear auth data on any error
       authService.logout();
       return null;
     }
   },
 
-  /**
-   * Logout user and clear all auth data
-   */
   async logout(): Promise<void> {
     try {
-      // Call backend logout endpoint
       await api.post('/auth/logout');
     } catch (error) {
-      // Continue with logout even if backend call fails
       console.warn('Logout API call failed:', error);
     } finally {
-      // Clear all local storage
       tokenStorage.remove();
       userStorage.remove();
       localStorage.removeItem('isAuthenticated');
@@ -154,32 +131,20 @@ export const authService = {
     }
   },
 
-  /**
-   * Check if user is currently authenticated
-   */
   isAuthenticated(): boolean {
     return !!tokenStorage.get();
   },
 
-  /**
-   * Get stored user role
-   */
   getUserRole(): UserRole | null {
     const userData = userStorage.get();
     return userData?.role || null;
   },
 
-  /**
-   * Get stored user data
-   */
   getUserData(): User | Tenant | null {
     const userData = userStorage.get();
     return userData?.user || userData?.tenant || null;
   },
   
-  /**
-   * Request password reset (sends OTP to email) for user or tenant
-   */
   async requestPasswordReset(email: string): Promise<void> {
     try {
       const response = await api.post('/auth/forgot-password', { email });
@@ -190,9 +155,6 @@ export const authService = {
     }
   },
 
-  /**
-   * Verify OTP for password reset
-   */
   async verifyOTP(email: string, otp: string): Promise<void> {
     try {
       const response = await api.post('/auth/verify-otp', { email, otp });
@@ -203,9 +165,6 @@ export const authService = {
     }
   },
 
-  /**
-   * Reset password with OTP for user or tenant
-   */
   async resetPasswordWithOTP(payload: { email: string; otp: string; newPassword: string; confirmPassword: string }): Promise<void> {
     try {
       const response = await api.post('/auth/reset-password', payload);

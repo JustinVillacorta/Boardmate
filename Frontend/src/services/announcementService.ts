@@ -81,7 +81,6 @@ export const announcementService = {
   async getAnnouncements(params: GetAnnouncementsParams = {}): Promise<GetAnnouncementsResponse> {
     const query = new URLSearchParams();
 
-    // Set default values to exclude archived announcements unless explicitly requested
     const defaultParams = {
       includeArchived: false,
       ...params
@@ -93,7 +92,6 @@ export const announcementService = {
       }
     });
 
-    // Cache bust
     query.append('_t', Date.now().toString());
 
     const res = await api.get<GetAnnouncementsResponse>(`/announcements?${query.toString()}`);
@@ -101,11 +99,9 @@ export const announcementService = {
   },
 
   async getAnnouncement(id: string): Promise<{ success: boolean; data: { announcement: AnnouncementItem } }> {
-    // Mark as read when viewing details
     try {
       await this.markAsRead(id);
     } catch (error) {
-      // Continue even if marking as read fails
       console.warn('Failed to mark announcement as read:', error);
     }
     

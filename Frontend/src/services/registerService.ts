@@ -1,25 +1,16 @@
 import api from '../config/api';
 import { RegisterStaffData, RegisterTenantData, RegisterResponse } from '../types';
 
-/**
- * Registration service for creating staff and tenant accounts
- * Used by admin users to create new accounts
- */
 export const registerService = {
-  /**
-   * Register a new staff user (admin or staff role)
-   */
   async registerStaff(data: RegisterStaffData): Promise<RegisterResponse> {
     try {
       const response = await api.post<RegisterResponse>('/auth/register', data);
       return response.data;
     } catch (error: any) {
-      // Log server side validation details when present to help debugging
       const serverMessage = error.response?.data?.message;
       const serverDetails = error.response?.data?.details || error.response?.data?.errors || null;
       if (serverDetails) console.warn('RegisterStaff server details:', serverDetails);
 
-      // Build a friendly Error but attach details for the UI to consume
       let friendly = 'Registration failed. Please try again.';
 
       if (error.response?.status === 400) {
@@ -49,28 +40,21 @@ export const registerService = {
       }
 
       const thrown: any = new Error(friendly);
-      // Attach raw server validation details so components can map them to fields
       if (serverDetails) thrown.details = serverDetails;
-      // Also attach the full response body for advanced debugging
       if (error.response?.data) thrown.serverResponse = error.response.data;
       throw thrown;
     }
   },
 
-  /**
-   * Register a new tenant
-   */
   async registerTenant(data: RegisterTenantData): Promise<RegisterResponse> {
     try {
       const response = await api.post<RegisterResponse>('/auth/tenant/register', data);
       return response.data;
     } catch (error: any) {
-      // Log server side validation details when present to help debugging
       const serverMessage = error.response?.data?.message;
       const serverDetails = error.response?.data?.details || error.response?.data?.errors || null;
       if (serverDetails) console.warn('RegisterTenant server details:', serverDetails);
 
-      // Build friendly message but attach details for UI
       let friendly = 'Registration failed. Please try again.';
 
       if (error.response?.status === 400) {
