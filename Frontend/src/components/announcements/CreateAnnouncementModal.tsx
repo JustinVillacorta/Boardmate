@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { X, Users, AlertCircle } from 'lucide-react';
 import { AnnouncementFormData } from '../../types/announcement';
+import { validateAnnouncementCreate } from '../../utils/validation';
+import { useToast } from '../ui/ToastProvider';
 
 interface CreateAnnouncementModalProps {
   isOpen: boolean;
@@ -15,6 +17,7 @@ const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = ({
   onSubmit,
   isLoading = false
 }) => {
+  const toast = useToast();
   const [formData, setFormData] = useState<AnnouncementFormData>({
     title: '',
     content: '',
@@ -23,7 +26,7 @@ const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = ({
     attachments: []
   });
 
-  const [errors, setErrors] = useState<Partial<AnnouncementFormData>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   if (!isOpen) return null;
 
@@ -37,29 +40,17 @@ const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = ({
     }));
 
     // Clear error when user starts typing
-    if (errors[name as keyof AnnouncementFormData]) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: undefined
-      }));
+    if (errors[name]) {
+      setErrors(prev => {
+        const next = { ...prev };
+        delete next[name];
+        return next;
+      });
     }
   };
 
   const validateForm = (): boolean => {
-    const newErrors: Partial<AnnouncementFormData> = {};
-
-    if (!formData.title.trim()) {
-      newErrors.title = 'Title is required';
-    } else if (formData.title.trim().length < 3) {
-      newErrors.title = 'Title must be at least 3 characters';
-    }
-
-    if (!formData.content.trim()) {
-      newErrors.content = 'Content is required';
-    } else if (formData.content.trim().length < 10) {
-      newErrors.content = 'Content must be at least 10 characters';
-    }
-
+    const newErrors = validateAnnouncementCreate(formData);
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -73,6 +64,7 @@ const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = ({
 
     try {
       await onSubmit(formData);
+      toast.success('Announcement created successfully');
       
       // Reset form
       setFormData({
@@ -85,6 +77,7 @@ const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = ({
       setErrors({});
     } catch (error) {
       console.error('Failed to create announcement:', error);
+      toast.error('Failed to create announcement. Please try again.');
     }
   };
 

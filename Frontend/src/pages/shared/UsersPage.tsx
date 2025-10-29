@@ -25,6 +25,21 @@ interface UserData {
   monthlyRent?: number;
   avatar?: string;
   createdAt?: string | null;
+  firstName?: string;
+  lastName?: string;
+  phoneNumber?: string;
+  occupation?: string;
+  address?: {
+    street?: string;
+    city?: string;
+    province?: string;
+    zipCode?: string;
+  } | null;
+  emergencyContact?: {
+    name?: string;
+    relationship?: string;
+    phoneNumber?: string;
+  } | null;
 }
 
 interface UsersPageProps {
@@ -85,7 +100,22 @@ const UsersPage: React.FC<UsersPageProps> = ({ currentPage, onNavigate, userRole
           ? record.name?.charAt(0) || 'S'
           : record.firstName?.charAt(0) || record.lastName?.charAt(0) || 'T'
         ,
-        createdAt: record.createdAt || null
+        createdAt: record.createdAt || null,
+        firstName: record.firstName || '',
+        lastName: record.lastName || '',
+        phoneNumber: record.phoneNumber || '',
+        occupation: record.occupation || '',
+        address: record.address ? {
+          street: record.address?.street || '',
+          city: record.address?.city || '',
+          province: record.address?.province || '',
+          zipCode: record.address?.zipCode || ''
+        } : null,
+        emergencyContact: record.emergencyContact ? {
+          name: record.emergencyContact?.name || '',
+          relationship: record.emergencyContact?.relationship || '',
+          phoneNumber: record.emergencyContact?.phoneNumber || ''
+        } : null
       }));
       
       setUsers(transformedUsers);
@@ -449,7 +479,13 @@ const UsersPage: React.FC<UsersPageProps> = ({ currentPage, onNavigate, userRole
             roomNumber: editingUser.roomNumber,
             roomType: editingUser.roomType,
             monthlyRent: editingUser.monthlyRent,
-            avatar: editingUser.avatar
+            avatar: editingUser.avatar,
+            firstName: editingUser.firstName,
+            lastName: editingUser.lastName,
+            phoneNumber: editingUser.phoneNumber,
+            occupation: editingUser.occupation,
+            address: editingUser.address,
+            emergencyContact: editingUser.emergencyContact
           }}
           onClose={() => setEditingUser(null)}
           onUpdate={handleUpdateUser}

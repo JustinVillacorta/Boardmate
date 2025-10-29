@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, User, Mail, Phone, Home, Eye, EyeOff } from 'lucide-react';
 import { userManagementService, UpdateStaffData, UpdateTenantData } from '../../services/userManagementService';
 import { validateEditUser, withPH, sanitizeDigits } from '../../utils/validation';
+import { useToast } from '../ui/ToastProvider';
 
 interface UserData {
   id: string;
@@ -14,6 +15,21 @@ interface UserData {
   roomType?: string;
   monthlyRent?: number;
   avatar?: string;
+  firstName?: string;
+  lastName?: string;
+  phoneNumber?: string;
+  occupation?: string;
+  address?: {
+    street?: string;
+    city?: string;
+    province?: string;
+    zipCode?: string;
+  } | null;
+  emergencyContact?: {
+    name?: string;
+    relationship?: string;
+    phoneNumber?: string;
+  } | null;
 }
 
 interface EditUserModalProps {
@@ -42,57 +58,109 @@ interface FormData {
   };
 }
 
-const EditUserModal: React.FC<EditUserModalProps> = ({ user, onClose, onUpdate }) => {
-  const [formData, setFormData] = useState<FormData>({
-    // Staff fields
-    name: user.name,
-    email: user.email,
+const extractPhoneDigits = (value?: string): string => {
+  if (!value) return '';
+  const digits = sanitizeDigits(value);
+  if (!digits) return '';
+  if (value.trim().startsWith('+63')) {
+    return digits.slice(-10);
+  }
+  return digits.length > 10 ? digits.slice(-10) : digits;
+};
 
-    // Tenant fields
-    firstName: '',
-    lastName: '',
-    phoneNumber: '',
-    occupation: '',
-    address: {
-      street: '',
-      city: '',
-      province: '',
-      zipCode: ''
-    },
-    emergencyContact: {
-      name: '',
-      relationship: '',
-      phoneNumber: ''
+const resolvePhoneNumber = (digits: string, fallback?: string): string => {
+  const trimmedFallback = (fallback || '').trim();
+  return digits ? withPH(digits) : trimmedFallback;
+};
+
+const EditUserModal: React.FC<EditUserModalProps> = ({ user, onClose, onUpdate }) => {
+  const toast = useToast();
+  const createInitialFormData = (incomingUser: UserData): FormData => {
+    let firstName = incomingUser.firstName || '';
+    let lastName = incomingUser.lastName || '';
+
+    if (incomingUser.role === 'Tenant') {
+      const nameParts = (incomingUser.name || '').trim().split(/\s+/);
+      if (!firstName && nameParts.length > 0) {
+        firstName = nameParts[0];
+      }
+      if (!lastName && nameParts.length > 1) {
+        lastName = nameParts.slice(1).join(' ');
+      }
     }
-  });
+
+    return {
+      name: incomingUser.name || '',
+      email: incomingUser.email || '',
+      firstName,
+      lastName,
+      phoneNumber: incomingUser.phoneNumber || '',
+      occupation: incomingUser.occupation || '',
+      address: {
+        street: incomingUser.address?.street || '',
+        city: incomingUser.address?.city || '',
+        province: incomingUser.address?.province || '',
+        zipCode: incomingUser.address?.zipCode || ''
+      },
+      emergencyContact: {
+        name: incomingUser.emergencyContact?.name || '',
+        relationship: incomingUser.emergencyContact?.relationship || '',
+        phoneNumber: incomingUser.emergencyContact?.phoneNumber || ''
+      }
+    };
+  };
+
+  const [formData, setFormData] = useState<FormData>(() => createInitialFormData(user));
   
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [generalError, setGeneralError] = useState('');
-  const [phoneDigits, setPhoneDigits] = useState('');
-  const [emergencyPhoneDigits, setEmergencyPhoneDigits] = useState('');
+  const [phoneDigits, setPhoneDigits] = useState<string>(() => extractPhoneDigits(user.phoneNumber));
+  const [emergencyPhoneDigits, setEmergencyPhoneDigits] = useState<string>(() => extractPhoneDigits(user.emergencyContact?.phoneNumber));
   const [errorSummary, setErrorSummary] = useState<string[]>([]);
 
   useEffect(() => {
-    // Initialize form data based on user role
-    if (user.role === 'Tenant') {
-      // Split name into first and last name for tenants
-      const nameParts = user.name.split(' ');
-      setFormData(prev => ({
-        ...prev,
-        firstName: nameParts[0] || '',
-        lastName: nameParts.slice(1).join(' ') || ''
-      }));
-    }
+    setFormData(createInitialFormData(user));
+    setPhoneDigits(extractPhoneDigits(user.phoneNumber));
+    setEmergencyPhoneDigits(extractPhoneDigits(user.emergencyContact?.phoneNumber));
+    setErrors({});
+    setErrorSummary([]);
+    setGeneralError('');
   }, [user]);
+
+  useEffect(() => {
+    if (user.role !== 'Tenant') return;
+    if (phoneDigits.length !== 10) return;
+    setFormData(prev => {
+      const nextPhone = withPH(phoneDigits);
+      if (nextPhone === prev.phoneNumber) return prev;
+      return { ...prev, phoneNumber: nextPhone };
+    });
+  }, [phoneDigits, user.role]);
+
+  useEffect(() => {
+    if (user.role !== 'Tenant') return;
+    if (emergencyPhoneDigits.length !== 10) return;
+    setFormData(prev => {
+      const nextPhone = withPH(emergencyPhoneDigits);
+      if (nextPhone === prev.emergencyContact.phoneNumber) return prev;
+      return {
+        ...prev,
+        emergencyContact: {
+          ...prev.emergencyContact,
+          phoneNumber: nextPhone
+        }
+      };
+    });
+  }, [emergencyPhoneDigits, user.role]);
 
   const validateForm = (): boolean => {
     const composed: any = {
       ...formData,
-      phoneNumber: user.role === 'Tenant' && phoneDigits ? withPH(phoneDigits) : formData.phoneNumber,
+      phoneNumber: user.role === 'Tenant' ? resolvePhoneNumber(phoneDigits, formData.phoneNumber) : formData.phoneNumber,
       emergencyContact: {
         ...formData.emergencyContact,
-        phoneNumber: user.role === 'Tenant' && emergencyPhoneDigits ? withPH(emergencyPhoneDigits) : formData.emergencyContact.phoneNumber,
+        phoneNumber: user.role === 'Tenant' ? resolvePhoneNumber(emergencyPhoneDigits, formData.emergencyContact.phoneNumber) : formData.emergencyContact.phoneNumber,
       }
     };
     const newErrors = validateEditUser(composed, user.role);
@@ -123,23 +191,27 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ user, onClose, onUpdate }
         }
         
         await userManagementService.updateStaff(user.id, staffData);
+        toast.success('User details updated successfully');
       } else {
         // Update tenant
+        const resolvedPhoneNumber = resolvePhoneNumber(phoneDigits, formData.phoneNumber);
+        const resolvedEmergencyPhoneNumber = resolvePhoneNumber(emergencyPhoneDigits, formData.emergencyContact.phoneNumber);
         const tenantData: UpdateTenantData = {
           firstName: formData.firstName,
           lastName: formData.lastName,
-          phoneNumber: withPH(phoneDigits),
+          phoneNumber: resolvedPhoneNumber || undefined,
           occupation: formData.occupation || undefined,
           address: Object.keys(formData.address).some(key => formData.address[key as keyof typeof formData.address]) 
-            ? formData.address 
+            ? { ...formData.address }
             : undefined,
           emergencyContact: {
             name: formData.emergencyContact.name,
             relationship: formData.emergencyContact.relationship,
-            phoneNumber: withPH(emergencyPhoneDigits)
+            phoneNumber: resolvedEmergencyPhoneNumber || ''
           }
         };
         await userManagementService.updateTenant(user.id, tenantData);
+        toast.success('User details updated successfully');
       }
       
       onUpdate(); // Refresh the user list
@@ -147,6 +219,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ user, onClose, onUpdate }
     } catch (error: any) {
       console.error('Error updating user:', error);
       setGeneralError(error.message || 'Failed to update user');
+      toast.error(error?.message || 'Failed to update user');
     } finally {
       setIsSubmitting(false);
     }
@@ -165,13 +238,29 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ user, onClose, onUpdate }
     }
 
     // Clear error when user starts typing
-    if (errors[field]) {
-      setErrors(prev => {
+    setErrors(prev => {
+      if (field.includes('.')) {
+        const [, child] = field.split('.');
+        const keysToRemove = [field, child];
+        let modified = false;
         const copy = { ...prev };
-        delete (copy as Record<string, string>)[field];
-        return copy;
-      });
-    }
+        keysToRemove.forEach(key => {
+          if (copy[key]) {
+            delete copy[key];
+            modified = true;
+          }
+        });
+        return modified ? copy : prev;
+      }
+
+      if (!prev[field]) {
+        return prev;
+      }
+
+      const copy = { ...prev };
+      delete copy[field];
+      return copy;
+    });
   };
 
   return (

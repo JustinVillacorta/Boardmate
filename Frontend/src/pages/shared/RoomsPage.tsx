@@ -13,6 +13,7 @@ import ListPageSkeleton from '../../components/skeletons/ListPageSkeleton';
 import * as roomManagementService from '../../services/roomManagementService';
 import { RoomDisplayData, RoomFilters } from '../../types/room';
 import { exportToExcel, formatDate, formatCurrency } from '../../utils/excelExport';
+import { useToast } from '../../components/ui/ToastProvider';
 
 interface RoomData {
   id: string;
@@ -36,6 +37,7 @@ interface RoomsPageProps {
 }
 
 const RoomsPage: React.FC<RoomsPageProps> = ({ currentPage, onNavigate, userRole = 'admin' }) => {
+  const toast = useToast();
   const [search, setSearch] = useState('');
   const [isSortOpen, setIsSortOpen] = useState(false);
   const [sortOption, setSortOption] = useState<'ascending' | 'descending'>('ascending');
@@ -103,9 +105,11 @@ const RoomsPage: React.FC<RoomsPageProps> = ({ currentPage, onNavigate, userRole
     try {
       await roomManagementService.deleteRoom(id);
       await fetchRooms(); // Refresh the list
+      toast.success('Room deleted successfully');
     } catch (err: any) {
       console.error('Error deleting room:', err);
       setError(err.message || 'Failed to delete room');
+      toast.error('Failed to delete room. Please try again.');
     }
   };
 
@@ -138,9 +142,11 @@ const RoomsPage: React.FC<RoomsPageProps> = ({ currentPage, onNavigate, userRole
     try {
       await roomManagementService.createRoom(data);
       await fetchRooms(); // Refresh the list
+      toast.success('Room created successfully');
     } catch (err: any) {
       console.error('Error creating room:', err);
       setError(err.message || 'Failed to create room');
+      toast.error('Failed to create room. Please try again.');
     }
   };
 
@@ -153,9 +159,11 @@ const RoomsPage: React.FC<RoomsPageProps> = ({ currentPage, onNavigate, userRole
     try {
       await roomManagementService.updateRoom(id, data);
       await fetchRooms(); // Refresh the list
+      toast.success('Room updated successfully');
     } catch (err: any) {
       console.error('Error updating room:', err);
       setError(err.message || 'Failed to update room');
+      toast.error('Failed to update room. Please try again.');
     }
   };
 

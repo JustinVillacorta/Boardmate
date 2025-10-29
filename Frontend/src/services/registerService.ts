@@ -7,8 +7,9 @@ export const registerService = {
       const response = await api.post<RegisterResponse>('/auth/register', data);
       return response.data;
     } catch (error: any) {
-      const serverMessage = error.response?.data?.message;
-      const serverDetails = error.response?.data?.details || error.response?.data?.errors || null;
+  // Backend uses `error` for the user-facing message, but some places may use `message`
+  const serverMessage = error.response?.data?.message || error.response?.data?.error;
+  const serverDetails = error.response?.data?.details || error.response?.data?.errors || null;
       if (serverDetails) console.warn('RegisterStaff server details:', serverDetails);
 
       let friendly = 'Registration failed. Please try again.';
@@ -51,7 +52,7 @@ export const registerService = {
       const response = await api.post<RegisterResponse>('/auth/tenant/register', data);
       return response.data;
     } catch (error: any) {
-      const serverMessage = error.response?.data?.message;
+      const serverMessage = error.response?.data?.message || error.response?.data?.error;
       const serverDetails = error.response?.data?.details || error.response?.data?.errors || null;
       if (serverDetails) console.warn('RegisterTenant server details:', serverDetails);
 
@@ -69,6 +70,7 @@ export const registerService = {
         } else if (serverMessage?.includes('phoneNumber')) {
           friendly = 'Please enter a valid phone number (10-15 digits).';
         } else if (serverMessage?.includes('dateOfBirth')) {
+          // Backend enforces 18 years; align the friendly message
           friendly = 'Tenant must be at least 18 years old.';
         } else if (serverMessage?.includes('idType')) {
           friendly = 'Please select a valid ID type.';

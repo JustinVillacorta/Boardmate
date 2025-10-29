@@ -1,4 +1,5 @@
 import React from 'react';
+import { validateMarkPaymentPaid } from '../../utils/validation';
 
 export interface MarkAsPaidData {
   paymentDate: string;
@@ -20,6 +21,7 @@ const MarkAsPaidForm: React.FC<{
     transactionReference: initial.transactionReference ?? '',
     notes: initial.notes ?? '',
   });
+  const [errors, setErrors] = React.useState<Record<string, string>>({});
 
   React.useEffect(() => {
     setForm({
@@ -28,6 +30,7 @@ const MarkAsPaidForm: React.FC<{
       transactionReference: initial.transactionReference ?? '',
       notes: initial.notes ?? '',
     });
+    setErrors({});
   }, [initial]);
 
   if (!open) return null;
@@ -41,7 +44,16 @@ const MarkAsPaidForm: React.FC<{
           <button aria-label="Close" className="text-gray-500 text-xl leading-none" onClick={onCancel}>×</button>
         </div>
 
-        <form onSubmit={(e) => { e.preventDefault(); onSubmit(form); }} className="space-y-4">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            const validationErrors = validateMarkPaymentPaid(form);
+            setErrors(validationErrors);
+            if (Object.keys(validationErrors).length > 0) return;
+            onSubmit(form);
+          }}
+          className="space-y-4"
+        >
           <div>
             <label className="block text-sm text-gray-600 mb-1">Payment Date</label>
             <input required type="date" value={form.paymentDate} onChange={e => setForm(f => ({ ...f, paymentDate: e.target.value }))} className="w-full border rounded-md px-3 py-2" />
@@ -62,16 +74,50 @@ const MarkAsPaidForm: React.FC<{
 
           <div>
             <label className="block text-sm text-gray-600 mb-1">Transaction Reference</label>
-            <input required type="text" value={form.transactionReference} onChange={e => setForm(f => ({ ...f, transactionReference: e.target.value }))} className="w-full border rounded-md px-3 py-2" />
+            <input
+              required
+              type="text"
+              value={form.transactionReference}
+              onChange={e => setForm(f => {
+                const next = { ...f, transactionReference: e.target.value };
+                if (errors.transactionReference) setErrors(prev => { const copy = { ...prev }; delete copy.transactionReference; return copy; });
+                return next;
+              })}
+              className={`w-full border rounded-md px-3 py-2 ${errors.transactionReference ? 'border-red-500' : 'border-gray-300'}`}
+              aria-invalid={!!errors.transactionReference}
+              aria-describedby={errors.transactionReference ? 'mark-paid-transactionReference-error' : undefined}
+            />
+            {errors.transactionReference && <p id="mark-paid-transactionReference-error" className="text-xs text-red-500 mt-1">{errors.transactionReference}</p>}
           </div>
 
           <div>
             <label className="block text-sm text-gray-600 mb-1">Notes</label>
-            <textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} className="w-full border rounded-md px-3 py-2" rows={3} />
+            <textarea
+              value={form.notes}
+              onChange={e => setForm(f => {
+                const next = { ...f, notes: e.target.value };
+                if (errors.notes) setErrors(prev => { const copy = { ...prev }; delete copy.notes; return copy; });
+                return next;
+              })}
+              className={`w-full border rounded-md px-3 py-2 ${errors.notes ? 'border-red-500' : 'border-gray-300'}`}
+              aria-invalid={!!errors.notes}
+              aria-describedby={errors.notes ? 'mark-paid-notes-error' : undefined}
+              rows={3}
+            />
+            {errors.notes && <p id="mark-paid-notes-error" className="text-xs text-red-500 mt-1">{errors.notes}</p>}
           </div>
 
           <div className="flex items-center justify-end space-x-3 pt-4 border-t">
-            <button type="button" onClick={() => setForm({ paymentDate: initial.paymentDate ?? '', paymentMethod: initial.paymentMethod ?? 'cash', transactionReference: initial.transactionReference ?? '', notes: initial.notes ?? '' })} className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors font-medium">Clear</button>
+            <button
+              type="button"
+              onClick={() => {
+                setForm({ paymentDate: initial.paymentDate ?? '', paymentMethod: initial.paymentMethod ?? 'cash', transactionReference: initial.transactionReference ?? '', notes: initial.notes ?? '' });
+                setErrors({});
+              }}
+              className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors font-medium"
+            >
+              Clear
+            </button>
             <button type="submit" className="px-4 py-2 rounded-md bg-blue-600 text-white">Mark as Paid</button>
           </div>
         </form>

@@ -5,8 +5,10 @@ import DownloadDialog from '../../components/ui/DownloadDialog';
 import LoadingState from '../../components/ui/LoadingState';
 import ListPageSkeleton from '../../components/skeletons/ListPageSkeleton';
 import CreatePaymentForm, { PaymentPayload } from '../../components/payments/CreatePaymentForm';
+import { validatePaymentCreate } from '../../utils/validation';
 import MarkAsPaidForm, { default as _MarkAsPaidForm } from '../../components/payments/MarkAsPaidForm';
 import PaymentService from '../../services/paymentService';
+import { useToast } from '../../components/ui/ToastProvider';
 
 interface PaymentRecord {
   id: string;
@@ -27,6 +29,7 @@ interface PaymentHistoryPageProps {
 }
 
 const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ currentPage, onNavigate, userRole = 'admin' }) => {
+  const toast = useToast();
   const [downloadRow, setDownloadRow] = React.useState<PaymentRecord | null>(null);
   const [showCreateForm, setShowCreateForm] = React.useState(false);
   const [outstanding, setOutstanding] = React.useState<PaymentRecord[]>([]);
@@ -259,9 +262,11 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ currentPage, on
                       await PaymentService.markPaid(payingRow.id, { transactionReference: data.transactionReference, notes: data.notes });
                       setPayingRow(null);
                       await refresh();
+                      toast.success('Payment marked as paid successfully');
                     } catch (e) {
                       // eslint-disable-next-line no-console
                       console.error(e);
+                      toast.error('Failed to mark payment as paid. Please try again.');
                     }
                   }}
                 />
@@ -282,13 +287,21 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ currentPage, on
                         const freshSel = typeof window !== 'undefined' ? sessionStorage.getItem('selectedPaymentRoom') : null;
                         const freshParsed = freshSel ? JSON.parse(freshSel) : { tenantId: '', roomId: '' };
                         if (!freshParsed.tenantId || !freshParsed.roomId) { alert('No tenant/room in context'); return; }
-                        // Cast to CreatePaymentDTO to satisfy stricter paymentType union in service types
-                        await PaymentService.create({ ...payload, tenant: freshParsed.tenantId, room: freshParsed.roomId } as any);
+                        const completePayload = { ...payload, tenant: freshParsed.tenantId, room: freshParsed.roomId } as any;
+                        const validationErrors = validatePaymentCreate(completePayload);
+                        if (Object.keys(validationErrors).length) {
+                          const firstError = Object.values(validationErrors)[0];
+                          alert(firstError);
+                          return;
+                        }
+                        await PaymentService.create(completePayload);
                         setShowCreateForm(false);
                         await refresh();
+                        toast.success('Payment created successfully');
                       } catch (e) {
                         // eslint-disable-next-line no-console
                         console.error(e);
+                        toast.error('Failed to create payment. Please try again.');
                       }
                     }}
                   />
