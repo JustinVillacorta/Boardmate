@@ -50,7 +50,7 @@ const EditRoomModal: React.FC<Props> = ({ room, onClose, onUpdate }) => {
   };
 
   const validate = () => {
-    const e = validateRoom(form);
+    const e = validateRoom(form, { isUpdate: true });
     setErrors(e);
     return Object.keys(e).length === 0;
   };

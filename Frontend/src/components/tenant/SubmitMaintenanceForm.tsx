@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import { authService } from '../../services/authService';
+import { validateReportCreate } from '../../utils/validation';
+import { useToast } from '../ui/ToastProvider';
 
 interface SubmitMaintenanceFormProps {
   onClose: () => void;
@@ -21,7 +23,8 @@ const SubmitMaintenanceForm: React.FC<SubmitMaintenanceFormProps> = ({ onClose, 
     description: ''
   });
 
-  const [errors, setErrors] = useState<Partial<MaintenanceFormData>>({});
+  const toast = useToast();
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -32,35 +35,22 @@ const SubmitMaintenanceForm: React.FC<SubmitMaintenanceFormProps> = ({ onClose, 
     }));
 
     // Clear error when user starts typing
-    if (errors[name as keyof MaintenanceFormData]) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: undefined
-      }));
+    if (errors[name]) {
+      setErrors(prev => {
+        const next = { ...prev };
+        delete next[name];
+        return next;
+      });
     }
   };
 
   const validateForm = (): boolean => {
-    const newErrors: Partial<MaintenanceFormData> = {};
-
-    if (!formData.type || !formData.type.trim()) {
-      newErrors.type = 'Type is required';
-    }
-
-    if (!formData.title.trim()) {
-      newErrors.title = 'Title is required';
-    } else if (formData.title.trim().length < 5) {
-      newErrors.title = 'Title must be at least 5 characters';
-    }
-
-    if (!formData.description.trim()) {
-      newErrors.description = 'Description is required';
-    } else if (formData.description.trim().length < 10) {
-      newErrors.description = 'Description must be at least 10 characters';
-    }
-
-    // only title and description are required for API payload
-
+    const payload = {
+      type: formData.type,
+      title: formData.title,
+      description: formData.description,
+    };
+    const newErrors = validateReportCreate(payload, { requireRoom: false });
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -93,16 +83,31 @@ const SubmitMaintenanceForm: React.FC<SubmitMaintenanceFormProps> = ({ onClose, 
 
       console.log('Debug: Submitting report with room ID:', roomId);
 
-  const payload = { room: roomId, type: formData.type || 'maintenance', title: formData.title.trim(), description: formData.description.trim() };
+      const payload = {
+        room: roomId,
+        type: formData.type || 'maintenance',
+        title: formData.title.trim(),
+        description: formData.description.trim(),
+      };
+
+      const newErrors = validateReportCreate(payload);
+      if (Object.keys(newErrors).length) {
+        const { room: roomError, ...fieldErrors } = newErrors;
+        setErrors(prev => ({ ...prev, ...fieldErrors }));
+        if (roomError) alert(roomError);
+        setIsSubmitting(false);
+        return;
+      }
 
       await onSubmit(payload);
+      toast.success('Maintenance request submitted successfully');
       setIsSubmitting(false);
       onClose();
     } catch (err: any) {
       setIsSubmitting(false);
       console.error('Error submitting report:', err);
       setErrors(prev => ({ ...prev, description: prev.description }));
-      alert(err?.message || 'Failed to submit maintenance request');
+      toast.error(err?.message || 'Failed to submit maintenance request');
     }
   };
 

@@ -3,6 +3,7 @@ import { X, User, Mail, Shield, Calendar, MapPin, Phone, Home, CreditCard, Eye, 
 import { registerService } from '../../services/registerService';
 import { RegisterStaffData, RegisterTenantData } from '../../types';
 import { validateCreateUser, withPH, sanitizeDigits } from '../../utils/validation';
+import { useToast } from '../ui/ToastProvider';
 
 interface UserData {
   // Personal Information
@@ -60,6 +61,7 @@ const mapIdTypeToBackend = (frontendIdType: string): 'passport' | 'drivers_licen
 };
 
 const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onCreate, isStaffUser = false }) => {
+  const toast = useToast();
   const [formData, setFormData] = useState<UserData>({
     // Personal Information
     firstName: '',
@@ -168,14 +170,46 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onCreate, is
         
         await registerService.registerTenant(tenantData);
       }
+      toast.success('User account created successfully');
       
       // Call the original onCreate callback for UI updates
       await onCreate(formData);
       setGeneralError(null);
     } catch (error: any) {
       console.error('Error creating user:', error);
-      // Set a general error message
-      setGeneralError(error.message || 'Failed to create user account');
+
+      // Prefer server response message (backend returns { error: '...' })
+      const serverMsg: string = String(error.serverResponse?.error || error.serverResponse?.message || error.message || '');
+
+      // If server returned field-level validation details, map them to form errors
+      const serverDetails = error.details || error.serverResponse?.details || error.serverResponse?.errors || null;
+      if (serverDetails && typeof serverDetails === 'object') {
+        const fieldErrors: Record<string, string> = {};
+        if (Array.isArray(serverDetails)) {
+          // Array of messages -> put into generalError and toast
+          setGeneralError(serverDetails.join('; '));
+          toast.error(serverDetails.join('; '));
+        } else {
+          Object.keys(serverDetails).forEach((key) => {
+            const val = (serverDetails as any)[key];
+            if (Array.isArray(val)) fieldErrors[key] = val.join(' ');
+            else if (typeof val === 'string') fieldErrors[key] = val;
+            else fieldErrors[key] = String(val);
+          });
+          setErrors(prev => ({ ...prev, ...(fieldErrors as any) }));
+        }
+      } else if (serverMsg) {
+        // If server message mentions DOB or age, show it inline on the dateOfBirth field
+        if (/dateOfBirth|date of birth|at least \d+ years/i.test(serverMsg)) {
+          setErrors(prev => ({ ...prev, dateOfBirth: serverMsg }));
+          setGeneralError(null);
+          toast.error(serverMsg);
+        } else {
+          // Generic fallback
+          setGeneralError(serverMsg || 'Failed to create user account');
+          toast.error(serverMsg || 'Failed to create user account');
+        }
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -546,7 +580,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onCreate, is
                         type="date"
                         value={formData.dateOfBirth}
                         onChange={(e) => handleChange('dateOfBirth', e.target.value)}
-                        max={new Date(new Date().setFullYear(new Date().getFullYear() - 16)).toISOString().split('T')[0]}
+                        max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
                         className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
                           errors.dateOfBirth ? 'border-red-500' : 'border-gray-300'
                         }`}
@@ -800,10 +834,15 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onCreate, is
                         type="text"
                         value={formData.relationship}
                         onChange={(e) => handleChange('relationship', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                          errors.relationship ? 'border-red-500' : 'border-gray-300'
+                        }`}
                         placeholder="Relationship"
                         disabled={isSubmitting}
                       />
+                      {errors.relationship && (
+                        <p className="text-red-500 text-xs mt-1">{errors.relationship}</p>
+                      )}
                     </div>
 
                     {/* Contact Phone */}

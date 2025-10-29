@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, UserPlus, UserMinus, Upload, FileText, Wand2, Check, ChevronRight, ChevronLeft } from 'lucide-react';
 import * as roomManagementService from '../../services/roomManagementService';
 import RemoveTenantConfirmDialog from './RemoveTenantConfirmDialog';
+import { useToast } from '../ui/ToastProvider';
 
 interface RoomData {
   id: string;
@@ -29,6 +30,7 @@ interface Props {
 type Step = 1 | 2 | 3;
 
 const ManageTenantsModal: React.FC<Props> = ({ room, onClose, onAddTenant }) => {
+  const toast = useToast();
   const [current, total] = room.occupancy.split('/').map(s => Number(s));
   const available = Math.max(0, total - current);
 
@@ -180,8 +182,10 @@ const ManageTenantsModal: React.FC<Props> = ({ room, onClose, onAddTenant }) => 
       
       onAddTenant && onAddTenant(room.id);
       onClose();
+      toast.success('Tenant assigned successfully');
     } catch (err: any) {
       setError(err.message || 'Failed to assign tenant');
+      toast.error(err?.message || 'Failed to assign tenant. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -651,4 +655,3 @@ const ManageTenantsModal: React.FC<Props> = ({ room, onClose, onAddTenant }) => 
 };
 
 export default ManageTenantsModal;
-
