@@ -90,13 +90,7 @@ export interface ArchiveResponse {
   message: string;
 }
 
-/**
- * Service for fetching staff and tenant data
- */
 export const userManagementService = {
-  /**
-   * Get all staff and tenants with filtering and pagination
-   */
   async getStaffAndTenants(params?: {
     page?: number;
     limit?: number;
@@ -112,7 +106,6 @@ export const userManagementService = {
     try {
       const queryParams = new URLSearchParams();
       
-      // Set default values to exclude archived users unless explicitly requested
       const defaultParams = {
         isArchived: false,
         ...params
@@ -129,7 +122,6 @@ export const userManagementService = {
       if (defaultParams?.sortBy) queryParams.append('sortBy', defaultParams.sortBy);
       if (defaultParams?.sortOrder) queryParams.append('sortOrder', defaultParams.sortOrder);
       
-      // Add cache-busting parameter to ensure fresh data
       queryParams.append('_t', Date.now().toString());
 
       const response = await api.get<StaffAndTenantsResponse>(`/auth/staff-and-tenants?${queryParams.toString()}`);
@@ -145,9 +137,6 @@ export const userManagementService = {
     }
   },
 
-  /**
-   * Update staff user details (Admin only)
-   */
   async updateStaff(userId: string, data: UpdateStaffData): Promise<UpdateResponse> {
     try {
       const response = await api.put<UpdateResponse>(`/auth/admin/update-user/${userId}`, data);
@@ -163,9 +152,6 @@ export const userManagementService = {
     }
   },
 
-  /**
-   * Update tenant details (Staff/Admin)
-   */
   async updateTenant(userId: string, data: UpdateTenantData): Promise<UpdateResponse> {
     try {
       const response = await api.put<UpdateResponse>(`/auth/staff/update-tenant/${userId}`, data);
@@ -181,9 +167,6 @@ export const userManagementService = {
     }
   },
 
-  /**
-   * Archive staff user account (Admin only)
-   */
   async archiveStaff(userId: string): Promise<ArchiveResponse> {
     try {
       const response = await api.delete<ArchiveResponse>(`/auth/admin/archive-user/${userId}`);
@@ -199,9 +182,6 @@ export const userManagementService = {
     }
   },
 
-  /**
-   * Archive tenant account (Staff/Admin)
-   */
   async archiveTenant(userId: string): Promise<ArchiveResponse> {
     try {
       const response = await api.delete<ArchiveResponse>(`/auth/admin/archive-tenant/${userId}`);
@@ -217,9 +197,6 @@ export const userManagementService = {
     }
   },
 
-  /**
-   * Unarchive staff user account (Admin only)
-   */
   async unarchiveStaff(userId: string): Promise<ArchiveResponse> {
     try {
       const response = await api.patch<ArchiveResponse>(`/auth/admin/unarchive-user/${userId}`);
@@ -235,9 +212,6 @@ export const userManagementService = {
     }
   },
 
-  /**
-   * Unarchive tenant account (Staff/Admin)
-   */
   async unarchiveTenant(userId: string): Promise<ArchiveResponse> {
     try {
       const response = await api.patch<ArchiveResponse>(`/auth/admin/unarchive-tenant/${userId}`);
@@ -253,17 +227,11 @@ export const userManagementService = {
     }
   },
 
-  /**
-   * Clean up archived tenants from rooms (Admin only)
-   */
   async cleanupArchivedTenants(): Promise<{ success: boolean; message: string; data: any }> {
     const response = await api.post('/auth/admin/cleanup-archived-tenants');
     return response.data;
   },
 
-  /**
-   * Verify room-tenant data integrity (Admin only)
-   */
   async verifyRoomTenantIntegrity(): Promise<{ success: boolean; message: string; data: any }> {
     const response = await api.get('/auth/admin/verify-room-tenant-integrity');
     return response.data;

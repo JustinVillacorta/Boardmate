@@ -18,7 +18,6 @@ export const notificationService = {
   async getNotifications(params: { page?: number; limit?: number; status?: string; type?: string; includeRead?: boolean; includeArchived?: boolean } = {}) {
     const qs = new URLSearchParams();
     
-    // Set default values to exclude archived notifications unless explicitly requested
     const defaultParams = {
       includeArchived: false,
       ...params
@@ -30,7 +29,7 @@ export const notificationService = {
     if (defaultParams.type) qs.append('type', defaultParams.type);
     if (defaultParams.includeRead !== undefined) qs.append('includeRead', String(defaultParams.includeRead));
     if (defaultParams.includeArchived !== undefined) qs.append('includeArchived', String(defaultParams.includeArchived));
-    qs.append('_t', String(Date.now()));
+  qs.append('_t', String(Date.now()));
 
     const res = await api.get(`/notifications?${qs.toString()}`);
     return res.data;

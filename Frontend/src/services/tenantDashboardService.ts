@@ -33,14 +33,12 @@ function calculateNextPaymentDue(payments: any[], leaseStartDate: string) {
   const currentMonth = now.getMonth();
   const currentYear = now.getFullYear();
 
-  // Find current month's payment
   const currentPayment = payments.find(p => {
     const dueDate = new Date(p.dueDate);
     return dueDate.getMonth() === currentMonth && dueDate.getFullYear() === currentYear;
   });
 
   if (currentPayment?.status === 'paid') {
-    // Show next month's payment
     const nextMonth = new Date(currentYear, currentMonth + 1, 1);
     const nextPayment = payments.find(p => {
       const dueDate = new Date(p.dueDate);
@@ -59,7 +57,6 @@ function calculateNextPaymentDue(payments: any[], leaseStartDate: string) {
         daysRemaining: diffDays > 0 ? diffDays : 0
       };
     } else {
-      // Calculate next month from lease start date
       const leaseStart = new Date(leaseStartDate);
       const nextDueDate = new Date(currentYear, currentMonth + 1, leaseStart.getDate());
       const diffTime = nextDueDate.getTime() - now.getTime();
@@ -72,14 +69,12 @@ function calculateNextPaymentDue(payments: any[], leaseStartDate: string) {
       };
     }
   } else if (currentPayment) {
-    // Current month payment exists but not paid - show as overdue
     return {
       date: currentPayment.dueDate,
       status: 'overdue' as const,
       daysRemaining: 0
     };
   } else {
-    // No payment record for current month - calculate from lease start
     const leaseStart = new Date(leaseStartDate);
     const currentDueDate = new Date(currentYear, currentMonth, leaseStart.getDate());
     const diffTime = currentDueDate.getTime() - now.getTime();
@@ -106,7 +101,6 @@ export const tenantDashboardService = {
 
       const tenantId = tenantData._id;
 
-      // Fetch payments and reports in parallel
       const [paymentsResponse, reportsResponse] = await Promise.allSettled([
         PaymentService.tenantPayments(tenantId, { limit: 50, sortBy: 'dueDate', sortOrder: 'desc' }),
         reportService.getReports({ tenant: tenantId, limit: 10, sortBy: 'updatedAt' })
@@ -120,7 +114,6 @@ export const tenantDashboardService = {
         ? reportsResponse.value.data?.reports || [] 
         : [];
 
-      // Calculate next payment due
       const nextPaymentDue = calculateNextPaymentDue(
         payments, 
         tenantData.leaseStartDate || new Date().toISOString()
@@ -150,4 +143,3 @@ export const tenantDashboardService = {
 };
 
 export default tenantDashboardService;
-

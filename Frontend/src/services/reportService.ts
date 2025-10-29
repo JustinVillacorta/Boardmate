@@ -36,7 +36,6 @@ export const reportService = {
   async getReports(params: GetReportsParams = {}): Promise<GetReportsResponse> {
     const query = new URLSearchParams();
 
-    // Set default values to exclude archived reports unless explicitly requested
     const defaultParams = {
       isArchived: false,
       ...params
@@ -52,7 +51,6 @@ export const reportService = {
       }
     });
 
-    // cache bust
     query.append('_t', Date.now().toString());
 
     const res = await api.get<GetReportsResponse>(`/reports?${query.toString()}`);

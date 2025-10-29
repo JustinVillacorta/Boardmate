@@ -1,6 +1,5 @@
 import api from '../config/api';
 
-// Types local to the dashboard service to avoid broad type coupling
 export type DashboardData = {
   occupancy: {
     totalRooms: number;
@@ -46,36 +45,30 @@ function getMonthLabel(date: Date): string {
 
 export const dashboardService = {
   async fetchStaffDashboard(): Promise<DashboardData> {
-    // Staff has same access as admin for dashboard data
     return this.fetchAdminDashboard();
   },
   
   async fetchAdminDashboard(): Promise<DashboardData> {
     try {
-      // Current date for monthly stats
       const now = new Date();
 
-      // Prepare all 12 months of the current year
       const months: { year: number; month: number; label: string }[] = [];
       for (let i = 0; i < 12; i++) {
         const d = new Date(now.getFullYear(), i, 1);
         months.push({ year: d.getFullYear(), month: d.getMonth() + 1, label: getMonthLabel(d) });
       }
 
-      // Parallel base requests with error handling
       const [roomsRes, tenantsRes, reportsRes] = await Promise.allSettled([
         api.get('/rooms/stats'),
         api.get('/auth/tenants-only', { params: { limit: 1, isArchived: false } }),
         api.get('/reports', { params: { limit: 1, includeArchivedUsers: false } }),
       ]);
 
-      // Payment stats for each of the last 4 months in parallel
       const paymentMonthPromises = months.map(({ year, month }) =>
         api.get('/payments/stats', { params: { year, month } }).catch(() => ({ data: { data: { summary: {} } } }))
       );
       const paymentMonthResponses = await Promise.all(paymentMonthPromises);
 
-      // Map occupancy with fallback
       const roomOverview = roomsRes.status === 'fulfilled' ? roomsRes.value.data?.data?.overview || {} : {};
       const occupancy = {
         totalRooms: Number(roomOverview.totalRooms) || 0,
@@ -85,7 +78,6 @@ export const dashboardService = {
         occupancyRate: Math.round((Number(roomOverview.occupancyRate) || 0)),
       };
 
-      // Map tenants with fallback
       const tenantSummary = tenantsRes.status === 'fulfilled' ? tenantsRes.value.data?.data?.summary || {} : {};
       const stats = {
         tenants: {
@@ -94,7 +86,6 @@ export const dashboardService = {
         },
       };
 
-      // Map payments with fallback
       const monthlyTrends = paymentMonthResponses.map((resp, idx) => {
         const s = resp.data?.data?.summary || {};
         return {
@@ -105,7 +96,6 @@ export const dashboardService = {
         };
       });
 
-      // Get current month's data (current month index is now.month - 1)
       const currentMonthIndex = now.getMonth();
       const currentSummary = paymentMonthResponses[currentMonthIndex]?.data?.data?.summary || {};
       const payments = {
@@ -121,7 +111,6 @@ export const dashboardService = {
         monthlyTrends,
       };
 
-      // Map reports with fallback
       const reportStats = reportsRes.status === 'fulfilled' ? reportsRes.value.data?.stats || null : null;
       const reports = {
         total: Number(reportStats?.total) || 0,
@@ -138,7 +127,6 @@ export const dashboardService = {
       };
     } catch (error) {
       console.error('Dashboard API error:', error);
-      // Return empty data structure if all APIs fail
       return {
         occupancy: {
           totalRooms: 0,
@@ -177,5 +165,3 @@ export const dashboardService = {
 };
 
 export default dashboardService;
-
-
