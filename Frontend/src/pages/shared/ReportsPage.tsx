@@ -199,7 +199,7 @@ const ReportsPage: React.FC<ReportsPageProps> = ({ currentPage, onNavigate, user
         'Follow-up Date': r.followUpDate ? formatDate(r.followUpDate) : '-'
       }));
       
-      await exportToExcel(exportData, 'reports_export', { 
+      await exportToExcel(exportData, 'Reports_Dataset', { 
         sheetNames: ['Reports'],
         columnWidths: [25, 15, 40, 20, 12, 12, 12, 15, 15, 12, 15]
       });

@@ -185,7 +185,7 @@ const RoomsPage: React.FC<RoomsPageProps> = ({ currentPage, onNavigate, userRole
         'Last Updated': formatDate(room.updatedAt)
       }));
       
-      await exportToExcel(exportData, 'rooms_export', { 
+      await exportToExcel(exportData, 'Rooms_Dataset', { 
         sheetNames: ['Rooms'],
         columnWidths: [15, 15, 15, 12, 12, 12, 10, 10, 20, 40, 15]
       });

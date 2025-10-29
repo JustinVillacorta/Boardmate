@@ -3,6 +3,8 @@ import * as XLSX from 'xlsx';
 export interface ExcelExportOptions {
   sheetNames?: string[];
   columnWidths?: number[];
+  includeDateInFilename?: boolean; // default: true
+  includeTimeInFilename?: boolean; // default: true
 }
 
 /**
@@ -79,8 +81,14 @@ export const exportToExcel = (
     XLSX.utils.book_append_sheet(workbook, worksheet, options?.sheetNames?.[0] || 'Sheet1');
   }
   
-  // Write file
-  XLSX.writeFile(workbook, `${filename}.xlsx`);
+  // Build filename with extraction date/time by default
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const datePart = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  const timePart = `${pad(now.getHours())}-${pad(now.getMinutes())}`;
+  const withDate = options?.includeDateInFilename === false ? filename : `${filename}_${datePart}${options?.includeTimeInFilename === false ? '' : `_${timePart}`}`;
+
+  XLSX.writeFile(workbook, `${withDate}.xlsx`);
 };
 
 /**

@@ -258,7 +258,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ currentPage, onNavigate, userRole
         'Created Date': formatDate(record.createdAt)
       }));
       
-      await exportToExcel(exportData, 'users_export', { 
+      await exportToExcel(exportData, 'Users_Dataset', { 
         sheetNames: ['Users'],
         columnWidths: [25, 30, 12, 12, 15, 12, 15, 15, 15, 15]
       });

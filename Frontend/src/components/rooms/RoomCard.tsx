@@ -41,7 +41,7 @@ const statusColor = (status: RoomProps['room']['status']) => {
 
 const RoomCard: React.FC<RoomProps> = ({ room, onDelete, onEdit, onManageTenants }) => {
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+    <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm h-full flex flex-col">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="text-lg font-semibold text-gray-900">{room.name}</h3>
@@ -85,7 +85,7 @@ const RoomCard: React.FC<RoomProps> = ({ room, onDelete, onEdit, onManageTenants
         </div>
       )}
 
-      <div className="mt-4 flex flex-col gap-2">
+      <div className="mt-auto pt-4 flex flex-col gap-2">
         <div className="flex gap-2">
           <button onClick={() => onEdit && onEdit(room.id)} className="flex-1 px-3 py-2 bg-blue-50 text-blue-600 rounded-lg border border-blue-100 hover:bg-blue-100 transition-colors text-sm flex items-center justify-center gap-2">
             <Edit className="w-4 h-4" />
