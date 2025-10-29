@@ -126,7 +126,10 @@ export const generateReceiptPDF = (payment: PaymentReceipt) => {
   const dateGenerated = new Date().toLocaleString();
   doc.text(`Generated on: ${dateGenerated}`, pageWidth / 2, yPos + 5, { align: 'center' });
   
-  // Save the PDF
-  doc.save(`receipt-${payment.id}.pdf`);
+  // Save the PDF with extraction date for clarity
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const datePart = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  doc.save(`receipt-${payment.id}_${datePart}.pdf`);
 };
 

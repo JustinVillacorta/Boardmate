@@ -147,7 +147,7 @@ const PaymentPage: React.FC<PaymentPageProps> = ({ currentPage, onNavigate, user
       sheetsData[0] = [headers, ...sheetsData[0]];
       sheetsData[1] = [headers, ...sheetsData[1]];
       
-      await exportToExcel(sheetsData, 'payments_export', { 
+      await exportToExcel(sheetsData, 'Payments_Dataset', { 
         sheetNames: ['Outstanding Payments', 'Payment History']
       });
     } catch (error) {
