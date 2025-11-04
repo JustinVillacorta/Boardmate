@@ -3,12 +3,12 @@ export interface Announcement {
   id: string;
   title: string;
   content: string;
-  author: {
+  author?: {
     _id: string;
     name: string;
     email: string;
     role: string;
-  };
+  } | null;
   audience: 'all' | 'tenants' | 'staff' | 'admins' | 'custom';
   targetUsers?: Array<{
     user: string;

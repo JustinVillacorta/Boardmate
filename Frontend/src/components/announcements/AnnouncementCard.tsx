@@ -192,7 +192,7 @@ const AnnouncementCard: React.FC<AnnouncementCardProps> = ({
       <div className="flex items-center justify-between text-sm text-gray-500 pt-3 border-t border-gray-200">
         <div className="flex items-center gap-4">
           {/* Author */}
-          {showAuthor && (
+          {showAuthor && announcement.author && (
             <div className="flex items-center gap-1">
               <User className="w-4 h-4" />
               <span>{announcement.author.name}</span>
