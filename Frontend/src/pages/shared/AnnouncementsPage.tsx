@@ -103,7 +103,7 @@ const AnnouncementsPage: React.FC<AnnouncementsPageProps> = ({
     return (
       announcement.title.toLowerCase().includes(query) ||
       announcement.content.toLowerCase().includes(query) ||
-      announcement.author.name.toLowerCase().includes(query)
+      (announcement.author && announcement.author.name.toLowerCase().includes(query))
     );
   });
 
